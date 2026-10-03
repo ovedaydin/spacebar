@@ -112,6 +112,8 @@ enum Preferences {
     static let lowDiskAlerts = "lowDiskAlerts"
     static let lowDiskThresholdGB = "lowDiskThresholdGB"
     static let lastLowDiskAlert = "lastLowDiskAlert"
+    static let onboardingDone = "onboardingDone"
+    static let onboardingPage = "onboardingPage"
 
     static func register() {
         UserDefaults.standard.register(defaults: [showMenuBar: true, lowDiskAlerts: true, lowDiskThresholdGB: 10])
@@ -197,6 +199,7 @@ enum DebugSnapshot {
                     }
                 case "snappanel": snapshot(to: parts[1], panel: true)
                 case "snapstatus": snapshot(to: parts[1], status: true)
+                case "snapsheet": snapshot(to: parts[1], sheet: true)
                 case "iconpng":
                     // Renders the menu bar icon at 8× (black on white) to check its shape.
                     let size = NSSize(width: 128, height: 128)
@@ -383,10 +386,11 @@ enum DebugSnapshot {
         }
     }
 
-    private static func snapshot(to path: String, panel: Bool = false, status: Bool = false) {
+    private static func snapshot(to path: String, panel: Bool = false, status: Bool = false, sheet: Bool = false) {
         let candidates = NSApp.windows.filter(\.isVisible)
         let chosen = panel ? candidates.first { String(describing: type(of: $0)).contains("MenuBarExtra") }
             : status ? candidates.first { String(describing: type(of: $0)).contains("StatusBar") }
+            : sheet ? candidates.compactMap(\.attachedSheet).first
             : candidates.first
         FileHandle.standardError.write(Data("[windows] \(candidates.map { "\(type(of: $0)) level=\($0.level.rawValue)" })\n".utf8))
         guard let window = chosen,

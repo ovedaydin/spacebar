@@ -12,6 +12,7 @@ struct ContentView: View {
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var explorer: ExplorerModel
     @State private var route: Route? = ContentView.initialRoute
+    @AppStorage(Preferences.onboardingDone) private var onboardingDone = false
 
     /// SPACEBAR_ROUTE=explorer|<category id> opens a specific page (development aid).
     private static var initialRoute: Route {
@@ -126,8 +127,25 @@ struct ContentView: View {
         }
         .onAppear {
             // Cached results are on screen already; measure again in the background.
-            if model.showingCachedResults || ProcessInfo.processInfo.environment["SPACEBAR_AUTOSCAN"] != nil {
+            if onboardingDone && (model.showingCachedResults || ProcessInfo.processInfo.environment["SPACEBAR_AUTOSCAN"] != nil) {
                 model.scanAll()
+            }
+        }
+        // An overlay, not a modal sheet: AppKit refuses to quit while a sheet is open.
+        .overlay {
+            if !onboardingDone {
+                ZStack {
+                    Rectangle().fill(.black.opacity(0.35)).ignoresSafeArea()
+                    OnboardingView {
+                        onboardingDone = true
+                        UserDefaults.standard.removeObject(forKey: Preferences.onboardingPage)
+                        route = .overview
+                        model.scanAll()
+                    }
+                    .environmentObject(model)
+                    .background(Color(nsColor: .windowBackgroundColor), in: RoundedRectangle(cornerRadius: 12))
+                    .shadow(radius: 24)
+                }
             }
         }
         .alert(model.report?.title ?? "", isPresented: Binding(get: { model.report != nil },
