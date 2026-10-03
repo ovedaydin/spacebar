@@ -138,6 +138,7 @@ How the scanner works:
 git clone https://github.com/ovedaydin/spacebar && cd spacebar
 swift run Spacebar                # run the app directly
 ARCHS=arm64 ./scripts/build-app.sh  # build dist/Spacebar.app (drop ARCHS for a universal build)
+./scripts/install-local.sh          # build and install to /Applications (replaces the running copy)
 ./scripts/package.sh                # create dist/Spacebar-x.y.z.{zip,dmg} and SHA256SUMS.txt
 ```
 
