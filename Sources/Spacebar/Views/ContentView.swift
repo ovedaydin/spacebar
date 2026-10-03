@@ -91,6 +91,15 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.segmentNotification)) { note in
+            if let action = note.object as? String, action.hasPrefix("action:") {
+                if action == "action:fdacheck" {
+                    model.checkFullDiskAccessAgain()
+                    FileHandle.standardError.write(Data("[fda] granted=\(String(describing: model.fullDiskAccess)) checkFailed=\(model.accessCheckFailed)\n".utf8))
+                } else {
+                    model.relaunch()
+                }
+                return
+            }
             // Same as clicking a slice in the disk breakdown legend.
             guard let raw = note.object as? String, let kind = StorageSegment.Kind(rawValue: raw),
                   let segment = model.storage?.segments.first(where: { $0.kind == kind }) else { return }

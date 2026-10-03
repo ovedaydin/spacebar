@@ -180,6 +180,8 @@ enum DebugSnapshot {
                 case "selftest": cleanerSelfTest()
                 case "trashtest": trashSelfTest()
                 case "menubar": clickMenuBarItem()
+                case "fdacheck", "relaunch":
+                    NotificationCenter.default.post(name: segmentNotification, object: "action:" + parts[0])
                 case "statusframe":
                     for window in NSApp.windows where String(describing: type(of: window)).contains("StatusBar") {
                         let screen = NSScreen.main

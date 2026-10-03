@@ -15,10 +15,21 @@ struct OverviewView: View {
                            message: "Spacebar is running from a disk image or a quarantined folder, so macOS may block its permissions. Drag it to your Applications folder and open it from there.") {}
                 }
                 if model.fullDiskAccess != true {
-                    Banner(icon: "lock.shield", tint: .blue, title: "Optional: grant Full Disk Access",
-                           message: "Without it, Spacebar can't see your Trash, Mail attachments, iPhone backups, or sandboxed app caches. Turn on Spacebar under Privacy & Security › Full Disk Access, then quit and reopen Spacebar.") {
-                        Button("Open System Settings") { FullDiskAccess.openSettings() }
-                        Button("Check Again") { model.refreshSystem() }
+                    Banner(icon: "lock.shield", tint: .blue,
+                           title: model.accessCheckFailed ? "Full Disk Access isn't active yet" : "Optional: grant Full Disk Access",
+                           message: model.accessCheckFailed
+                               ? "If you just turned Spacebar on in Privacy & Security › Full Disk Access, macOS applies it after Spacebar restarts. Click Quit & Reopen. If it's still not active afterwards, remove Spacebar from the list with the – button and add it again with +."
+                               : "Without it, Spacebar can't see your Trash, Mail attachments, iPhone backups, or sandboxed app caches. Turn on Spacebar under Privacy & Security › Full Disk Access.") {
+                        Button("Open System Settings") {
+                            FullDiskAccess.openSettings()
+                            model.watchForFullDiskAccess()
+                        }
+                        if model.accessCheckFailed {
+                            Button("Quit & Reopen") { model.relaunch() }
+                                .buttonStyle(.borderedProminent)
+                        } else {
+                            Button("Check Again") { model.checkFullDiskAccessAgain() }
+                        }
                     }
                 }
 

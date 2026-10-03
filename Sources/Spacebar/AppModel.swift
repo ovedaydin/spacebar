@@ -93,6 +93,46 @@ final class AppModel: ObservableObject {
     }
     var totalSelectedSize: Int64 { allSelected.reduce(0) { $0 + $1.0.size } }
 
+    /// Set after "Check Again" found no access: a grant made while Spacebar runs
+    /// usually only takes effect after it restarts.
+    @Published var accessCheckFailed = false
+    private var accessPoll: Timer?
+
+    /// After opening System Settings, re-check every few seconds for two minutes.
+    func watchForFullDiskAccess() {
+        accessPoll?.invalidate()
+        var remaining = 40
+        accessPoll = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] timer in
+            Task { @MainActor in
+                guard let self else { return timer.invalidate() }
+                remaining -= 1
+                if FullDiskAccess.isGranted() == true {
+                    self.fullDiskAccess = true
+                    timer.invalidate()
+                    self.scanAll()
+                } else if remaining <= 0 {
+                    timer.invalidate()
+                }
+            }
+        }
+    }
+
+    func checkFullDiskAccessAgain() {
+        refreshSystem()
+        accessCheckFailed = fullDiskAccess != true
+        if fullDiskAccess == true { scanAll() }
+    }
+
+    /// Restarts Spacebar so macOS applies a Full Disk Access grant.
+    func relaunch() {
+        let path = Bundle.main.bundlePath
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = ["-c", "sleep 1; /usr/bin/open \"$0\"", path]
+        try? process.run()
+        NSApp.terminate(nil)
+    }
+
     func refreshSystem() {
         space = .home()
         fullDiskAccess = FullDiskAccess.isGranted()
