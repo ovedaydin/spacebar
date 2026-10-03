@@ -40,6 +40,28 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// "Never Show in Cleanup" paths.
+    @Published private(set) var exclusions: [String] = UserDefaults.standard.stringArray(forKey: "exclusions") ?? []
+
+    /// Hides `key` (and everything inside it) from every cleanup list, right away and in future scans.
+    func exclude(_ key: String) {
+        guard !exclusions.contains(key) else { return }
+        exclusions.append(key)
+        UserDefaults.standard.set(exclusions, forKey: "exclusions")
+        for id in results.keys {
+            let hidden = results[id]?.filter { Exclusions.matches($0.url, [key]) } ?? []
+            selection.subtract(hidden.map(\.url))
+            results[id]?.removeAll { Exclusions.matches($0.url, [key]) }
+        }
+        saveResults()
+    }
+
+    func removeExclusion(_ key: String) {
+        exclusions.removeAll { $0 == key }
+        UserDefaults.standard.set(exclusions, forKey: "exclusions")
+        scanAll() // bring its items back
+    }
+
     private var observers: [AnyCancellable] = []
 
     init() {
@@ -316,7 +338,7 @@ final class AppModel: ObservableObject {
         // Keep scanning at full speed while Spacebar is in the background (App Nap).
         let activity = ProcessInfo.processInfo.beginActivity(options: .userInitiated, reason: "Scanning \(category.name)")
         let context = ScanContext(engine: engine, runningApps: RunningApps.bundleIDs(),
-                                  fullDiskAccess: fullDiskAccess ?? false)
+                                  fullDiskAccess: fullDiskAccess ?? false, excluded: exclusions)
         Task.detached(priority: .userInitiated) {
             let items = category.scan(context)
             ProcessInfo.processInfo.endActivity(activity)
@@ -356,7 +378,8 @@ final class AppModel: ObservableObject {
         let known = Set(categories.map(\.id))
         for (id, items) in cache.results where known.contains(id) {
             results[id] = items.compactMap { item in
-                guard FileManager.default.fileExists(atPath: item.url.path) else { return nil }
+                guard !Exclusions.matches(item.url, exclusions) else { return nil }
+                guard !item.url.isFileURL || FileManager.default.fileExists(atPath: item.url.path) else { return nil }
                 var item = item
                 item.inUse = item.owner.map(running.contains) ?? false
                 return item

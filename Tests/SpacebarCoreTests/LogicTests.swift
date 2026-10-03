@@ -174,3 +174,20 @@ final class HistoryTests: XCTestCase {
         XCTAssertEqual(history.growth(now: now)?.items.first?.delta, 899_999_999, "falls back to the oldest entry")
     }
 }
+
+final class ExclusionTests: XCTestCase {
+    func testMatching() {
+        let excluded = ["/a/pip", "docker://build-cache"]
+        XCTAssertTrue(Exclusions.matches(URL(fileURLWithPath: "/a/pip"), excluded))
+        XCTAssertTrue(Exclusions.matches(URL(fileURLWithPath: "/a/pip/http/x"), excluded), "contents too")
+        XCTAssertFalse(Exclusions.matches(URL(fileURLWithPath: "/a/pipx"), excluded), "not a sibling with the same prefix")
+        XCTAssertTrue(Exclusions.matches(URL(string: "docker://build-cache")!, excluded))
+        XCTAssertFalse(Exclusions.matches(URL(string: "docker://images")!, excluded))
+    }
+
+    func testScanLeavesOutExcludedFolders() {
+        let logs = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Logs").path
+        let context = ScanContext(engine: BulkScanner(), runningApps: [], fullDiskAccess: false, excluded: [logs])
+        XCTAssertTrue(CleanCategory.logs.scan(context).isEmpty)
+    }
+}

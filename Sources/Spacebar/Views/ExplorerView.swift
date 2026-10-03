@@ -31,6 +31,10 @@ struct ExplorerView: View {
                 .contextMenu {
                     if entry.isFolder { Button("Open") { explorer.open(entry) } }
                     Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([entry.url]) }
+                    Button(model.exclusions.contains(Exclusions.key(for: entry.url)) ? "Excluded from Cleanup" : "Never Show in Cleanup") {
+                        model.exclude(Exclusions.key(for: entry.url))
+                    }
+                    .disabled(model.exclusions.contains(Exclusions.key(for: entry.url)))
                     Divider()
                     if let reason = PathRules.reasonNotDeletable(entry.url, kind: entry.removalKind) {
                         Button("Can't Remove: \(reason)") {}.disabled(true)

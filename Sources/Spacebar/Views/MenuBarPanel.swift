@@ -177,6 +177,33 @@ struct SettingsView: View {
                 }
                 Toggle("Dry run: only show what would be removed", isOn: $model.dryRun)
             }
+            Section("Exclusions") {
+                if model.exclusions.isEmpty {
+                    Text("Nothing excluded. Right-click any item and choose Never Show in Cleanup.")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else {
+                    ForEach(model.exclusions, id: \.self) { key in
+                        HStack {
+                            Text(key.replacingOccurrences(of: NSHomeDirectory(), with: "~"))
+                                .lineLimit(1).truncationMode(.middle)
+                            Spacer()
+                            Button { model.removeExclusion(key) } label: { Image(systemName: "minus.circle") }
+                                .buttonStyle(.borderless)
+                                .help("Show this in cleanup lists again")
+                        }
+                    }
+                }
+                Button("Add Folder…") {
+                    let panel = NSOpenPanel()
+                    panel.canChooseDirectories = true
+                    panel.canChooseFiles = true
+                    panel.allowsMultipleSelection = true
+                    panel.prompt = "Exclude"
+                    if panel.runModal() == .OK {
+                        for url in panel.urls { model.exclude(Exclusions.key(for: url)) }
+                    }
+                }
+            }
             Section("Updates") {
                 LabeledContent("Version", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev")
                 Button("Check for Updates…") { Updates.shared.check() }
@@ -188,6 +215,6 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460, height: 460)
+        .frame(width: 480, height: 560)
     }
 }

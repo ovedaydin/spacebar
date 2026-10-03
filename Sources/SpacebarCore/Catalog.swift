@@ -61,6 +61,9 @@ public struct CleanItem: Identifiable, Hashable, Sendable, Codable {
     /// Whether the item may be selected for cleaning.
     public var isSelectable: Bool { !inUse && lockedReason == nil }
 
+    /// What "Never Show in Cleanup" remembers: the path, or the full URL for non-file items.
+    public var exclusionKey: String { Exclusions.key(for: url) }
+
     public init(url: URL, name: String, size: Int64, date: Date?, detail: String?, owner: String?) {
         self.url = url
         self.name = name
@@ -68,6 +71,18 @@ public struct CleanItem: Identifiable, Hashable, Sendable, Codable {
         self.date = date
         self.detail = detail
         self.owner = owner
+    }
+}
+
+/// "Never Show in Cleanup": excluded paths hide themselves and everything inside them.
+public enum Exclusions {
+    public static func key(for url: URL) -> String {
+        url.isFileURL ? url.standardizedFileURL.path : url.absoluteString
+    }
+
+    public static func matches(_ url: URL, _ excluded: [String]) -> Bool {
+        let key = key(for: url)
+        return excluded.contains { key == $0 || key.hasPrefix($0.hasSuffix("/") ? $0 : $0 + "/") }
     }
 }
 
@@ -115,13 +130,17 @@ public struct ScanContext: Sendable {
     public let runningApps: Set<String>
     public let fullDiskAccess: Bool
     public let cancel: CancelToken?
+    /// Paths (and their contents) the user never wants offered.
+    public let excluded: [String]
 
-    public init(engine: SizeEngine, runningApps: Set<String>, fullDiskAccess: Bool, cancel: CancelToken? = nil) {
+    public init(engine: SizeEngine, runningApps: Set<String>, fullDiskAccess: Bool, cancel: CancelToken? = nil,
+                excluded: [String] = []) {
         self.home = FileManager.default.homeDirectoryForCurrentUser
         self.engine = engine
         self.runningApps = runningApps
         self.fullDiskAccess = fullDiskAccess
         self.cancel = cancel
+        self.excluded = excluded
     }
 
     func path(_ relative: String) -> URL { home.appendingPathComponent(relative) }
@@ -167,7 +186,9 @@ public struct CleanCategory: Identifiable, Sendable {
 
     /// Finds and measures this category's items. Blocking: call off the main thread.
     public func scan(_ context: ScanContext) -> [CleanItem] {
-        let candidates = collect(context).filter { PathRules.isDeletable($0.url, kind: $0.kind) }
+        let candidates = collect(context).filter {
+            PathRules.isDeletable($0.url, kind: $0.kind) && !Exclusions.matches($0.url, context.excluded)
+        }
         let unsized = candidates.filter { $0.knownSize == nil }.map(\.url)
         let measured = Dictionary(uniqueKeysWithValues: zip(unsized, context.engine.measure(unsized, cancel: context.cancel)))
 

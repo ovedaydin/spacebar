@@ -29,6 +29,9 @@ struct CategoryView: View {
                                 Divider()
                             }
                             Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([item.url]) }
+                                .disabled(!item.url.isFileURL)
+                            Button("Never Show in Cleanup") { model.exclude(item.exclusionKey) }
+                                .help("Hide this item from cleanup lists. Undo in Settings › Exclusions.")
                             Button("Copy Path") {
                                 NSPasteboard.general.clearContents()
                                 NSPasteboard.general.setString(item.url.path, forType: .string)
