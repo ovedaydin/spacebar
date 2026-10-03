@@ -1,0 +1,14 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: swift build -c release
+      - name: Benchmark smoke test (read-only)
+        run: swift run -c release spacebar-bench --path "$GITHUB_WORKSPACE" --runs 1

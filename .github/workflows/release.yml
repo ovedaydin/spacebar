@@ -1,0 +1,104 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    env:
+      VERSION: ${{ github.ref_name }}
+      BUILD_NUMBER: ${{ github.run_number }}
+      HAS_SIGNING: ${{ secrets.SIGNING_P12_BASE64 != '' }}
+      HAS_TAP: ${{ secrets.TAP_TOKEN != '' }}
+      HAS_SPARKLE: ${{ secrets.SPARKLE_PRIVATE_KEY != '' }}
+      NOTARIZE: ${{ vars.NOTARIZE == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Import signing certificate
+        if: env.HAS_SIGNING == 'true'
+        env:
+          P12_B64: ${{ secrets.SIGNING_P12_BASE64 }}
+          P12_PW: ${{ secrets.SIGNING_P12_PASSWORD }}
+        run: |
+          KC="$RUNNER_TEMP/signing.keychain-db"
+          KC_PW="$(openssl rand -base64 24)"
+          echo "$P12_B64" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KC_PW" "$KC"
+          security set-keychain-settings -lut 21600 "$KC"
+          security unlock-keychain -p "$KC_PW" "$KC"
+          security import "$RUNNER_TEMP/cert.p12" -P "$P12_PW" -A -t cert -f pkcs12 -k "$KC"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KC_PW" "$KC"
+          security list-keychain -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          rm "$RUNNER_TEMP/cert.p12"
+          echo "KEYCHAIN=$KC" >> "$GITHUB_ENV"
+
+      - name: Build app
+        env:
+          SIGN_IDENTITY: ${{ secrets.SIGN_IDENTITY }}
+        run: ./scripts/build-app.sh
+
+      # Only with a paid Apple Developer account: set repo variable NOTARIZE=true
+      # and secrets ASC_KEY_P8, ASC_KEY_ID, ASC_ISSUER_ID.
+      - name: Notarize app
+        if: env.NOTARIZE == 'true'
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          echo "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+          ditto -c -k --keepParent dist/Spacebar.app "$RUNNER_TEMP/notarize.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/notarize.zip" --key "$RUNNER_TEMP/AuthKey.p8" \
+            --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER" --wait
+          xcrun stapler staple dist/Spacebar.app
+
+      - name: Package
+        run: |
+          ./scripts/package.sh
+          V="${VERSION#v}"
+          echo "ZIP_SHA=$(shasum -a 256 "dist/Spacebar-$V.zip" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
+      # Sparkle: secret SPARKLE_PRIVATE_KEY = contents of signing/sparkle_private_key.
+      - name: Sign update and write appcast
+        if: env.HAS_SPARKLE == 'true'
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          echo "$SPARKLE_PRIVATE_KEY" > "$RUNNER_TEMP/sparkle_key"
+          SPARKLE_KEY_FILE="$RUNNER_TEMP/sparkle_key" ./scripts/make-appcast.sh
+          rm "$RUNNER_TEMP/sparkle_key"
+
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            dist/*.zip
+            dist/*.dmg
+            dist/SHA256SUMS.txt
+            dist/appcast.xml
+          generate_release_notes: true
+
+      # Optional: secret TAP_TOKEN = fine-grained PAT with Contents read/write on
+      # <you>/homebrew-tap. Updates Casks/spacebar.rb to the new version.
+      - name: Bump Homebrew tap
+        if: env.HAS_TAP == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.TAP_TOKEN }}
+        run: |
+          V="${VERSION#v}"
+          git clone "https://x-access-token:$GH_TOKEN@github.com/${{ github.repository_owner }}/homebrew-tap.git" tap
+          cd tap
+          sed -i '' -E "s/^  version \".*\"/  version \"$V\"/; s/^  sha256 \".*\"/  sha256 \"$ZIP_SHA\"/" Casks/spacebar.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "spacebar $V" && git push
+
+      - name: Clean up keychain
+        if: always() && env.KEYCHAIN != ''
+        run: security delete-keychain "$KEYCHAIN" || true

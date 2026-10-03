@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>__EXECUTABLE__</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>__BUNDLE_ID__</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>__APP_NAME__</string>
+	<key>CFBundleDisplayName</key>
+	<string>__APP_NAME__</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>__VERSION__</string>
+	<key>CFBundleVersion</key>
+	<string>__BUILD__</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>__MIN_MACOS__</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>SUFeedURL</key>
+	<string>__SPARKLE_FEED_URL__</string>
+	<key>SUPublicEDKey</key>
+	<string>__SPARKLE_PUBLIC_KEY__</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>86400</integer>
+	<key>NSHumanReadableCopyright</key>
+	<string>MIT License</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Spacebar measures your Desktop to show what is using disk space.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Spacebar measures your Documents folder to show what is using disk space.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Spacebar looks for old and large downloads you may want to remove.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Spacebar asks Finder to empty the Trash when it can't access the Trash itself.</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Spacebar can measure external drives you choose to scan.</string>
+	<key>NSNetworkVolumesUsageDescription</key>
+	<string>Spacebar can measure network drives you choose to scan.</string>
+</dict>
+</plist>
