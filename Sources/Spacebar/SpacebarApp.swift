@@ -217,6 +217,8 @@ enum DebugSnapshot {
                 case "simulate": NotificationCenter.default.post(name: simulateNotification, object: parts[1])
                 case "key": key(parts[1])
                 case "appkey": appKey(parts[1])
+                case "drive": NotificationCenter.default.post(name: segmentNotification, object: "drive:" + parts[1])
+                case "drivetest": driveSelfTest(parts[1])
                 case "dump": NotificationCenter.default.post(name: dumpNotification, object: parts[1])
                 case "activate":
                     NSApp.activate(ignoringOtherApps: true)
@@ -244,6 +246,22 @@ enum DebugSnapshot {
         // so the mouse-up must already be queued when the mouse-down is delivered.
         NSApp.postEvent(up, atStart: false)
         window.sendEvent(down)
+    }
+
+    /// Path rules and a real Trash → Put Back on a test drive mounted at /Volumes/<name>.
+    private static func driveSelfTest(_ name: String) {
+        func say(_ s: String) { FileHandle.standardError.write(Data("[drivetest] \(s)\n".utf8)) }
+        let root = URL(fileURLWithPath: "/Volumes/\(name)")
+        for path in ["", ".Spotlight-V100", ".Trashes", "Videos", "Videos/clip.mov"] {
+            let url = path.isEmpty ? root : root.appendingPathComponent(path)
+            say("\(path.isEmpty ? "(drive root)" : path): \(PathRules.reasonNotDeletable(url) ?? "allowed")")
+        }
+        let file = root.appendingPathComponent("Projects/old-export.zip")
+        let item = CleanItem(url: file, name: file.lastPathComponent, size: 1, date: nil, detail: nil, owner: nil)
+        let trashed = Cleaner.run([Cleaner.Request(item: item, mode: .trash)], dryRun: false)
+        say("trash: landed=\(trashed.trashedItems.map { $0.url.path }) skipped=\(trashed.skipped.map(\.reason)) inTrash=\(trashed.trashedItems.first.map { Cleaner.isInTrash($0.url) } ?? false)")
+        let back = Cleaner.putBack(trashed.trashedItems, dryRun: false)
+        say("put back: restored=\(back.restoredItems.count) exists=\(FileManager.default.fileExists(atPath: file.path))")
     }
 
     /// Posts a key press through the app's event queue (so local monitors see it), e.g. "125" or "51+cmd".

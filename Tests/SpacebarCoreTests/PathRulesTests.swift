@@ -70,3 +70,14 @@ final class PathRulesTests: XCTestCase {
         XCTAssertFalse(PathRules.isDeletable(URL(fileURLWithPath: developer), kind: .application))
     }
 }
+
+final class DrivePathRulesTests: XCTestCase {
+    func testOtherDrives() {
+        func reason(_ path: String) -> String? { PathRules.reasonNotDeletable(URL(fileURLWithPath: path)) }
+        XCTAssertEqual(reason("/Volumes/Backup Disk"), "The drive itself")
+        XCTAssertNotNil(reason("/Volumes/Backup Disk/.Spotlight-V100"))
+        XCTAssertNotNil(reason("/Volumes/Backup Disk/.Trashes"))
+        XCTAssertNotNil(reason("/Volumes/Backup Disk/Backups.backupdb/Mac/2024-01-01"), "Time Machine")
+        XCTAssertNil(reason("/Volumes/Backup Disk/Videos/clip.mov"))
+    }
+}

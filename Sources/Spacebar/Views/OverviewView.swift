@@ -10,6 +10,34 @@ struct OverviewView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                if model.drives.count > 1 {
+                    Picker("Drive", selection: Binding(get: { model.selectedDrive?.url ?? model.drives.first?.url },
+                                                       set: { url in model.selectDrive(model.drives.first { $0.url == url }) })) {
+                        ForEach(model.drives) { drive in
+                            Label(drive.name, systemImage: drive.isStartup ? "internaldrive" : "externaldrive").tag(Optional(drive.url))
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                    .fixedSize()
+                }
+                if let drive = model.selectedDrive {
+                    DriveCard(drive: drive) { url in
+                        explorer.show(url)
+                        route = .explorer
+                    }
+                } else {
+                    startupDisk
+                }
+            }
+            .padding(24)
+            .frame(maxWidth: 900, alignment: .leading)
+        }
+        .navigationTitle("Overview")
+        .cleanConfirmation($pending, model: model)
+    }
+
+    @ViewBuilder private var startupDisk: some View {
                 if model.needsMoveToApplications {
                     Banner(icon: "folder.badge.questionmark", tint: .orange, title: "Move Spacebar to Applications",
                            message: "Spacebar is running from a disk image or a quarantined folder, so macOS may block its permissions. Drag it to your Applications folder and open it from there.") {}
@@ -69,12 +97,6 @@ struct OverviewView: View {
                     categoryList("Cleanup", model.categories.filter { $0.group == .cleanup })
                     categoryList("Find Space", model.categories.filter { $0.group == .findSpace })
                 }
-            }
-            .padding(24)
-            .frame(maxWidth: 900, alignment: .leading)
-        }
-        .navigationTitle("Overview")
-        .cleanConfirmation($pending, model: model)
     }
 
     private func categoryList(_ title: String, _ categories: [CleanCategory]) -> some View {
@@ -185,6 +207,95 @@ private struct WhatGrewCard: View {
 
     private func display(_ path: String) -> String {
         path.replacingOccurrences(of: NSHomeDirectory(), with: "~")
+    }
+}
+
+/// Breakdown of a drive other than the startup disk: its largest top-level folders.
+private struct DriveCard: View {
+    @EnvironmentObject private var model: AppModel
+    let drive: Drive
+    let open: (URL) -> Void
+
+    private static let palette: [Color] = [
+        .dynamic(light: 0x2A78D6, dark: 0x3987E5), .dynamic(light: 0xEB6834, dark: 0xD95926),
+        .dynamic(light: 0x1BAF7A, dark: 0x199E70), .dynamic(light: 0xEDA100, dark: 0xC98500),
+        .dynamic(light: 0xE87BA4, dark: 0xD55181), .dynamic(light: 0x008300, dark: 0x008300),
+        .dynamic(light: 0x4A3AA7, dark: 0x9085E9),
+    ]
+    private static let otherColor: Color = .dynamic(light: 0x8A8985, dark: 0x8F8E88)
+    private static let systemColor: Color = .dynamic(light: 0xC4C3BD, dark: 0x5B5A56)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Label(drive.name, systemImage: "externaldrive").font(.headline)
+                Spacer()
+                Text("\(ByteFormat.string(drive.available)) available of \(ByteFormat.string(drive.total))")
+                    .foregroundStyle(.secondary)
+            }
+            if let breakdown = model.driveBreakdown {
+                bar(breakdown)
+                legend(breakdown)
+            } else {
+                ProgressView().controlSize(.small)
+            }
+            HStack {
+                Text(model.driveBreakdown?.complete == true ? "Click a folder to explore it." : "Measuring…")
+                    .font(.caption).foregroundStyle(.secondary)
+                Spacer()
+                Button("Explore Drive") { open(drive.url) }
+                if drive.isRemovable {
+                    Button("Eject") { model.eject(drive) }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func slices(_ breakdown: DriveBreakdown) -> [(name: String, bytes: Int64, color: Color, path: String?)] {
+        var result = breakdown.folders.enumerated().map { index, folder in
+            (folder.name, folder.bytes, Self.palette[index % Self.palette.count], Optional(folder.path))
+        }
+        if breakdown.other > 0 { result.append(("Other items", breakdown.other, Self.otherColor, nil)) }
+        if breakdown.complete && breakdown.system > 0 { result.append(("System & hidden", breakdown.system, Self.systemColor, nil)) }
+        return result
+    }
+
+    private func bar(_ breakdown: DriveBreakdown) -> some View {
+        let parts = slices(breakdown).filter { $0.bytes > 0 }
+        return GeometryReader { geo in
+            let scale = max(0, geo.size.width - CGFloat(parts.count) * 2) / CGFloat(max(drive.total, 1))
+            HStack(spacing: 2) {
+                ForEach(Array(parts.enumerated()), id: \.offset) { _, part in
+                    Rectangle().fill(part.color)
+                        .frame(width: max(1, CGFloat(part.bytes) * scale))
+                        .help("\(part.name): \(ByteFormat.string(part.bytes))")
+                }
+                Rectangle().fill(Color.secondary.opacity(0.15)).help("Free: \(ByteFormat.string(drive.available))")
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+        }
+        .frame(height: 18)
+    }
+
+    private func legend(_ breakdown: DriveBreakdown) -> some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 16, alignment: .leading)], alignment: .leading, spacing: 6) {
+            ForEach(Array(slices(breakdown).enumerated()), id: \.offset) { _, part in
+                Button { if let path = part.path { open(URL(fileURLWithPath: path)) } } label: {
+                    HStack(spacing: 8) {
+                        RoundedRectangle(cornerRadius: 2).fill(part.color).frame(width: 10, height: 10)
+                        Text(part.name).lineLimit(1).truncationMode(.middle)
+                        Spacer(minLength: 4)
+                        Text(ByteFormat.string(part.bytes)).monospacedDigit().foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary).opacity(part.path == nil ? 0 : 1)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .font(.callout)
     }
 }
 

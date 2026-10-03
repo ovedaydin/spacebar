@@ -101,6 +101,21 @@ public enum PathRules {
             // Outside home: only macOS installer apps in /Applications.
             if components.count == 3 && components[1] == "Applications"
                 && components[2].hasPrefix("Install macOS") && components[2].hasSuffix(".app") { return nil }
+            // Other drives: anything inside, except the drive itself, its system folders and backups.
+            if components.count >= 3 && components[1] == "Volumes" {
+                let systemFolders: Set<String> = [".Spotlight-V100", ".fseventsd", ".Trashes", ".DocumentRevisions-V100",
+                                                  ".TemporaryItems", ".PKInstallSandboxManager", ".MobileBackups"]
+                if components.count == 3 { return "The drive itself" }
+                if components[2].hasPrefix(".") { return "A drive used by macOS" }
+                if systemFolders.contains(components[3]) { return "A folder macOS manages on this drive" }
+                let driveRoot = "/Volumes/" + components[2]
+                if components.contains("Backups.backupdb")
+                    || FileManager.default.fileExists(atPath: driveRoot + "/Backups.backupdb")
+                    || FileManager.default.fileExists(atPath: driveRoot + "/.com.apple.timemachine.donotpresent") {
+                    return "Time Machine backups. Manage them in Time Machine"
+                }
+                return nil
+            }
             // /Users/Shared holds user content (games, app libraries); the folder itself stays.
             if components.count >= 3 && components[1] == "Users" && components[2] == "Shared" {
                 return components.count >= 4 ? nil : "The folder all accounts share"

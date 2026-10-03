@@ -40,6 +40,51 @@ final class AppModel: ObservableObject {
         }
     }
 
+    // MARK: Drives
+
+    @Published private(set) var drives: [Drive] = Drive.mounted()
+    /// nil = the startup disk.
+    @Published private(set) var selectedDrive: Drive?
+    @Published private(set) var driveBreakdown: DriveBreakdown?
+    private var driveToken: CancelToken?
+
+    func refreshDrives() {
+        drives = Drive.mounted()
+        if let selected = selectedDrive, !drives.contains(where: { $0.url == selected.url }) { selectDrive(nil) }
+    }
+
+    func selectDrive(_ drive: Drive?) {
+        driveToken?.cancel()
+        selectedDrive = drive?.isStartup == true ? nil : drive
+        driveBreakdown = nil
+        guard let drive = selectedDrive else { return }
+        let token = CancelToken()
+        driveToken = token
+        Task.detached(priority: .userInitiated) {
+            _ = DriveBreakdown.analyze(drive, engine: BulkScanner(), cancel: token) { partial in
+                Task { @MainActor in
+                    if !token.isCancelled && self.selectedDrive?.url == drive.url { self.driveBreakdown = partial }
+                }
+            }
+        }
+    }
+
+    func eject(_ drive: Drive) {
+        selectDrive(nil)
+        Task.detached {
+            do {
+                try NSWorkspace.shared.unmountAndEjectDevice(at: drive.url)
+            } catch {
+                await MainActor.run {
+                    var report = Cleaner.Report(dryRun: false)
+                    report.skipped.append((drive.name, "Couldn't eject: \(error.localizedDescription)"))
+                    self.report = report
+                }
+            }
+            await MainActor.run { self.refreshDrives() }
+        }
+    }
+
     /// "Never Show in Cleanup" paths.
     @Published private(set) var exclusions: [String] = UserDefaults.standard.stringArray(forKey: "exclusions") ?? []
 
@@ -72,6 +117,11 @@ final class AppModel: ObservableObject {
         NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
             .sink { [weak self] _ in self?.refreshSystem() }
             .store(in: &observers)
+        for name in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification, NSWorkspace.didRenameVolumeNotification] {
+            NSWorkspace.shared.notificationCenter.publisher(for: name)
+                .sink { [weak self] _ in self?.refreshDrives() }
+                .store(in: &observers)
+        }
         // Keep the menu bar figure current and watch for low disk space.
         Timer.publish(every: 60, on: .main, in: .common).autoconnect()
             .sink { [weak self] _ in

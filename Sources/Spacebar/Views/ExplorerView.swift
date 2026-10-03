@@ -305,8 +305,20 @@ struct ExplorerView: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .fixedSize()
-            Button { explorer.chooseFolder() } label: { Image(systemName: "folder.badge.gearshape") }
-                .help("Choose a folder to explore…")
+            Menu {
+                ForEach(model.drives) { drive in
+                    Button(drive.isStartup ? "\(drive.name) (Home)" : drive.name) {
+                        explorer.show(drive.isStartup ? FileManager.default.homeDirectoryForCurrentUser : drive.url)
+                    }
+                }
+                Divider()
+                Button("Choose Folder…") { explorer.chooseFolder() }
+            } label: {
+                Image(systemName: "externaldrive")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help("Explore another drive or folder")
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 10)

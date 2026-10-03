@@ -92,6 +92,14 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.segmentNotification)) { note in
+            if let target = note.object as? String, target.hasPrefix("drive:") {
+                let name = String(target.dropFirst("drive:".count))
+                model.refreshDrives()
+                model.selectDrive(model.drives.first { $0.name == name })
+                route = .overview
+                FileHandle.standardError.write(Data("[drives] \(model.drives.map { "\($0.name)\($0.isStartup ? "*" : "")" }) selected=\(model.selectedDrive?.name ?? "startup")\n".utf8))
+                return
+            }
             if let target = note.object as? String, target.hasPrefix("explore:") {
                 explorer.show(URL(fileURLWithPath: (String(target.dropFirst("explore:".count)) as NSString).expandingTildeInPath))
                 route = .explorer
