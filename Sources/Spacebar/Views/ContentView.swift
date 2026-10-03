@@ -224,6 +224,9 @@ extension Cleaner.Report {
             lines.append("\(verb.isEmpty ? "Moved" : "Would move") \(ByteFormat.string(trashedBytes)) to the Trash, so that space isn't free yet."
                 + (dryRun ? "" : " Delete Now permanently deletes just these items; nothing else in your Trash is touched."))
         }
+        if photosCount > 0 {
+            lines.append("\(dryRun ? "Would move" : "Moved") \(photosCount) photo\(photosCount == 1 ? "" : "s") (\(ByteFormat.string(photosBytes))) to Recently Deleted in Photos. Restore them there within 30 days, or delete them there to free the space now.")
+        }
         if emptiedTrash && deletedBytes == 0 && !dryRun && skipped.isEmpty {
             lines.append("Finder emptied the Trash.")
         }

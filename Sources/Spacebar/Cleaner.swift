@@ -25,6 +25,9 @@ enum Cleaner {
         var restoredItems: [TrashedItem] = []
         /// This report is for deleting items from the Trash.
         var emptiedTrash = false
+        /// Library photos moved to Recently Deleted in Photos.
+        var photosCount = 0
+        var photosBytes: Int64 = 0
     }
 
     struct TrashedItem: Sendable {
@@ -44,6 +47,8 @@ enum Cleaner {
         let trash = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".Trash").path + "/"
         var log: [String] = []
         var installedApps: InstalledAppsIndex?
+        // Library photos are deleted together, so macOS asks for confirmation once.
+        var photos: [(identifier: String, item: CleanItem)] = []
 
         for request in requests {
             let item = request.item
@@ -68,6 +73,10 @@ enum Cleaner {
                     continue
                 }
             }
+            if case .photoAsset(let identifier) = item.kind {
+                photos.append((identifier, item))
+                continue
+            }
             let action = Action(item: item, requested: request.mode, trashPrefix: trash)
 
             if dryRun {
@@ -90,6 +99,25 @@ enum Cleaner {
                 log.append(entry("FAILED", item) + "\t\(error.localizedDescription)")
             }
         }
+        if !photos.isEmpty {
+            let bytes = photos.reduce(Int64(0)) { $0 + $1.item.size }
+            if dryRun {
+                photos.forEach { log.append(entry("DRY-RUN-PHOTOS-RECENTLY-DELETED", $0.item)) }
+                report.photosBytes = bytes
+                report.photosCount = photos.count
+            } else {
+                do {
+                    try PhotosLibrary.delete(photos.map(\.identifier))
+                    report.photosBytes = bytes
+                    report.photosCount = photos.count
+                    report.removed += photos.map(\.item.url)
+                    photos.forEach { log.append(entry("PHOTOS-RECENTLY-DELETED", $0.item)) }
+                } catch {
+                    // Includes the user choosing Don't Allow in the Photos confirmation.
+                    report.skipped.append(("\(photos.count) photo\(photos.count == 1 ? "" : "s")", error.localizedDescription))
+                }
+            }
+        }
         appendToLog(log)
         return report
     }
@@ -110,7 +138,7 @@ enum Cleaner {
             case .simulatorRuntime(let id): self = .simctl(["runtime", "delete", id])
             case .application: self = .recycleApp
             case .mailAttachments: self = .trashMailAttachments
-            case .appLeftover: self = .trash
+            case .appLeftover, .photoAsset: self = .trash
             case .dockerPrune(let arguments): self = .docker(arguments)
             case .timeMachineSnapshots: self = .deleteSnapshots
             case .file:

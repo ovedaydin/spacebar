@@ -33,6 +33,8 @@ public enum ItemKind: Hashable, Sendable, Codable {
     case dockerPrune(arguments: [String])
     /// Time Machine local snapshots on the startup disk, removed with `tmutil deletelocalsnapshots /`.
     case timeMachineSnapshots
+    /// A photo in the Photos library, moved to Recently Deleted through Photos.
+    case photoAsset(identifier: String)
 }
 
 public struct CleanItem: Identifiable, Hashable, Sendable, Codable {
@@ -166,7 +168,7 @@ public struct CleanCategory: Identifiable, Sendable {
     public var group: Group { Self.findSpaceIDs.contains(id) ? .findSpace : .cleanup }
     public var sortOrder: SortOrder { id == "apps" ? .oldestFirst : .largestFirst }
     static let findSpaceIDs: Set<String> = ["forgotten", "duplicates", "apps", "leftovers", "simulators", "docker",
-                                            "snapshots", "projects", "mail"]
+                                            "snapshots", "projects", "mail", "photos"]
     let collect: @Sendable (ScanContext) -> [Candidate]
 
     struct Candidate {
@@ -235,7 +237,8 @@ public extension CleanCategory {
     static let all: [CleanCategory] = [
         appCaches, logs, xcode, developerCaches, trash,
         xcodeArchives, iosBackups, installers, largeFiles,
-        forgottenFiles, unusedApps, simulators, docker, snapshots, appLeftovers, mail, duplicates, projectBuildFiles,
+        forgottenFiles, unusedApps, simulators, docker, snapshots, appLeftovers, mail, duplicates, similarPhotos,
+        projectBuildFiles,
     ]
 
     static let appCaches = CleanCategory(

@@ -448,9 +448,11 @@ final class AppModel: ObservableObject {
         ScanCache.save(ScanCache.Catalog(date: lastScan, results: results))
     }
 
-    /// For duplicates: keep `item` and offer the copy that was going to be kept instead.
+    /// For duplicates and similar photos: keep `item` and offer the copy that was going to be kept instead.
     func keepInstead(_ item: CleanItem) {
-        guard let keeper = item.duplicateOf, var items = results["duplicates"] else { return }
+        guard let keeper = item.duplicateOf,
+              let categoryID = results.first(where: { $0.value.contains { $0.url == item.url } })?.key,
+              var items = results[categoryID] else { return }
         let home = NSHomeDirectory()
         func short(_ url: URL) -> String { url.path.replacingOccurrences(of: home, with: "~") }
         items.removeAll { $0.url == item.url }
@@ -458,12 +460,17 @@ final class AppModel: ObservableObject {
             items[index].duplicateOf = item.url
             items[index].detail = "In \(short(items[index].url.deletingLastPathComponent())) · same as \(short(item.url))"
         }
-        var previous = CleanItem(url: keeper, name: keeper.lastPathComponent, size: item.size, date: nil,
-                                 detail: "In \(short(keeper.deletingLastPathComponent())) · same as \(short(item.url))", owner: nil)
+        let photo = PhotosLibrary.identifier(from: keeper)
+        var previous = CleanItem(url: keeper, name: photo.flatMap(PhotosLibrary.displayName) ?? keeper.lastPathComponent,
+                                 size: item.size, date: nil,
+                                 detail: photo != nil ? "Similar to \(item.name)"
+                                     : "In \(short(keeper.deletingLastPathComponent())) · same as \(short(item.url))",
+                                 owner: nil)
         previous.duplicateOf = item.url
+        if let photo { previous.kind = .photoAsset(identifier: photo) }
         items.append(previous)
         selection.remove(item.url)
-        results["duplicates"] = items.sorted { $0.size > $1.size }
+        results[categoryID] = items.sorted { $0.size > $1.size }
         saveResults()
     }
 

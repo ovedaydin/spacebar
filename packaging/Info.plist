@@ -46,6 +46,8 @@
 	<string>Spacebar measures your Documents folder to show what is using disk space.</string>
 	<key>NSDownloadsFolderUsageDescription</key>
 	<string>Spacebar looks for old and large downloads you may want to remove.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Spacebar finds near-duplicate photos in your library. Photos are analyzed on your Mac and never leave it.</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Spacebar asks Finder to empty the Trash when it can't access the Trash itself.</string>
 	<key>NSRemovableVolumesUsageDescription</key>

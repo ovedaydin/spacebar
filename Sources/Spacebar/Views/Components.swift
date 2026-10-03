@@ -9,10 +9,30 @@ struct FileIcon: View {
     /// Looking icons up is slow enough to matter when a list re-renders on every size update.
     private static let cache = NSCache<NSString, NSImage>()
 
+    @State private var photo: NSImage?
+
     var body: some View {
-        Image(nsImage: Self.icon(for: url))
-            .resizable()
+        if let identifier = PhotosLibrary.identifier(from: url) {
+            // A Photos library photo: show its thumbnail.
+            Group {
+                if let photo {
+                    Image(nsImage: photo).resizable().aspectRatio(contentMode: .fill)
+                } else {
+                    Image(systemName: "photo").foregroundStyle(.secondary)
+                }
+            }
             .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: 3))
+            .onAppear {
+                PhotosLibrary.thumbnail(identifier, size: size) { image in
+                    DispatchQueue.main.async { photo = image }
+                }
+            }
+        } else {
+            Image(nsImage: Self.icon(for: url))
+                .resizable()
+                .frame(width: size, height: size)
+        }
     }
 
     private static func icon(for url: URL) -> NSImage {

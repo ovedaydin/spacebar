@@ -5,5 +5,8 @@
 	<!-- Hardened runtime: needed to ask Finder to empty the Trash (without Full Disk Access). -->
 	<key>com.apple.security.automation.apple-events</key>
 	<true/>
+	<!-- Hardened runtime: needed to read and delete (with confirmation) photos for Similar Photos. -->
+	<key>com.apple.security.personal-information.photos-library</key>
+	<true/>
 </dict>
 </plist>

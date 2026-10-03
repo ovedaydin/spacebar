@@ -5,7 +5,9 @@
 **A free, open-source disk space analyzer and cleaner for Mac.** It shows what's using your disk and helps you safely remove caches, logs, build data, and leftovers.
 
 - **Disk breakdown.** See what your disk is used for (macOS, Apps, Documents, Developer, App Data, Shared, System Data…), measured rather than estimated. Click a category to explore it.
-- **Space Explorer.** Drill into any folder as a sorted list or a treemap. Subfolders are measured in the same pass, so opening them is instant.
+- **Space Explorer.** Drill into any folder as a sorted list or a treemap, on any drive. Search, filter by type, Quick Look (space bar), keyboard navigation and multi-select. Subfolders are measured in the same pass, so opening them is instant.
+- **What grew.** Spacebar keeps a light history of each measurement and shows which folders grew in the last week, so runaway caches and VM images get caught early.
+- **External drives.** A breakdown of any connected drive's largest folders, with Eject.
 - **Menu bar & alerts.** Available space in the menu bar, one-click cleaning of safe items, and a notification when the disk is almost full.
 - **Trash that frees space, and undo.** After a clean, **Delete Now** permanently removes just what Spacebar moved to the Trash, and **Put Back** (⌥⌘Z) restores it. Empty Trash is built in.
 - **Remembers results.** The last scan is shown immediately at launch and refreshed in the background.
@@ -99,10 +101,11 @@ The **Old Downloads** and **Large Files** scans only run when you ask, because r
 | Docker | Build cache, unused images, stopped containers and unused volumes, via Docker's own prune commands | Build cache. Volumes never | `docker … prune` |
 | Time Machine Snapshots | Local snapshots on the startup disk | Never | `tmutil deletelocalsnapshots /` |
 | Mail | Opened attachments, plus cached attachments of server-synced accounts (IMAP, Exchange, Gmail, iCloud). Never mailboxes, POP or "On My Mac" | Never | Trash |
+| Similar Photos | Bursts and repeated shots (taken within a minute, nearly identical by on-device Vision analysis) in your Photos library and image folders. Keeps the favorite or highest-resolution shot. iCloud-only photos aren't downloaded | Never | Photos: Recently Deleted (30 days). Files: Trash |
 | Duplicate Files | Identical files over 1 MB, matched by size, then partial and full SHA-256 hashes. APFS clones, hard links, iCloud-only files, build output and files inside git repos are excluded | Never | Trash |
 | Project Build Files | `node_modules`, `target`, `build`, `Pods`, `.venv`, … next to their project file | Projects untouched for 90+ days | Deleted (rebuildable) |
 
-Developer tools you're using (`xcode-select`) are never removed. SSH keys, certificates, and shell configuration files are locked in Space Explorer.
+Anything can be hidden from cleanup with **Never Show in Cleanup** (right-click); manage the list in Settings › Exclusions. Developer tools you're using (`xcode-select`) are never removed. SSH keys, certificates, and shell configuration files are locked in Space Explorer.
 
 **Never touched:**
 

@@ -51,8 +51,8 @@ public enum PathRules {
               !url.pathComponents.contains(".."),
               path.unicodeScalars.allSatisfy({ $0.value >= 0x20 }) else { return "Unusual path" }
         switch kind {
-        case .simulatorRuntime, .dockerPrune, .timeMachineSnapshots:
-            return nil // removed by simctl, docker or tmutil, not by file operations
+        case .simulatorRuntime, .dockerPrune, .timeMachineSnapshots, .photoAsset:
+            return nil // removed by simctl, docker, tmutil or Photos, not by file operations
         default:
             break
         }
@@ -93,7 +93,7 @@ public enum PathRules {
         case .mailAttachments:
             return inHome && lower.count == 4 && lower.starts(with: ["library", "mail"]) && lower[2].hasPrefix("v")
                 ? nil : "Not a Mail account folder"
-        case .simulatorRuntime, .file, .dockerPrune, .timeMachineSnapshots:
+        case .simulatorRuntime, .file, .dockerPrune, .timeMachineSnapshots, .photoAsset:
             break
         }
 
