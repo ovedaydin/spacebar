@@ -240,6 +240,10 @@ struct ExplorerView: View {
                 ProgressView().controlSize(.small)
                 Text("Measuring \(progress.done) of \(progress.total)…")
                     .font(.callout).foregroundStyle(.secondary).monospacedDigit()
+            } else if let live = explorer.liveUpdatedAt {
+                Label("Live", systemImage: "dot.radiowaves.left.and.right")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .help("Updated automatically \(live.formatted(.relative(presentation: .named)))")
             } else if let since = explorer.cachedSince {
                 Text("Sizes from \(since.formatted(.relative(presentation: .named)))")
                     .font(.callout).foregroundStyle(.secondary)

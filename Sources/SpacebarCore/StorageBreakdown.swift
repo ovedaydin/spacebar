@@ -115,6 +115,26 @@ public extension StorageBreakdown {
 }
 
 public extension StorageBreakdown {
+    /// Applies new sizes for some measured folders: each folder's slice changes by the difference,
+    /// free space is updated, and System Data absorbs the rest so the bar still adds up.
+    mutating func update(folders newSizes: [String: Int64], free newFree: Int64?) {
+        var sizes = folderSizes ?? [:]
+        for (path, bytes) in newSizes {
+            let delta = bytes - (sizes[path] ?? 0)
+            sizes[path] = bytes
+            let kind = StorageAnalyzer.kind(forPath: path)
+            if let index = segments.firstIndex(where: { $0.kind == kind }) {
+                segments[index].bytes = max(0, segments[index].bytes + delta)
+            }
+        }
+        folderSizes = sizes
+        if let newFree { free = newFree }
+        if let system = segments.firstIndex(where: { $0.kind == .systemData }) {
+            let others = segments.enumerated().filter { $0.offset != system }.reduce(Int64(0)) { $0 + $1.element.bytes }
+            segments[system].bytes = max(0, total - free - others)
+        }
+    }
+
     /// The reverse of trashing: `bytes` leave the Trash slice and return to the one `path` is in.
     mutating func recordRestore(path: String, bytes: Int64) {
         if let trash = segments.firstIndex(where: { $0.kind == .trash }) {
@@ -128,8 +148,21 @@ public extension StorageBreakdown {
 }
 
 public enum StorageAnalyzer {
+    /// The path to measure for a display path: through the data volume, like `analyze` does.
+    public static func measurablePath(_ display: String) -> String {
+        let data = "/System/Volumes/Data" + display
+        return FileManager.default.fileExists(atPath: data) ? data : display
+    }
+
+    /// Folders to watch for live updates of the breakdown.
+    public static var watchedFolders: [String] {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        return [home, "/Applications", "/Users/Shared", "/opt", "/usr/local", "/Library/Developer"]
+            .filter { FileManager.default.fileExists(atPath: $0) }
+    }
+
     /// "/System/Volumes/Data/opt" → "/opt": the path people know.
-    static func displayPath(_ path: String) -> String {
+    public static func displayPath(_ path: String) -> String {
         path.hasPrefix("/System/Volumes/Data/") ? String(path.dropFirst("/System/Volumes/Data".count)) : path
     }
 

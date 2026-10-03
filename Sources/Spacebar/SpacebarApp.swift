@@ -153,11 +153,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 ///   SPACEBAR_SCRIPT="wait:6;snap:/tmp/a.png;route:xcode;wait:1;snap:/tmp/b.png;toggle:xcode"
 /// Logs to stderr during scripted debug runs only.
 func debugLog(_ message: @autoclosure () -> String) {
-    guard ProcessInfo.processInfo.environment["SPACEBAR_SCRIPT"] != nil else { return }
+    guard DebugSnapshot.enabled, ProcessInfo.processInfo.environment["SPACEBAR_SCRIPT"] != nil else { return }
     FileHandle.standardError.write(Data("[trace] \(String(format: "%.2f", ProcessInfo.processInfo.systemUptime)) \(message())\n".utf8))
 }
 
 enum DebugSnapshot {
+    /// Test hooks exist only in local test builds (`DEBUG_HOOKS=1 scripts/build-app.sh`), never in releases:
+    /// an app with Full Disk Access must not be drivable through environment variables.
+    static var enabled: Bool {
+        #if SPACEBAR_DEBUG_HOOKS
+        return true
+        #else
+        return false
+        #endif
+    }
+
+    /// An environment variable for test builds; always nil in releases.
+    static func environment(_ name: String) -> String? {
+        enabled ? ProcessInfo.processInfo.environment[name] : nil
+    }
+
     static let routeNotification = Notification.Name("SpacebarDebugRoute")
     static let toggleNotification = Notification.Name("SpacebarDebugToggle")
     static let dumpNotification = Notification.Name("SpacebarDebugDump")
@@ -166,7 +181,7 @@ enum DebugSnapshot {
     private static var activity: NSObjectProtocol?
 
     static func scheduleIfRequested() {
-        guard let script = ProcessInfo.processInfo.environment["SPACEBAR_SCRIPT"] else { return }
+        guard enabled, let script = ProcessInfo.processInfo.environment["SPACEBAR_SCRIPT"] else { return }
         // Read once; don't let anything this process launches inherit it.
         unsetenv("SPACEBAR_SCRIPT")
         // Scripted runs happen in a background window; App Nap would delay steps and redraws.
@@ -189,7 +204,7 @@ enum DebugSnapshot {
                 case "selftest": cleanerSelfTest()
                 case "trashtest": trashSelfTest()
                 case "menubar": clickMenuBarItem()
-                case "fdacheck", "relaunch":
+                case "fdacheck", "relaunch", "applylive":
                     NotificationCenter.default.post(name: segmentNotification, object: "action:" + parts[0])
                 case "statusframe":
                     for window in NSApp.windows where String(describing: type(of: window)).contains("StatusBar") {

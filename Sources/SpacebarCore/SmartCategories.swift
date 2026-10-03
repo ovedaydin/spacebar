@@ -25,21 +25,10 @@ private func relative(_ date: Date?) -> String {
 
 private func daysAgo(_ days: Double) -> Date { Date().addingTimeInterval(-days * 24 * 3600) }
 
-/// Runs a command and returns stdout, or nil on failure or after `timeout` seconds.
+/// Runs a system tool (absolute path, clean environment) and returns its output, or nil on failure.
 func runCommand(_ path: String, _ arguments: [String], timeout: TimeInterval = 30) -> Data? {
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: path)
-    process.arguments = arguments
-    let pipe = Pipe()
-    process.standardOutput = pipe
-    process.standardError = FileHandle.nullDevice
-    guard (try? process.run()) != nil else { return nil }
-    let timer = DispatchWorkItem { if process.isRunning { process.terminate() } }
-    DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: timer)
-    let data = pipe.fileHandleForReading.readDataToEndOfFile()
-    process.waitUntilExit()
-    timer.cancel()
-    return process.terminationStatus == 0 ? data : nil
+    guard let result = Tools.run(path, arguments, timeout: timeout), result.status == 0 else { return nil }
+    return result.output
 }
 
 // MARK: - Installed apps
@@ -429,7 +418,8 @@ public extension CleanCategory {
         let cutoff = daysAgo(90)
         let iso = ISO8601DateFormatter()
 
-        if let data = runCommand("/usr/bin/xcrun", ["simctl", "list", "devices", "-j"]),
+        if let simctl = Tools.simctl,
+           let data = Tools.run(simctl, ["list", "devices", "-j"], timeout: 30, extraEnvironment: Tools.developerDirectory)?.output,
            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let byRuntime = json["devices"] as? [String: [[String: Any]]] {
             for (runtime, devices) in byRuntime {
@@ -455,7 +445,8 @@ public extension CleanCategory {
             }
         }
 
-        if let data = runCommand("/usr/bin/xcrun", ["simctl", "runtime", "list", "-j"]),
+        if let simctl = Tools.simctl,
+           let data = Tools.run(simctl, ["runtime", "list", "-j"], timeout: 30, extraEnvironment: Tools.developerDirectory)?.output,
            let runtimes = try? JSONSerialization.jsonObject(with: data) as? [String: [String: Any]] {
             for runtime in runtimes.values {
                 guard let id = runtime["identifier"] as? String, runtime["deletable"] as? Bool == true else { continue }
@@ -549,21 +540,29 @@ public extension CleanCategory {
 // MARK: - Docker
 
 public enum DockerCLI {
-    /// The docker command from Docker Desktop, Homebrew, OrbStack or Colima, whichever exists.
+    /// Docker Desktop's command-line tool, only if it's genuinely signed by Docker Inc.
+    /// (Spacebar's Full Disk Access passes to tools it runs, so an unverified `docker` is never run.)
     public static var path: String? {
-        let home = NSHomeDirectory()
-        return ["/usr/local/bin/docker", "/opt/homebrew/bin/docker", "\(home)/.docker/bin/docker",
-                "/Applications/Docker.app/Contents/Resources/bin/docker", "\(home)/.orbstack/bin/docker"]
-            .first { FileManager.default.isExecutableFile(atPath: $0) }
+        let candidates = ["/usr/local/bin/docker", "/Applications/Docker.app/Contents/Resources/bin/docker",
+                          "\(NSHomeDirectory())/.docker/bin/docker", "/opt/homebrew/bin/docker"]
+        for candidate in candidates where FileManager.default.isExecutableFile(atPath: candidate) {
+            let resolved = URL(fileURLWithPath: candidate).resolvingSymlinksInPath().path
+            if Tools.isTrusted(resolved, requirement: dockerRequirement) { return resolved }
+        }
+        return nil
     }
 
-    /// Environment for docker: it looks up credential helpers and plugins on PATH.
-    public static var environment: [String: String] {
-        var env = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("SPACEBAR_") }
-        let home = NSHomeDirectory()
-        env["PATH"] = "/usr/local/bin:/opt/homebrew/bin:\(home)/.docker/bin:\(home)/.orbstack/bin:/usr/bin:/bin"
-        return env
+    /// Docker, Inc.'s Developer ID team.
+    static let dockerRequirement = "anchor apple generic and certificate leaf[subject.OU] = \"9BNSXJN65R\""
+
+    /// True if a docker command exists but isn't Docker's signed one (e.g. from Homebrew).
+    public static var unverifiedPresent: Bool {
+        path == nil && ["/usr/local/bin/docker", "/opt/homebrew/bin/docker", "\(NSHomeDirectory())/.docker/bin/docker"]
+            .contains { FileManager.default.isExecutableFile(atPath: $0) }
     }
+
+    /// Docker finds its engine socket through HOME; nothing else is passed on.
+    public static var environment: [String: String] { [:] }
 
     public struct Usage: Equatable {
         public let type: String
@@ -593,24 +592,11 @@ public enum DockerCLI {
         return 0
     }
 
-    /// nil when docker isn't installed or its engine isn't running.
+    /// nil when docker isn't installed, isn't verified, or its engine isn't running.
     static func systemDF() -> [Usage]? {
-        guard let path else { return nil }
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: path)
-        process.arguments = ["system", "df", "--format", "{{json .}}"]
-        process.environment = environment
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        guard (try? process.run()) != nil else { return nil }
-        let timer = DispatchWorkItem { if process.isRunning { process.terminate() } }
-        DispatchQueue.global().asyncAfter(deadline: .now() + 20, execute: timer)
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        timer.cancel()
-        guard process.terminationStatus == 0 else { return nil }
-        return parseSystemDF(String(decoding: data, as: UTF8.self))
+        guard let path, let result = Tools.run(path, ["system", "df", "--format", "{{json .}}"], timeout: 20),
+              result.status == 0 else { return nil }
+        return parseSystemDF(String(decoding: result.output, as: UTF8.self))
     }
 }
 
@@ -620,7 +606,14 @@ public extension CleanCategory {
         summary: "Space inside Docker: build cache, unused images, stopped containers and unused volumes, removed with Docker's own prune commands. Build cache is suggested. Volumes are never suggested because they can hold databases. Docker returns freed space to macOS shortly afterwards.",
         safety: .review, mode: .permanent, needsFullDiskAccess: false, onDemand: false, owners: []
     ) { context in
-        guard DockerCLI.path != nil else { return [] }
+        guard DockerCLI.path != nil else {
+            // A docker command we can't verify is never run; say so instead of hiding the category.
+            guard DockerCLI.unverifiedPresent else { return [] }
+            return [Candidate(url: URL(string: "docker://unverified")!, name: "Docker",
+                              detail: "Only Docker Desktop's signed docker command is used", knownSize: 1,
+                              kind: .dockerPrune(arguments: []),
+                              lockedReason: "This docker command isn't signed by Docker, so Spacebar won't run it")]
+        }
         let image = context.path("Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw")
         var st = stat()
         let imageBytes = lstat(image.path, &st) == 0 ? Int64(st.st_blocks) * 512 : 0

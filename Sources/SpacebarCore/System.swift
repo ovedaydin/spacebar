@@ -62,15 +62,7 @@ public enum LocalSnapshots {
     /// Time Machine local snapshots on the startup disk. They show up as "purgeable"
     /// and macOS removes them when space is needed. OS update snapshots are excluded.
     public static func list() -> [String] {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/tmutil")
-        process.arguments = ["listlocalsnapshots", "/"]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = FileHandle.nullDevice
-        guard (try? process.run()) != nil else { return [] }
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
+        guard let data = Tools.run("/usr/bin/tmutil", ["listlocalsnapshots", "/"], timeout: 20)?.output else { return [] }
         return String(decoding: data, as: UTF8.self)
             .split(separator: "\n")
             .map(String.init)

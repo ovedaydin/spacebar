@@ -6,6 +6,7 @@
 
 - **Disk breakdown.** See what your disk is used for (macOS, Apps, Documents, Developer, App Data, Shared, System Data…), measured rather than estimated. Click a category to explore it.
 - **Space Explorer.** Drill into any folder as a sorted list or a treemap, on any drive. Search, filter by type, Quick Look (space bar), keyboard navigation and multi-select. Subfolders are measured in the same pass, so opening them is instant.
+- **Live.** Sizes update by themselves as files change (FSEvents), re-measuring only the folders that changed.
 - **What grew.** Spacebar keeps a light history of each measurement and shows which folders grew in the last week, so runaway caches and VM images get caught early.
 - **External drives.** A breakdown of any connected drive's largest folders, with Eject.
 - **Menu bar & alerts.** Available space in the menu bar, one-click cleaning of safe items, and a notification when the disk is almost full.
@@ -130,12 +131,21 @@ swift run -c release spacebar-bench --catalog             # time the cleanup sca
 swift run -c release spacebar-bench --tree 2              # one-pass subfolder sizes, checked against separate scans
 ```
 
-Results on an 8-core Apple silicon Mac running macOS 15.7 (warm cache, median of 3 runs):
+`--algos` compares eleven scanning approaches on each `--path`. Results on an 8-core Apple silicon Mac (macOS 15.7), median of 5 warm rounds in rotated order:
 
-| Folder | Files | `getattrlistbulk` | FileManager | `du -skx` | Size difference vs `du` |
-|---|---|---|---|---|---|
-| `~/Library/Caches` (20 GB) | 334k | **2.1 s** | 9.3 s | 8.5 s | 0.00% |
-| `~/Library/Developer` (39 GB) | 694k | **4.9 s** | 20.2 s | 14.0 s | 0.00% |
+| Approach | `~/Library/Caches` (288k files) | `~/Library/Developer` (297k) | `/Applications` (381k) | `~/Documents` (329k) |
+|---|---|---|---|---|
+| **Spacebar: `getattrlistbulk`, 8 workers, 128 KB, depth-first, clone-aware** | **0.48 s** | **2.46 s** | 1.12 s | **1.57 s** |
+| … 4 / 16 / 32 workers | 0.87 / 0.59 / 0.57 s | 2.45 / 3.71 / 3.73 s | 1.77 / 1.09 / 1.05 s | 1.74 / 1.79 / 1.89 s |
+| … 32 KB / 512 KB buffer | 0.62 / 0.62 s | 2.86 / 2.91 s | 1.24 / 1.25 s | 1.71 / 1.73 s |
+| … breadth-first | 0.54 s | 3.03 s | 1.32 s | 1.70 s |
+| … without clone lookups | 0.47 s | 2.75 s | 1.12 s | 1.62 s |
+| `fts` (one thread) | 1.82 s | 5.82 s | 4.04 s | 5.12 s |
+| `readdir` + `fstatat`, 8 threads | 4.78 s | 2.81 s | 2.15 s | 2.12 s |
+| `FileManager` | 4.97 s | 10.39 s | 8.55 s | 8.70 s |
+| `du -skx` | 7.73 s | 9.22 s | 7.12 s | 7.44 s |
+
+The default is fastest or within a few percent everywhere. More threads help on big app bundles but cost about 50% on deep trees. All approaches find the same files. Spacebar's totals are slightly below `du` (up to 0.7% in Documents) because APFS clones are counted once.
 
 How the scanner works:
 
@@ -146,6 +156,10 @@ How the scanner works:
 - It never follows symlinks, crosses into other volumes, or descends into firmlinks.
 - It sets `IOPOL_MATERIALIZE_DATALESS_FILES_OFF`, so scanning never downloads iCloud-only files.
 - **APFS clones count once.** For files that may share blocks, it reads their private size and clone ID, so a Finder duplicate isn't counted twice. Edited clones are counted conservatively, because APFS doesn't expose which file they still share blocks with.
+
+## Security
+
+See [SECURITY.md](SECURITY.md): how deletions are validated, why external tools are signature-checked, and how to report a vulnerability privately.
 
 ## Build from source
 

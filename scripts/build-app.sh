@@ -28,6 +28,8 @@ SIGN_IDENTITY="${SIGN_IDENTITY:-}"
 arch_flags=()
 for a in $ARCHS; do arch_flags+=(--arch "$a"); done
 
+# DEBUG_HOOKS=1 compiles in the scripted test hooks (local testing only, never for releases).
+[[ "${DEBUG_HOOKS:-0}" == "1" ]] && arch_flags+=(-Xswiftc -DSPACEBAR_DEBUG_HOOKS) && echo "==> WITH debug hooks (test build)"
 echo "==> Building $APP_NAME $VERSION ($BUILD_NUMBER) for: $ARCHS"
 swift build -c release "${arch_flags[@]}"
 BIN_DIR="$(swift build -c release "${arch_flags[@]}" --show-bin-path)"

@@ -125,11 +125,71 @@ final class ExplorerModel: ObservableObject {
         load()
     }
 
+    // MARK: Live updates
+
+    private var watcher: FileWatcher?
+    private var watchedPaths: [String] = []
+    private var pendingChanges: Set<String> = []
+    private var pendingRescan = false
+    private var changeTask: Task<Void, Never>?
+    /// When the list last refreshed itself from file-system changes.
+    @Published private(set) var liveUpdatedAt: Date?
+
+    /// Watches what's on screen: the current folder, or a group's folders.
+    private func watchCurrent() {
+        let paths = atGroupLevel ? (group?.roots.map(\.path) ?? []) : [current.path]
+        guard paths != watchedPaths else { return }
+        watcher?.stop()
+        watchedPaths = paths
+        watcher = FileWatcher(paths: paths, latency: 1) { [weak self] changed, rescan in
+            Task { @MainActor in self?.noteChanges(changed, rescan: rescan) }
+        }
+        watcher?.start()
+    }
+
+    private func noteChanges(_ changed: [String], rescan: Bool) {
+        pendingChanges.formUnion(changed)
+        pendingRescan = pendingRescan || rescan
+        changeTask?.cancel()
+        changeTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            guard !Task.isCancelled else { return }
+            self.applyChanges()
+        }
+    }
+
+    /// Re-measures only the rows whose contents changed (and lists the folder again).
+    private func applyChanges() {
+        if progress != nil {
+            noteChanges([], rescan: false) // measuring: try again shortly
+            return
+        }
+        let changed = pendingChanges
+        let rescan = pendingRescan
+        pendingChanges = []
+        pendingRescan = false
+        var affected = false
+        for entry in entries {
+            let prefix = entry.url.path + "/"
+            if rescan || changed.contains(where: { $0 == entry.url.path || $0.hasPrefix(prefix) }) {
+                measured[entry.url] = .distantPast
+                affected = true
+            }
+        }
+        // Folders above changed ones will need measuring again too.
+        for url in trail.dropLast() { measured[url] = .distantPast }
+        let listingChanged = changed.contains(current.path) || rescan || atGroupLevel
+        guard affected || listingChanged else { return }
+        liveUpdatedAt = Date()
+        load()
+    }
+
     func load(force: Bool = false) {
         token?.cancel()
         let token = CancelToken()
         self.token = token
         loaded = true
+        watchCurrent()
 
         let keys: [URLResourceKey] = [.isDirectoryKey, .isSymbolicLinkKey]
         let home = NSHomeDirectory()

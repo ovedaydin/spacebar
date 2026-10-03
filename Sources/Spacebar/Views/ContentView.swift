@@ -16,7 +16,7 @@ struct ContentView: View {
 
     /// SPACEBAR_ROUTE=explorer|<category id> opens a specific page (development aid).
     private static var initialRoute: Route {
-        switch ProcessInfo.processInfo.environment["SPACEBAR_ROUTE"] {
+        switch DebugSnapshot.environment("SPACEBAR_ROUTE") {
         case nil, "overview": return .overview
         case "explorer": return .explorer
         case let id?: return .category(id)
@@ -76,6 +76,9 @@ struct ContentView: View {
                     + "trashed=\(report.trashedBytes) removed=\(report.removed.count) skipped=\(report.skipped.count) [\(skipped)]\n"
                     + "[report-title] \(report.title)\n[report-message] \(report.message.replacingOccurrences(of: "\n", with: " / "))\n").utf8))
             }
+            if let storage = model.storage {
+                FileHandle.standardError.write(Data("[storage] appData=\(storage.segments.first { $0.kind == .appData }?.bytes ?? -1) free=\(storage.free) live=\(model.liveUpdatedAt.map { "\($0)" } ?? "-") explorerLive=\(explorer.liveUpdatedAt.map { "\($0)" } ?? "-")\n".utf8))
+            }
             let selectedBytes = model.allSelected.reduce(Int64(0)) { $0 + $1.0.size }
             FileHandle.standardError.write(Data("[selection] items=\(model.allSelected.count) bytes=\(selectedBytes) dryRun=\(model.dryRun) cleaning=\(model.cleaning) scanning=\(model.isScanning)\n".utf8))
             if note.object as? String == "paths" {
@@ -106,6 +109,10 @@ struct ContentView: View {
                 return
             }
             if let action = note.object as? String, action.hasPrefix("action:") {
+                if action == "action:applylive" {
+                    model.applyStorageChanges()
+                    return
+                }
                 if action == "action:fdacheck" {
                     model.checkFullDiskAccessAgain()
                     FileHandle.standardError.write(Data("[fda] granted=\(String(describing: model.fullDiskAccess)) checkFailed=\(model.accessCheckFailed)\n".utf8))
@@ -140,7 +147,7 @@ struct ContentView: View {
         }
         .onAppear {
             // Cached results are on screen already; measure again in the background.
-            if onboardingDone && (model.showingCachedResults || ProcessInfo.processInfo.environment["SPACEBAR_AUTOSCAN"] != nil) {
+            if onboardingDone && (model.showingCachedResults || DebugSnapshot.environment("SPACEBAR_AUTOSCAN") != nil) {
                 model.scanAll()
             }
         }

@@ -312,39 +312,20 @@ enum Cleaner {
         NSError(domain: "Spacebar", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
     }
 
-    /// Runs a command-line tool; throws its error output if it fails.
-    static func runTool(_ path: String, _ arguments: [String], environment: [String: String]? = nil) throws {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: path)
-        process.arguments = arguments
-        if let environment { process.environment = environment }
-        let errors = Pipe()
-        process.standardError = errors
-        process.standardOutput = FileHandle.nullDevice
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            let message = String(decoding: errors.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            throw failure(message.isEmpty ? "\((path as NSString).lastPathComponent) failed" : message)
+    /// Runs a command-line tool (absolute path, clean environment); throws its error output if it fails.
+    static func runTool(_ path: String, _ arguments: [String], environment: [String: String] = [:]) throws {
+        guard let result = Tools.run(path, arguments, timeout: 600, extraEnvironment: environment) else {
+            throw failure("\((path as NSString).lastPathComponent) couldn't start")
+        }
+        guard result.status == 0 else {
+            throw failure(result.errors.isEmpty ? "\((path as NSString).lastPathComponent) failed" : result.errors)
         }
     }
 
+    /// Apple's simctl, verified (see Tools.simctl).
     private static func simctl(_ arguments: [String]) throws {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
-        process.arguments = ["simctl"] + arguments
-        let errors = Pipe()
-        process.standardError = errors
-        process.standardOutput = FileHandle.nullDevice
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            let message = String(decoding: errors.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-            throw NSError(domain: "Spacebar", code: Int(process.terminationStatus), userInfo: [
-                NSLocalizedDescriptionKey: message.isEmpty ? "simctl failed" : message.trimmingCharacters(in: .whitespacesAndNewlines),
-            ])
-        }
+        guard let simctl = Tools.simctl else { throw failure("Apple's simctl isn't available or couldn't be verified") }
+        try runTool(simctl, arguments, environment: Tools.developerDirectory)
     }
 
     private static func removePermanently(_ url: URL) throws {

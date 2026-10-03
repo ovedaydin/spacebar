@@ -15,6 +15,7 @@ struct Options {
     var treeDepth: Int?
     var list: [String] = []
     var storage = false
+    var algos = false
 }
 
 func parse() -> Options {
@@ -35,6 +36,7 @@ func parse() -> Options {
         case "--tree": options.treeDepth = Int(value())
         case "--list": options.list.append(value()); options.catalog = true
         case "--storage": options.storage = true
+        case "--algos": options.algos = true
         case "-h", "--help":
             print("""
             spacebar-bench: read-only scanner benchmark
@@ -46,6 +48,7 @@ func parse() -> Options {
               --on-demand     include Old Downloads and Large Files in --catalog (may show privacy prompts)
               --tree D        also time measureTree(depth D) and check subfolder totals against separate scans
               --list ID       print every item of a catalog category (e.g. apps, leftovers, simulators)
+              --algos         compare scanning approaches on each --path (speed and accuracy); --runs sets rounds
             """)
             exit(0)
         default:
@@ -53,7 +56,7 @@ func parse() -> Options {
             exit(2)
         }
     }
-    if options.paths.isEmpty && !options.catalog && !options.storage {
+    if options.paths.isEmpty && !options.catalog && !options.storage && !options.algos {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         options.paths = ["\(home)/Library/Caches", "\(home)/Library/Developer"]
             .filter { FileManager.default.fileExists(atPath: $0) }
@@ -87,6 +90,7 @@ func lpad(_ s: String, _ n: Int) -> String { s.count >= n ? s : String(repeating
 func seconds(_ t: Double) -> String { String(format: "%.3fs", t) }
 
 IOPolicy.configureForScanning()
+setvbuf(stdout, nil, _IOLBF, 0) // print each result as soon as it's ready, even into a file
 let options = parse()
 let bulk = options.workers.map { BulkScanner(workers: $0) } ?? BulkScanner()
 
@@ -137,6 +141,50 @@ for path in options.paths {
               + lpad(isDu ? "-" : "\(totals.files)", 10) + lpad(isDu ? "-" : "\(totals.directories)", 9)
               + lpad(isDu ? "-" : "\(totals.unreadable)", 8) + lpad(isDu ? "-" : "\(totals.cloudOnlyFiles)", 7)
               + lpad(delta, 9) + "  " + (totals.lastModified.map { ISO8601DateFormatter().string(from: $0) } ?? "-"))
+    }
+}
+
+if options.algos {
+    let engines: [(String, SizeEngine)] = [
+        ("bulk · 8w · 128K · DFS · clones (current)", BulkScanner(workers: 8)),
+        ("bulk · 4 workers", BulkScanner(workers: 4)),
+        ("bulk · 16 workers", BulkScanner(workers: 16)),
+        ("bulk · 32 workers", BulkScanner(workers: 32)),
+        ("bulk · 32 KB buffer", BulkScanner(workers: 8, bufferSize: 32 * 1024)),
+        ("bulk · 512 KB buffer", BulkScanner(workers: 8, bufferSize: 512 * 1024)),
+        ("bulk · breadth-first", BulkScanner(workers: 8, breadthFirst: true)),
+        ("bulk · no clone lookups", BulkScanner(workers: 8, cloneAware: false)),
+        ("fts (1 thread, lstat)", FTSScanner()),
+        ("readdir+fstatat · 8w", ParallelStatScanner(workers: 8)),
+        ("FileManager", FileManagerScanner()),
+    ]
+    let rounds = max(options.runs, 2)
+    for path in options.paths {
+        let url = URL(fileURLWithPath: path)
+        print("\n▸ \(path.replacingOccurrences(of: NSHomeDirectory(), with: "~"))  (\(rounds) rounds, rotated order, first round = warm-up)")
+        let (reference, duTime) = time { du(path) }
+        var times = Array(repeating: [Double](), count: engines.count)
+        var results = Array(repeating: SizeTotals(), count: engines.count)
+        for round in 0...rounds {
+            for offset in 0..<engines.count {
+                let index = (offset + round) % engines.count
+                let (result, seconds) = time { engines[index].1.measure(url) }
+                results[index] = result
+                if round > 0 { times[index].append(seconds) }
+            }
+        }
+        let baseline = times[0].sorted()[times[0].count / 2]
+        print("  " + pad("approach", 42) + lpad("median", 9) + lpad("vs current", 11) + lpad("size", 11)
+              + lpad("vs du", 9) + lpad("files", 10) + lpad("unread", 8))
+        for (index, engine) in engines.enumerated() {
+            let median = times[index].sorted()[times[index].count / 2]
+            let delta = reference > 0 ? String(format: "%+.2f%%", Double(results[index].allocated - reference) / Double(reference) * 100) : "-"
+            print("  " + pad(engine.0, 42) + lpad(seconds(median), 9) + lpad(String(format: "%.2f×", baseline / median), 11)
+                  + lpad(ByteFormat.string(results[index].allocated), 11) + lpad(delta, 9)
+                  + lpad("\(results[index].files)", 10) + lpad("\(results[index].unreadable)", 8))
+        }
+        print("  " + pad("du -skx (reference)", 42) + lpad(seconds(duTime), 9) + lpad(String(format: "%.2f×", baseline / duTime), 11)
+              + lpad(ByteFormat.string(reference), 11))
     }
 }
 

@@ -115,8 +115,12 @@ final class AppModel: ObservableObject {
         staleDays = savedStaleDays > 0 ? savedStaleDays : Suggestion.defaultStaleDays
         restoreCachedResults()
         NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
-            .sink { [weak self] _ in self?.refreshSystem() }
+            .sink { [weak self] _ in
+                self?.refreshSystem()
+                self?.applyStorageChanges() // changes queued while in the background
+            }
             .store(in: &observers)
+        startLiveUpdates()
         for name in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification, NSWorkspace.didRenameVolumeNotification] {
             NSWorkspace.shared.notificationCenter.publisher(for: name)
                 .sink { [weak self] _ in self?.refreshDrives() }
@@ -203,8 +207,8 @@ final class AppModel: ObservableObject {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
         process.arguments = ["-c", "sleep 1; /usr/bin/open \"$0\"", path]
-        // Never pass development variables on: a restarted copy must start clean.
-        process.environment = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("SPACEBAR_") }
+        // A restarted copy starts with a clean environment.
+        process.environment = Tools.cleanEnvironment
         try? process.run()
         NSApp.terminate(nil)
     }
@@ -348,6 +352,65 @@ final class AppModel: ObservableObject {
         refreshSystem()
     }
 
+    // MARK: Live updates of the breakdown
+
+    private var storageWatcher: FileWatcher?
+    private var storageChanges: Set<String> = []
+    private var storageRescan = false
+    private var storageChangeTask: Task<Void, Never>?
+    /// When the breakdown last updated itself from file-system changes.
+    @Published private(set) var liveUpdatedAt: Date?
+
+    /// Watches the folders behind the breakdown. Changes are collected and applied every ~20 s
+    /// while Spacebar is active (and when it becomes active again).
+    func startLiveUpdates() {
+        guard storageWatcher == nil else { return }
+        storageWatcher = FileWatcher(paths: StorageAnalyzer.watchedFolders, latency: 5) { [weak self] changed, rescan in
+            Task { @MainActor in self?.noteStorageChanges(changed, rescan: rescan) }
+        }
+        storageWatcher?.start()
+    }
+
+    private func noteStorageChanges(_ changed: [String], rescan: Bool) {
+        storageChanges.formUnion(changed.map(StorageAnalyzer.displayPath))
+        storageRescan = storageRescan || rescan
+        guard NSApp.isActive, storageChangeTask == nil else { return }
+        storageChangeTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 20_000_000_000)
+            self.storageChangeTask = nil
+            self.applyStorageChanges()
+        }
+    }
+
+    /// Re-measures only the folders that changed and updates their slices in place.
+    func applyStorageChanges() {
+        guard !storageRunning, let storage, storage.complete,
+              !storageChanges.isEmpty || storageRescan else { return }
+        if storageRescan {
+            storageRescan = false
+            storageChanges = []
+            refreshStorage()
+            return
+        }
+        let roots = storage.folderSizes.map { Array($0.keys) } ?? []
+        let affected = Set(storageChanges.compactMap { FileWatcher.owningRoot(of: $0, in: roots) })
+        storageChanges = []
+        guard !affected.isEmpty else { return }
+        let paths = Array(affected)
+        Task.detached(priority: .utility) {
+            let sizes = BulkScanner().measure(paths.map { URL(fileURLWithPath: StorageAnalyzer.measurablePath($0)) }, cancel: nil)
+            let free = VolumeSpace.home()?.free
+            await MainActor.run {
+                guard var current = self.storage, !self.storageRunning else { return }
+                current.update(folders: Dictionary(uniqueKeysWithValues: zip(paths, sizes.map(\.allocated))), free: free)
+                self.storage = current
+                self.space = .home()
+                self.liveUpdatedAt = Date()
+                ScanCache.save(current)
+            }
+        }
+    }
+
     func refreshStorage() {
         guard !storageRunning else { return }
         storageRunning = true
@@ -480,6 +543,14 @@ final class AppModel: ObservableObject {
     }
 
     func clean(_ pairs: [(CleanItem, CleanCategory)]) {
+        // Results restored from the cache file are only shown, never acted on: the file lives in
+        // ~/Library/Caches, where another program could have edited it.
+        guard !showingCachedResults else {
+            var report = Cleaner.Report(dryRun: dryRun)
+            report.skipped.append(("Cleanup", "Spacebar is still checking the results from last time. Try again in a moment."))
+            self.report = report
+            return
+        }
         let pairs = Self.withoutOverlaps(pairs)
         debugLog("clean() called: \(pairs.count) items, dryRun=\(dryRun)")
         guard !cleaning, !pairs.isEmpty else { return }

@@ -14,11 +14,17 @@ public final class BulkScanner: SizeEngine, @unchecked Sendable {
     public let name = "getattrlistbulk"
     public let workers: Int
     public let bufferSize: Int
+    /// Visit folders in the order found (a queue) instead of most-recent-first (a stack).
+    public let breadthFirst: Bool
+    /// Count blocks shared by APFS clones once (costs a lookup per clone).
+    public let cloneAware: Bool
 
     public init(workers: Int = min(max(ProcessInfo.processInfo.activeProcessorCount, 4), 16),
-                bufferSize: Int = 128 * 1024) {
+                bufferSize: Int = 128 * 1024, breadthFirst: Bool = false, cloneAware: Bool = true) {
         self.workers = workers
         self.bufferSize = bufferSize
+        self.breadthFirst = breadthFirst
+        self.cloneAware = cloneAware
     }
 
     // sys/attr.h, sys/stat.h. Defined here because some don't import into Swift as UInt32.
@@ -65,7 +71,21 @@ public final class BulkScanner: SizeEngine, @unchecked Sendable {
     private final class Job {
         let cond = NSCondition()
         var stack: [WorkItem] = []
+        /// Front of the queue in breadth-first mode.
+        var head = 0
         var active = 0
+
+        func next(breadthFirst: Bool) -> WorkItem? {
+            guard head < stack.count else { return nil }
+            guard breadthFirst else { return stack.popLast() }
+            let item = stack[head]
+            head += 1
+            if head > 4096 && head * 2 > stack.count {
+                stack.removeFirst(head)
+                head = 0
+            }
+            return item
+        }
         /// One entry per node: the measured roots first, then subdirectories recorded by `measureTree`.
         var totals: [SizeTotals]
         var paths: [String]
@@ -153,8 +173,9 @@ public final class BulkScanner: SizeEngine, @unchecked Sendable {
         while true {
             if cancel?.isCancelled == true {
                 job.stack.removeAll()
+                job.head = 0
             }
-            if let item = job.stack.popLast() {
+            if let item = job.next(breadthFirst: breadthFirst) {
                 job.active += 1
                 job.cond.unlock()
 
@@ -243,12 +264,13 @@ public final class BulkScanner: SizeEngine, @unchecked Sendable {
         request.commonattr = Self.cmnReturnedAttrs | Self.cmnName | Self.cmnError | Self.cmnDevID
             | Self.cmnObjType | Self.cmnModTime | Self.cmnFlags | Self.cmnFileID
         request.fileattr = Self.fileLinkCount | Self.fileAllocSize
-        request.forkattr = Self.cmnExtFlags
+        request.forkattr = cloneAware ? Self.cmnExtFlags : 0
 
         let parent = item.path.hasSuffix("/") ? item.path : item.path + "/"
 
         while true {
-            let count = getattrlistbulk(fd, &request, buffer, bufferSize, UInt64(FSOPT_NOFOLLOW) | Self.optionExtended)
+            let count = getattrlistbulk(fd, &request, buffer, bufferSize,
+                                        UInt64(FSOPT_NOFOLLOW) | (cloneAware ? Self.optionExtended : 0))
             if count == 0 { break }
             if count < 0 {
                 if errno == EINTR { continue }

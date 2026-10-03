@@ -191,3 +191,74 @@ final class ExclusionTests: XCTestCase {
         XCTAssertTrue(CleanCategory.logs.scan(context).isEmpty)
     }
 }
+
+final class LiveUpdateTests: XCTestCase {
+    func testOwningRoot() {
+        let roots = ["/Users/a/Library/Caches/Google", "/Users/a/Library/Caches", "/Applications"]
+        XCTAssertEqual(FileWatcher.owningRoot(of: "/Users/a/Library/Caches/Google/Chrome/x", in: roots), "/Users/a/Library/Caches/Google")
+        XCTAssertEqual(FileWatcher.owningRoot(of: "/Users/a/Library/Caches/pip", in: roots), "/Users/a/Library/Caches")
+        XCTAssertNil(FileWatcher.owningRoot(of: "/Users/a/Library/CachesX", in: roots))
+    }
+
+    func testUpdateKeepsTheBarAddingUp() {
+        var breakdown = StorageBreakdown(total: 100, free: 20, purgeable: 0,
+                                         segments: [StorageSegment(kind: .macOS, bytes: 10, explorePath: nil),
+                                                    StorageSegment(kind: .apps, bytes: 30, explorePath: nil),
+                                                    StorageSegment(kind: .systemData, bytes: 40, explorePath: nil)],
+                                         measuredAt: Date(), complete: true, measuring: nil)
+        breakdown.folderSizes = ["/Applications": 30]
+        breakdown.update(folders: ["/Applications": 45], free: 5)
+        XCTAssertEqual(breakdown.segments.first { $0.kind == .apps }?.bytes, 45)
+        XCTAssertEqual(breakdown.segments.reduce(0) { $0 + $1.bytes } + breakdown.free, 100)
+    }
+
+    func testWatcherReportsChanges() throws {
+        let fixture = try Fixture("spacebar-watch")
+        let folder = try fixture.folder("watched/inner")
+        let seen = expectation(description: "change reported")
+        seen.assertForOverFulfill = false
+        let watcher = FileWatcher(paths: [fixture.root.path], latency: 0.2) { paths, _ in
+            if paths.contains(where: { $0.hasSuffix("watched/inner") }) { seen.fulfill() }
+        }
+        XCTAssertTrue(watcher.start())
+        // The watcher ignores this process's own changes, so let another process write.
+        let touch = Process()
+        touch.executableURL = URL(fileURLWithPath: "/usr/bin/touch")
+        touch.arguments = [folder.appendingPathComponent("new.txt").path]
+        try touch.run()
+        touch.waitUntilExit()
+        wait(for: [seen], timeout: 10)
+        watcher.stop()
+    }
+}
+
+final class ToolsTests: XCTestCase {
+    func testChildProcessesGetACleanEnvironment() throws {
+        setenv("DEVELOPER_DIR", "/tmp/evil", 1)
+        setenv("DYLD_INSERT_LIBRARIES", "/tmp/evil.dylib", 1)
+        defer { unsetenv("DEVELOPER_DIR"); unsetenv("DYLD_INSERT_LIBRARIES") }
+        let result = try XCTUnwrap(Tools.run("/usr/bin/env", []))
+        let environment = String(decoding: result.output, as: UTF8.self)
+        XCTAssertFalse(environment.contains("DEVELOPER_DIR"))
+        XCTAssertFalse(environment.contains("DYLD_"))
+        XCTAssertTrue(environment.contains("PATH=/usr/bin:/bin:/usr/sbin:/sbin"))
+        XCTAssertNil(Tools.run("relative/tool", []), "relative paths are refused")
+    }
+
+    func testUnsignedToolsFailTheSignatureCheck() throws {
+        let fixture = try Fixture()
+        let fake = try fixture.file("docker", bytes: 0)
+        try "#!/bin/sh\necho pwned\n".write(to: fake, atomically: true, encoding: .utf8)
+        XCTAssertFalse(Tools.isTrusted(fake.path, requirement: "anchor apple generic"))
+        XCTAssertTrue(Tools.isTrusted("/bin/ls", requirement: "anchor apple"))
+        XCTAssertFalse(Tools.isTrusted("/bin/ls", requirement: DockerCLI.dockerRequirement), "Apple's ls isn't Docker's")
+    }
+
+    func testSimctlIsAppleSignedAndRootOwned() throws {
+        guard FileManager.default.fileExists(atPath: "/Library/Developer/PrivateFrameworks/CoreSimulator.framework") else {
+            throw XCTSkip("no CoreSimulator on this Mac")
+        }
+        let simctl = try XCTUnwrap(Tools.simctl)
+        XCTAssertTrue(simctl.hasPrefix("/Library/Developer/PrivateFrameworks/"))
+    }
+}

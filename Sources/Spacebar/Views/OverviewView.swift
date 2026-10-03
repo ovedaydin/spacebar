@@ -375,7 +375,9 @@ private struct DiskUsageCard: View {
                     if let measuring = model.measuringStorage {
                         Text("Measuring \(measuring.name)…")
                     } else {
-                        Text("Measured \(storage.measuredAt.formatted(.relative(presentation: .named))). Click a category to explore it.")
+                        Text(model.liveUpdatedAt.map { "Updated live \($0.formatted(.relative(presentation: .named)))" }
+                             ?? "Measured \(storage.measuredAt.formatted(.relative(presentation: .named)))")
+                            + Text(". Click a category to explore it.")
                     }
                 }
                 .font(.caption)
