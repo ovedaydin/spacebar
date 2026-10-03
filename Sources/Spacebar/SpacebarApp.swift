@@ -160,6 +160,8 @@ enum DebugSnapshot {
 
     static func scheduleIfRequested() {
         guard let script = ProcessInfo.processInfo.environment["SPACEBAR_SCRIPT"] else { return }
+        // Read once; don't let anything this process launches inherit it.
+        unsetenv("SPACEBAR_SCRIPT")
         // Scripted runs happen in a background window; App Nap would delay steps and redraws.
         activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiated, .latencyCritical], reason: "Debug script")
         var delay = 0.0

@@ -129,6 +129,8 @@ final class AppModel: ObservableObject {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
         process.arguments = ["-c", "sleep 1; /usr/bin/open \"$0\"", path]
+        // Never pass development variables on: a restarted copy must start clean.
+        process.environment = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("SPACEBAR_") }
         try? process.run()
         NSApp.terminate(nil)
     }
