@@ -1,70 +1,223 @@
 import AppKit
+import Quartz
 import SpacebarCore
 import SwiftUI
 
 struct ExplorerView: View {
     @EnvironmentObject private var explorer: ExplorerModel
     @EnvironmentObject private var model: AppModel
-    @State private var pendingTrash: ExplorerModel.Entry?
+    @State private var pendingTrash: [ExplorerModel.Entry] = []
     @AppStorage("explorerShowsMap") private var showsMap = false
+    @State private var search = ""
+    @State private var typeFilter: TileKind?
+    @State private var selection: Set<URL> = []
+    /// The row the keyboard acts on (moves with ↑/↓).
+    @State private var focus: URL?
+    @State private var keyMonitor: Any?
+    @FocusState private var searchFocused: Bool
+
+    /// Rows after search and type filter, in display order.
+    private var visible: [ExplorerModel.Entry] {
+        explorer.ordered.filter { entry in
+            (search.isEmpty || entry.name.localizedCaseInsensitiveContains(search))
+                && (typeFilter == nil || TileKind.of(entry) == typeFilter)
+        }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            toolbar
+            pathBar
+            controls
             Divider()
             if showsMap {
                 TreemapView().id(explorer.listID)
             } else {
-            List(explorer.ordered) { entry in
+                list
+            }
+        }
+        .navigationTitle("Space Explorer")
+        .onAppear {
+            if !explorer.loaded { explorer.load() }
+            installKeyboard()
+        }
+        .onDisappear { removeKeyboard() }
+        .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.dumpNotification)) { _ in
+            let names = { (urls: [URL]) in urls.map(\.lastPathComponent).sorted().joined(separator: ",") }
+            FileHandle.standardError.write(Data(("[explorer-ui] folder=\(explorer.current.lastPathComponent) search=\(search) "
+                + "visible=\(visible.count)/\(explorer.entries.count) focus=\(focus?.lastPathComponent ?? "-") "
+                + "selection=[\(names(Array(selection)))] trash=\(pendingTrash.count) quicklook=\(QuickLook.shared.isVisible)\n").utf8))
+        }
+        .onChange(of: explorer.listID) { _ in
+            selection = []
+            focus = nil
+        }
+        .confirmationDialog(trashTitle, isPresented: Binding(get: { !pendingTrash.isEmpty }, set: { if !$0 { pendingTrash = [] } }),
+                            titleVisibility: .visible) {
+            Button(model.dryRun ? "Simulate" : "Move to Trash", role: model.dryRun ? nil : .destructive) { trash(pendingTrash) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(model.dryRun
+                 ? "Dry run is on: nothing will be moved."
+                 : "\(ByteFormat.string(pendingTrash.reduce(0) { $0 + (explorer.sizes[$1.url]?.allocated ?? 0) })). You can put it back from the Trash.")
+        }
+    }
+
+    // MARK: List
+
+    private var list: some View {
+        ScrollViewReader { proxy in
+            List(visible) { entry in
                 HStack(spacing: 8) {
-                    Button {
-                        if entry.isFolder { explorer.open(entry) }
-                    } label: {
-                        EntryRow(entry: entry, totals: explorer.sizes[entry.url], largest: explorer.largest,
+                    EntryRow(entry: entry, totals: explorer.sizes[entry.url], largest: explorer.largest,
                              growth: explorer.growth(entry.url))
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(entry.isFolder ? "Open \(entry.name)" : entry.name)
-                    TrashButton(entry: entry) { pendingTrash = entry }
+                        .contentShape(Rectangle())
+                        .onTapGesture { click(entry) }
+                        .help(entry.isFolder ? "Open \(entry.name) (⌘-click to select)" : entry.name)
+                    TrashButton(entry: entry) { pendingTrash = [entry] }
                 }
-                .contextMenu {
-                    if entry.isFolder { Button("Open") { explorer.open(entry) } }
-                    Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting([entry.url]) }
-                    Button(model.exclusions.contains(Exclusions.key(for: entry.url)) ? "Excluded from Cleanup" : "Never Show in Cleanup") {
-                        model.exclude(Exclusions.key(for: entry.url))
-                    }
-                    .disabled(model.exclusions.contains(Exclusions.key(for: entry.url)))
-                    Divider()
-                    if let reason = PathRules.reasonNotDeletable(entry.url, kind: entry.removalKind) {
-                        Button("Can't Remove: \(reason)") {}.disabled(true)
-                    } else {
-                        Button("Move to Trash…") { pendingTrash = entry }
-                    }
-                }
+                .padding(.horizontal, 4)
+                .background(RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.accentColor.opacity(selection.contains(entry.url) ? 0.22 : 0)))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .strokeBorder(Color.accentColor.opacity(focus == entry.url ? 0.7 : 0), lineWidth: 1))
+                .id(entry.url)
+                .contextMenu { contextMenu(for: entry) }
             }
             .listStyle(.inset(alternatesRowBackgrounds: true))
             // A new list per folder, so it starts scrolled to the top.
             .id(explorer.listID)
+            .onChange(of: focus) { url in
+                if let url { withAnimation(.easeOut(duration: 0.1)) { proxy.scrollTo(url) } }
             }
-        }
-        .navigationTitle("Space Explorer")
-        .onAppear { if !explorer.loaded { explorer.load() } }
-        .confirmationDialog(
-            "\(model.dryRun ? "Simulate moving" : "Move") “\(pendingTrash?.name ?? "")” to the Trash?",
-            isPresented: Binding(get: { pendingTrash != nil }, set: { if !$0 { pendingTrash = nil } }),
-            titleVisibility: .visible, presenting: pendingTrash
-        ) { entry in
-            Button(model.dryRun ? "Simulate" : "Move to Trash", role: model.dryRun ? nil : .destructive) { trash(entry) }
-            Button("Cancel", role: .cancel) {}
-        } message: { entry in
-            Text(model.dryRun
-                 ? "Dry run is on: nothing will be moved."
-                 : "\(ByteFormat.string(explorer.sizes[entry.url]?.allocated ?? 0)). You can restore it from the Trash.")
+            .overlay {
+                if visible.isEmpty && !explorer.entries.isEmpty {
+                    Text("No matches").foregroundStyle(.secondary)
+                }
+            }
         }
     }
 
-    private var toolbar: some View {
+    @ViewBuilder private func contextMenu(for entry: ExplorerModel.Entry) -> some View {
+        let targets = selection.contains(entry.url) && selection.count > 1
+            ? visible.filter { selection.contains($0.url) } : [entry]
+        if entry.isFolder && targets.count == 1 { Button("Open") { explorer.open(entry) } }
+        Button("Quick Look") { QuickLook.shared.toggle(targets.map(\.url)) }
+        Button("Reveal in Finder") { NSWorkspace.shared.activateFileViewerSelecting(targets.map(\.url)) }
+        Button("Never Show in Cleanup") {
+            for target in targets { model.exclude(Exclusions.key(for: target.url)) }
+        }
+        Divider()
+        let removable = targets.filter { PathRules.isDeletable($0.url, kind: $0.removalKind) }
+        if removable.isEmpty, let reason = PathRules.reasonNotDeletable(entry.url, kind: entry.removalKind) {
+            Button("Can't Remove: \(reason)") {}.disabled(true)
+        } else {
+            Button(removable.count > 1 ? "Move \(removable.count) Items to Trash…" : "Move to Trash…") {
+                pendingTrash = removable
+            }
+        }
+    }
+
+    /// Click opens a folder (as before). ⌘-click toggles selection, ⇧-click selects a range.
+    private func click(_ entry: ExplorerModel.Entry) {
+        let flags = NSEvent.modifierFlags
+        if flags.contains(.command) {
+            if selection.contains(entry.url) { selection.remove(entry.url) } else { selection.insert(entry.url) }
+            focus = entry.url
+        } else if flags.contains(.shift), let anchor = focus,
+                  let from = visible.firstIndex(where: { $0.url == anchor }),
+                  let to = visible.firstIndex(where: { $0.url == entry.url }) {
+            selection = Set(visible[min(from, to)...max(from, to)].map(\.url))
+        } else {
+            focus = entry.url
+            selection = [entry.url]
+            if entry.isFolder { explorer.open(entry) }
+        }
+    }
+
+    // MARK: Keyboard
+
+    private func installKeyboard() {
+        guard keyMonitor == nil else { return }
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            handleKey(event) ? nil : event
+        }
+    }
+
+    private func removeKeyboard() {
+        if let keyMonitor { NSEvent.removeMonitor(keyMonitor) }
+        keyMonitor = nil
+    }
+
+    /// Returns true when the key was handled.
+    private func handleKey(_ event: NSEvent) -> Bool {
+        let command = event.modifierFlags.contains(.command)
+        let shift = event.modifierFlags.contains(.shift)
+        // Typing in the search field (or any text field) belongs to that field, except Esc and ↓.
+        let typing = NSApp.keyWindow?.firstResponder is NSText
+        if command && event.charactersIgnoringModifiers == "f" {
+            searchFocused = true
+            return true
+        }
+        if typing {
+            if event.keyCode == 53 { search = ""; searchFocused = false; return true }   // Esc
+            if event.keyCode == 125 { searchFocused = false; moveFocus(by: 1, extend: false); return true }
+            return false
+        }
+        // Only for the main window (or Quick Look opened from it), not Settings or the menu bar panel.
+        let key = NSApp.keyWindow
+        let isMain = key?.identifier?.rawValue.hasPrefix("main") == true
+        guard isMain || key is QLPreviewPanel else { return false }
+        switch event.keyCode {
+        case 125: moveFocus(by: 1, extend: shift); return true                    // ↓
+        case 126 where command: goUp(); return true                               // ⌘↑
+        case 126: moveFocus(by: -1, extend: shift); return true                   // ↑
+        case 36, 76, 124:                                                         // Return, Enter, →
+            if let entry = focusedEntry, entry.isFolder { explorer.open(entry) }
+            return true
+        case 123: goUp(); return true                                             // ←
+        case 49:                                                                  // Space
+            QuickLook.shared.toggle(selectedOrFocused.map(\.url))
+            return true
+        case 51 where command, 117 where command:                                 // ⌘⌫
+            let removable = selectedOrFocused.filter { PathRules.isDeletable($0.url, kind: $0.removalKind) }
+            if !removable.isEmpty { pendingTrash = removable }
+            return true
+        case 0 where command:                                                     // ⌘A
+            selection = Set(visible.map(\.url))
+            return true
+        case 53:                                                                  // Esc
+            if QuickLook.shared.isVisible { QuickLook.shared.toggle([]) } else { selection = []; search = "" }
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var focusedEntry: ExplorerModel.Entry? { visible.first { $0.url == focus } }
+
+    private var selectedOrFocused: [ExplorerModel.Entry] {
+        let selected = visible.filter { selection.contains($0.url) }
+        return selected.isEmpty ? focusedEntry.map { [$0] } ?? [] : selected
+    }
+
+    private func moveFocus(by step: Int, extend: Bool) {
+        guard !visible.isEmpty else { return }
+        let current = visible.firstIndex { $0.url == focus }
+        let next = current.map { min(max($0 + step, 0), visible.count - 1) } ?? 0
+        let url = visible[next].url
+        if extend { selection.insert(url) } else { selection = [url] }
+        focus = url
+        if QuickLook.shared.isVisible { QuickLook.shared.toggle([]); QuickLook.shared.toggle([url]) }
+    }
+
+    private func goUp() {
+        if explorer.trail.count >= 2 { explorer.jump(to: explorer.trail.count - 2) }
+        else if explorer.group != nil && !explorer.trail.isEmpty { explorer.jump(to: -1) }
+    }
+
+    // MARK: Bars
+
+    private var pathBar: some View {
         HStack(spacing: 4) {
             if let group = explorer.group {
                 Button(group.title) { explorer.jump(to: -1) }
@@ -91,9 +244,51 @@ struct ExplorerView: View {
                 Text("Sizes from \(since.formatted(.relative(presentation: .named)))")
                     .font(.callout).foregroundStyle(.secondary)
             }
+            if !selection.isEmpty {
+                Text("\(selection.count) selected · \(ByteFormat.string(selectedOrFocused.reduce(0) { $0 + (explorer.sizes[$1.url]?.allocated ?? 0) })) ·")
+                    .font(.callout).foregroundStyle(.secondary).monospacedDigit().lineLimit(1).fixedSize()
+            }
             Text(ByteFormat.string(explorer.currentTotal)).monospacedDigit().foregroundStyle(.secondary)
             Button { explorer.load(force: true) } label: { Image(systemName: "arrow.clockwise") }
+                .buttonStyle(.borderless)
                 .help("Measure again")
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 6)
+    }
+
+    private var controls: some View {
+        HStack(spacing: 8) {
+            HStack(spacing: 4) {
+                Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                TextField("Search (⌘F)", text: $search)
+                    .textFieldStyle(.plain)
+                    .focused($searchFocused)
+                if !search.isEmpty {
+                    Button { search = "" } label: { Image(systemName: "xmark.circle.fill") }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(Color(nsColor: .textBackgroundColor), in: RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.secondary.opacity(0.25)))
+            .frame(width: 190)
+
+            Menu {
+                Button("All Types") { typeFilter = nil }
+                Divider()
+                ForEach(TileKind.allCases, id: \.self) { kind in
+                    Button(kind.name) { typeFilter = kind }
+                }
+            } label: {
+                Label(typeFilter?.name ?? "All Types", systemImage: "line.3.horizontal.decrease.circle")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            Spacer()
             Picker("Sort", selection: $explorer.sortByGrowth) {
                 Text("Size").tag(false)
                 Text("Growth").tag(true)
@@ -110,22 +305,37 @@ struct ExplorerView: View {
             .pickerStyle(.segmented)
             .labelsHidden()
             .fixedSize()
-            Button("Choose Folder…") { explorer.chooseFolder() }
+            Button { explorer.chooseFolder() } label: { Image(systemName: "folder.badge.gearshape") }
+                .help("Choose a folder to explore…")
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.bottom, 10)
     }
 
-    private func trash(_ entry: ExplorerModel.Entry) {
-        var item = CleanItem(url: entry.url, name: entry.name, size: explorer.sizes[entry.url]?.allocated ?? 0,
-                             date: nil, detail: nil, owner: Bundle(url: entry.url)?.bundleIdentifier)
-        item.kind = entry.removalKind
+    // MARK: Trash
+
+    private var trashTitle: String {
+        let verb = model.dryRun ? "Simulate moving" : "Move"
+        return pendingTrash.count == 1
+            ? "\(verb) “\(pendingTrash[0].name)” to the Trash?"
+            : "\(verb) \(pendingTrash.count) items to the Trash?"
+    }
+
+    private func trash(_ entries: [ExplorerModel.Entry]) {
+        let requests = entries.map { entry -> Cleaner.Request in
+            var item = CleanItem(url: entry.url, name: entry.name, size: explorer.sizes[entry.url]?.allocated ?? 0,
+                                 date: nil, detail: nil, owner: Bundle(url: entry.url)?.bundleIdentifier)
+            item.kind = entry.removalKind
+            return Cleaner.Request(item: item, mode: .trash)
+        }
         let dryRun = model.dryRun
+        selection = []
         Task.detached {
-            let report = Cleaner.run([Cleaner.Request(item: item, mode: .trash)], dryRun: dryRun)
+            let report = Cleaner.run(requests, dryRun: dryRun)
             await MainActor.run {
                 if !report.removed.isEmpty { explorer.didRemove(report.removed) }
                 model.applyRemovals(report)
+                if !report.trashedItems.isEmpty && !dryRun { model.rememberTrashed(report.trashedItems) }
                 model.report = report
             }
         }

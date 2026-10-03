@@ -216,6 +216,7 @@ enum DebugSnapshot {
                 case "segment": NotificationCenter.default.post(name: segmentNotification, object: parts[1])
                 case "simulate": NotificationCenter.default.post(name: simulateNotification, object: parts[1])
                 case "key": key(parts[1])
+                case "appkey": appKey(parts[1])
                 case "dump": NotificationCenter.default.post(name: dumpNotification, object: parts[1])
                 case "activate":
                     NSApp.activate(ignoringOtherApps: true)
@@ -243,6 +244,24 @@ enum DebugSnapshot {
         // so the mouse-up must already be queued when the mouse-down is delivered.
         NSApp.postEvent(up, atStart: false)
         window.sendEvent(down)
+    }
+
+    /// Posts a key press through the app's event queue (so local monitors see it), e.g. "125" or "51+cmd".
+    private static func appKey(_ spec: String) {
+        let parts = spec.split(separator: "+")
+        guard let code = UInt16(parts[0]), let window = NSApp.keyWindow ?? NSApp.windows.first(where: \.isVisible) else { return }
+        var flags: NSEvent.ModifierFlags = []
+        if parts.contains("cmd") { flags.insert(.command) }
+        if parts.contains("shift") { flags.insert(.shift) }
+        let chars = code == 3 ? "f" : code == 0 ? "a" : code == 49 ? " " : ""
+        for type in [NSEvent.EventType.keyDown, .keyUp] {
+            if let event = NSEvent.keyEvent(with: type, location: .zero, modifierFlags: flags,
+                                            timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                                            context: nil, characters: chars, charactersIgnoringModifiers: chars,
+                                            isARepeat: false, keyCode: code) {
+                NSApp.postEvent(event, atStart: false)
+            }
+        }
     }
 
     /// Sends a key press to the key window (e.g. a confirmation dialog). "return" or "escape".

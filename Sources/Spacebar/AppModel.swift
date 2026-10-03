@@ -190,6 +190,9 @@ final class AppModel: ObservableObject {
         runTrashDeletion { Cleaner.deleteFromTrash(items, dryRun: $0) }
     }
 
+    /// Space Explorer removals can be put back too.
+    func rememberTrashed(_ items: [Cleaner.TrashedItem]) { lastTrashed = items }
+
     /// Undo: moves what the last clean trashed back to where it was.
     func putBackLastClean() {
         let items = lastTrashed
