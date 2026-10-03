@@ -19,6 +19,9 @@ enum ScanCache {
         struct Entry: Codable {
             var totals: SizeTotals
             var measured: Date
+            /// The measurement before this one, for "grew recently".
+            var previous: Int64?
+            var previousMeasured: Date?
         }
 
         var version = ScanCache.version
@@ -51,6 +54,9 @@ enum ScanCache {
     }
 
     static func save(_ storage: StorageBreakdown) { write(storage, to: "storage.json") }
+
+    static func loadHistory() -> StorageHistory? { read("history.json") }
+    static func save(_ history: StorageHistory) { write(history, to: "history.json") }
 
     static func save(_ explorer: Explorer) {
         var explorer = explorer

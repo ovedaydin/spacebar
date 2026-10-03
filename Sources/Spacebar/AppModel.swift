@@ -24,6 +24,8 @@ final class AppModel: ObservableObject {
     /// What the startup disk is used for. Kept from the last complete measurement while a new one runs.
     @Published private(set) var storage: StorageBreakdown? = ScanCache.loadStorage()
     @Published private(set) var measuringStorage: StorageSegment.Kind?
+    /// Folder sizes from past measurements, for "What grew".
+    @Published private(set) var history: StorageHistory = ScanCache.loadHistory() ?? StorageHistory()
     private var storageRunning = false
     /// When on, cleaning only simulates and logs what it would remove.
     @Published var dryRun: Bool {
@@ -299,7 +301,11 @@ final class AppModel: ObservableObject {
             await MainActor.run {
                 self.storageRunning = false
                 self.measuringStorage = nil
-                if let result { ScanCache.save(result) }
+                if let result {
+                    ScanCache.save(result)
+                    self.history.record(result.folderSizes ?? [:], at: result.measuredAt)
+                    ScanCache.save(self.history)
+                }
             }
         }
     }

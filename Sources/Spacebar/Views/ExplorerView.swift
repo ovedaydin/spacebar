@@ -20,7 +20,8 @@ struct ExplorerView: View {
                     Button {
                         if entry.isFolder { explorer.open(entry) }
                     } label: {
-                        EntryRow(entry: entry, totals: explorer.sizes[entry.url], largest: explorer.largest)
+                        EntryRow(entry: entry, totals: explorer.sizes[entry.url], largest: explorer.largest,
+                             growth: explorer.growth(entry.url))
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -89,6 +90,15 @@ struct ExplorerView: View {
             Text(ByteFormat.string(explorer.currentTotal)).monospacedDigit().foregroundStyle(.secondary)
             Button { explorer.load(force: true) } label: { Image(systemName: "arrow.clockwise") }
                 .help("Measure again")
+            Picker("Sort", selection: $explorer.sortByGrowth) {
+                Text("Size").tag(false)
+                Text("Growth").tag(true)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .help("Sort by size, or by how much each item grew since it was last measured")
+            .disabled(showsMap)
             Picker("View", selection: $showsMap) {
                 Image(systemName: "list.bullet").tag(false).help("List")
                 Image(systemName: "square.grid.3x3.square").tag(true).help("Map")
@@ -156,6 +166,7 @@ private struct EntryRow: View {
     let entry: ExplorerModel.Entry
     let totals: SizeTotals?
     let largest: Int64
+    var growth: (bytes: Int64, since: Date)?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -181,6 +192,12 @@ private struct EntryRow: View {
                 .opacity(totals == nil ? 0 : 1)
             }
             Spacer(minLength: 12)
+            if let growth, abs(growth.bytes) >= 50_000_000 {
+                Label(ByteFormat.string(abs(growth.bytes)), systemImage: growth.bytes > 0 ? "arrow.up" : "arrow.down")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .help("\(growth.bytes > 0 ? "Grew" : "Shrank") by \(ByteFormat.string(abs(growth.bytes))) since \(growth.since.formatted(.relative(presentation: .named)))")
+            }
             Group {
                 if let totals {
                     Text(ByteFormat.string(totals.allocated)).monospacedDigit()

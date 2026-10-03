@@ -76,6 +76,8 @@ public struct StorageBreakdown: Codable, Sendable {
     public var complete: Bool
     /// The slice being measured right now.
     public var measuring: StorageSegment.Kind?
+    /// Size of every folder measured for the breakdown (display paths), for growth history.
+    public var folderSizes: [String: Int64]?
 
     public init(total: Int64, free: Int64, purgeable: Int64, segments: [StorageSegment],
                 measuredAt: Date, complete: Bool, measuring: StorageSegment.Kind?) {
@@ -231,7 +233,11 @@ public enum StorageAnalyzer {
         for (index, slice) in slices.enumerated() {
             if cancel?.isCancelled == true { return nil }
             let roots = slice.1.filter { fm.fileExists(atPath: $0.path) }
-            let bytes = engine.measure(roots, cancel: cancel).reduce(Int64(0)) { $0 + $1.allocated }
+            let sizes = engine.measure(roots, cancel: cancel)
+            let bytes = sizes.reduce(Int64(0)) { $0 + $1.allocated }
+            var folders = breakdown.folderSizes ?? [:]
+            for (root, size) in zip(roots, sizes) { folders[displayPath(root.path)] = size.allocated }
+            breakdown.folderSizes = folders
             measured += bytes
             breakdown.segments.append(StorageSegment(kind: slice.0, bytes: bytes, explorePath: slice.2,
                                                      roots: roots.map { displayPath($0.path) }))

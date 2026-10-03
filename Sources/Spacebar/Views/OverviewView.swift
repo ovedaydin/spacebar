@@ -58,6 +58,11 @@ struct OverviewView: View {
                            message: "These count as purgeable space. macOS deletes them automatically when it needs the space, and after 24 hours. To remove them now, run `tmutil thinlocalsnapshots / 999999999999 4` in Terminal.") {}
                 }
 
+                WhatGrewCard { url in
+                    explorer.show(url)
+                    route = .explorer
+                }
+
                 summary
 
                 if model.hasScanned {
@@ -127,6 +132,59 @@ struct OverviewView: View {
                 .disabled(model.isScanning)
             }
         }
+    }
+}
+
+/// "What grew this week": the folders that grew most since a measurement about a week ago.
+private struct WhatGrewCard: View {
+    @EnvironmentObject private var model: AppModel
+    let open: (URL) -> Void
+
+    var body: some View {
+        if let growth = model.history.growth() {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    Label("What grew", systemImage: "chart.line.uptrend.xyaxis").font(.headline)
+                    Spacer()
+                    Text("since \(growth.since.formatted(.relative(presentation: .named)))")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+                if growth.items.isEmpty {
+                    Text("Nothing grew by more than 200 MB.").foregroundStyle(.secondary)
+                } else {
+                    VStack(spacing: 6) {
+                        ForEach(growth.items.prefix(5), id: \.path) { item in
+                            Button { open(URL(fileURLWithPath: item.path)) } label: {
+                                HStack {
+                                    Text(display(item.path)).lineLimit(1).truncationMode(.middle)
+                                    if item.isNew {
+                                        Text("new").font(.caption).foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    Text("+\(ByteFormat.string(item.delta))").monospacedDigit()
+                                    Text("now \(ByteFormat.string(item.after))")
+                                        .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                                        .frame(minWidth: 90, alignment: .trailing)
+                                    Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
+                                }
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            .padding(16)
+            .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
+        } else if !model.history.entries.isEmpty {
+            Label("Spacebar shows what grew once it has measured your disk again on another day.",
+                  systemImage: "chart.line.uptrend.xyaxis")
+                .font(.callout).foregroundStyle(.secondary)
+        }
+    }
+
+    private func display(_ path: String) -> String {
+        path.replacingOccurrences(of: NSHomeDirectory(), with: "~")
     }
 }
 

@@ -19,6 +19,21 @@ final class ExplorerModel: ObservableObject {
     private var token: CancelToken?
     private let sessionStart = Date()
     private var measured: [URL: Date] = [:]
+    /// The size before the latest measurement (from an earlier session), for "grew recently".
+    private(set) var previous: [URL: (bytes: Int64, date: Date)] = [:]
+
+    /// How much `url` grew since its previous measurement, if known.
+    func growth(_ url: URL) -> (bytes: Int64, since: Date)? {
+        guard let before = previous[url], let now = sizes[url]?.allocated else { return nil }
+        return (now - before.bytes, before.date)
+    }
+
+    @Published var sortByGrowth = UserDefaults.standard.bool(forKey: "explorerSortByGrowth") {
+        didSet {
+            UserDefaults.standard.set(sortByGrowth, forKey: "explorerSortByGrowth")
+            sortEntries()
+        }
+    }
 
     @Published private(set) var trail: [URL] = [FileManager.default.homeDirectoryForCurrentUser]
     @Published private(set) var entries: [Entry] = []
@@ -34,6 +49,7 @@ final class ExplorerModel: ObservableObject {
                 let url = URL(fileURLWithPath: path)
                 sizes[url] = entry.totals
                 measured[url] = entry.measured
+                if let bytes = entry.previous, let date = entry.previousMeasured { previous[url] = (bytes, date) }
             }
         }
     }
@@ -196,6 +212,10 @@ final class ExplorerModel: ObservableObject {
         let now = Date()
         var sizes = self.sizes
         for (url, totals) in batch {
+            // Keep the last measurement from an earlier session (at least an hour old) as "previous".
+            if let old = sizes[url], let oldDate = measured[url], now.timeIntervalSince(oldDate) > 3600 {
+                previous[url] = (old.allocated, oldDate)
+            }
             sizes[url] = totals
             measured[url] = now
         }
@@ -203,6 +223,12 @@ final class ExplorerModel: ObservableObject {
     }
 
     private func sortEntries() {
+        if sortByGrowth {
+            ordered = entries.sorted { a, b in
+                (growth(a.url)?.bytes ?? Int64.min) > (growth(b.url)?.bytes ?? Int64.min)
+            }
+            return
+        }
         ordered = entries.sorted { a, b in
             switch (sizes[a.url]?.allocated, sizes[b.url]?.allocated) {
             case let (x?, y?) where x != y: return x > y
@@ -216,7 +242,10 @@ final class ExplorerModel: ObservableObject {
     private func saveCache() {
         var entries: [String: ScanCache.Explorer.Entry] = [:]
         for (url, totals) in sizes {
-            if let date = measured[url] { entries[url.path] = .init(totals: totals, measured: date) }
+            if let date = measured[url] {
+                entries[url.path] = .init(totals: totals, measured: date,
+                                          previous: previous[url]?.bytes, previousMeasured: previous[url]?.date)
+            }
         }
         ScanCache.save(ScanCache.Explorer(entries: entries))
     }

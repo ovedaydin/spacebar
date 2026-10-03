@@ -131,3 +131,46 @@ final class DuplicateTests: XCTestCase {
         XCTAssertEqual(DuplicateFinder.reclaimableBytes(copy.path, allocated: 1 << 20), 1 << 20)
     }
 }
+
+final class HistoryTests: XCTestCase {
+    private let day: TimeInterval = 86400
+
+    func testRecordKeepsOnePerInterval() {
+        var history = StorageHistory()
+        let start = Date(timeIntervalSince1970: 1_000_000)
+        history.record(["/a": 1], at: start)
+        history.record(["/a": 2], at: start.addingTimeInterval(3600))      // within 6 h: replaces
+        history.record(["/a": 3], at: start.addingTimeInterval(7 * 3600))  // new entry
+        XCTAssertEqual(history.entries.map { $0.folders["/a"] }, [2, 3])
+        history.record([:], at: start.addingTimeInterval(20 * 3600))       // empty: ignored
+        XCTAssertEqual(history.entries.count, 2)
+    }
+
+    func testGrowthAgainstAWeekAgo() {
+        var history = StorageHistory()
+        let now = Date()
+        history.record(["/lib": 10_000_000_000, "/docs": 5_000_000_000], at: now.addingTimeInterval(-10 * day))
+        history.record(["/lib": 12_000_000_000, "/docs": 5_000_000_000], at: now.addingTimeInterval(-8 * day))
+        history.record(["/lib": 20_000_000_000, "/docs": 5_100_000_000, "/new": 900_000_000], at: now)
+        let growth = try? XCTUnwrap(history.growth(now: now))
+        XCTAssertEqual(growth?.since, history.entries[1].date, "newest entry at least a week old")
+        XCTAssertEqual(growth?.items.map(\.path), ["/lib", "/new"], "docs grew under the threshold")
+        XCTAssertEqual(growth?.items.first?.delta, 8_000_000_000)
+        XCTAssertEqual(growth?.items.last?.isNew, true)
+    }
+
+    func testNeedsAnOlderMeasurement() {
+        var history = StorageHistory()
+        let now = Date()
+        history.record(["/a": 1], at: now)
+        XCTAssertNil(history.growth(now: now), "a single measurement can't show growth")
+        history = StorageHistory()
+        history.record(["/a": 1], at: now.addingTimeInterval(-2 * 3600))
+        history.record(["/a": 900_000_000], at: now)
+        XCTAssertNil(history.growth(now: now), "baseline must be at least 12 hours old")
+        history = StorageHistory()
+        history.record(["/a": 1], at: now.addingTimeInterval(-2 * day))
+        history.record(["/a": 900_000_000], at: now)
+        XCTAssertEqual(history.growth(now: now)?.items.first?.delta, 899_999_999, "falls back to the oldest entry")
+    }
+}
