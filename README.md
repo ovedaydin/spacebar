@@ -16,6 +16,12 @@
 
 Requires macOS 13 Ventura or later, on Apple silicon or Intel.
 
+![Overview: what your disk is used for, and what can be cleaned](docs/screenshots/overview.png)
+
+| Space Explorer (treemap) | Old simulators |
+|---|---|
+| ![Space Explorer treemap](docs/screenshots/space-explorer.png) | ![Old simulators](docs/screenshots/old-simulators.png) |
+
 ## Install
 
 ### Homebrew (recommended)
@@ -41,6 +47,10 @@ The script downloads the latest release, checks its SHA-256, and installs it int
    3. Confirm with your password.
 
    You only need to do this once. To skip it, run `xattr -dr com.apple.quarantine /Applications/Spacebar.app`.
+
+On first launch, a short walkthrough explains Full Disk Access and how Spacebar keeps you safe:
+
+<p align="center"><img src="docs/screenshots/walkthrough.png" width="560" alt="Walkthrough: you stay in control"></p>
 
 ## Permissions
 

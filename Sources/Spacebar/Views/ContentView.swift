@@ -92,6 +92,11 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.segmentNotification)) { note in
+            if let target = note.object as? String, target.hasPrefix("explore:") {
+                explorer.show(URL(fileURLWithPath: (String(target.dropFirst("explore:".count)) as NSString).expandingTildeInPath))
+                route = .explorer
+                return
+            }
             if let action = note.object as? String, action.hasPrefix("action:") {
                 if action == "action:fdacheck" {
                     model.checkFullDiskAccessAgain()

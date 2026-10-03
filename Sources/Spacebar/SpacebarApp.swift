@@ -200,6 +200,7 @@ enum DebugSnapshot {
                 case "snappanel": snapshot(to: parts[1], panel: true)
                 case "snapstatus": snapshot(to: parts[1], status: true)
                 case "snapsheet": snapshot(to: parts[1], sheet: true)
+                case "explore": NotificationCenter.default.post(name: segmentNotification, object: "explore:" + parts[1])
                 case "iconpng":
                     // Renders the menu bar icon at 8× (black on white) to check its shape.
                     let size = NSSize(width: 128, height: 128)
