@@ -10,5 +10,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build
         run: swift build -c release
+      - name: Tests (path rules, scanner, cleaner on throwaway files)
+        run: swift test
       - name: Benchmark smoke test (read-only)
         run: swift run -c release spacebar-bench --path "$GITHUB_WORKSPACE" --runs 1

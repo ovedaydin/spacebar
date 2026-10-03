@@ -112,6 +112,19 @@ public extension StorageBreakdown {
     }
 }
 
+public extension StorageBreakdown {
+    /// The reverse of trashing: `bytes` leave the Trash slice and return to the one `path` is in.
+    mutating func recordRestore(path: String, bytes: Int64) {
+        if let trash = segments.firstIndex(where: { $0.kind == .trash }) {
+            segments[trash].bytes = max(0, segments[trash].bytes - bytes)
+        }
+        let target = StorageAnalyzer.kind(forPath: path)
+        if let index = segments.firstIndex(where: { $0.kind == target }) {
+            segments[index].bytes += bytes
+        }
+    }
+}
+
 public enum StorageAnalyzer {
     /// "/System/Volumes/Data/opt" → "/opt": the path people know.
     static func displayPath(_ path: String) -> String {
@@ -233,16 +246,27 @@ public enum StorageAnalyzer {
         measured += assets
 
         // System Data is the remainder; itemize what can be measured.
-        let libraryRoots = list(URL(fileURLWithPath: "\(data)/Library")).filter { $0.lastPathComponent != "Developer" }
+        let libraryRoots = list(URL(fileURLWithPath: "\(data)/Library"))
+            .filter { $0.lastPathComponent != "Developer" && $0.lastPathComponent != "Updates" }
+        // A downloaded macOS update waiting to install.
+        let updates = engine.measure([URL(fileURLWithPath: "\(data)/Library/Updates"),
+                                      URL(fileURLWithPath: "\(data)/MobileSoftwareUpdate")]
+                                         .filter { fm.fileExists(atPath: $0.path) }, cancel: cancel)
+            .reduce(Int64(0)) { $0 + $1.allocated }
+        let updateSnapshots = (runCommand("/usr/bin/tmutil", ["listlocalsnapshots", "/"]).map { String(decoding: $0, as: UTF8.self) } ?? "")
+            .split(separator: "\n").filter { $0.hasPrefix("com.apple.os.update-") }.count
         let library = engine.measure(libraryRoots, cancel: cancel).reduce(Int64(0)) { $0 + $1.allocated }
         let privateFiles = engine.measure(URL(fileURLWithPath: "\(data)/private"), cancel: cancel).allocated
         let remainder = max(0, volumes.data - measured)
         var systemData = StorageSegment(kind: .systemData, bytes: remainder, explorePath: "/Library",
                                         roots: (libraryRoots.map(\.path) + ["\(data)/private"]).map(displayPath))
-        let other = max(0, remainder - library - privateFiles)
+        let other = max(0, remainder - library - privateFiles - updates)
         systemData.parts = [.init(name: "System-wide app support (/Library)", bytes: min(library, remainder)),
                             .init(name: "Temporary files, logs and system databases", bytes: min(privateFiles, remainder)),
-                            .init(name: "Snapshots, indexes and unreadable folders", bytes: other)]
+                            .init(name: "macOS update downloaded, waiting to install", bytes: min(updates, remainder)),
+                            .init(name: updateSnapshots > 0
+                                  ? "Snapshots (\(updateSnapshots) made by macOS updates, removed by macOS), indexes and unreadable folders"
+                                  : "Snapshots, indexes and unreadable folders", bytes: other)]
         breakdown.segments.append(systemData)
         breakdown.complete = true
         breakdown.measuredAt = Date()

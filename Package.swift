@@ -23,5 +23,7 @@ let package = Package(
         ),
         // Read-only benchmark CLI.
         .executableTarget(name: "spacebar-bench", dependencies: ["SpacebarCore"]),
+        .testTarget(name: "SpacebarCoreTests", dependencies: ["SpacebarCore"]),
+        .testTarget(name: "SpacebarTests", dependencies: ["Spacebar", "SpacebarCore"]),
     ]
 )

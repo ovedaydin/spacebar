@@ -7,7 +7,7 @@
 - **Disk breakdown.** See what your disk is used for (macOS, Apps, Documents, Developer, App Data, Shared, System Data…), measured rather than estimated. Click a category to explore it.
 - **Space Explorer.** Drill into any folder as a sorted list or a treemap. Subfolders are measured in the same pass, so opening them is instant.
 - **Menu bar & alerts.** Available space in the menu bar, one-click cleaning of safe items, and a notification when the disk is almost full.
-- **Trash that frees space.** After a clean, **Delete Now** permanently removes just what Spacebar moved to the Trash. Empty Trash is built in.
+- **Trash that frees space, and undo.** After a clean, **Delete Now** permanently removes just what Spacebar moved to the Trash, and **Put Back** (⌥⌘Z) restores it. Empty Trash is built in.
 - **Remembers results.** The last scan is shown immediately at launch and refreshed in the background.
 - **Cleanup.** Finds app caches, logs, Xcode data, package-manager caches, the Trash, old downloads, large files, iPhone backups, Mail attachments, and macOS installers.
 - **Safe by design.** You review everything first. "Review" categories are never preselected. Most Apple caches are left alone, apps that are running are skipped, and every removal is logged.
@@ -86,6 +86,8 @@ The **Old Downloads** and **Large Files** scans only run when you ask, because r
 | Unused Apps | Your apps, least recently used first. Uses Spotlight's last-used date plus traces apps leave when they run | Never | Trash (asks for a password if needed) |
 | Old Simulators | Simulator devices whose runtime is gone, and devices or runtimes unused for 90+ days | Unusable devices | `xcrun simctl delete` |
 | App Leftovers | Data of apps that are no longer installed (Application Support, containers, web data) | Bundle-ID matches that are web data or unchanged for 90+ days; name-only matches are left for review | Trash |
+| Docker | Build cache, unused images, stopped containers and unused volumes, via Docker's own prune commands | Build cache. Volumes never | `docker … prune` |
+| Time Machine Snapshots | Local snapshots on the startup disk | Never | `tmutil deletelocalsnapshots /` |
 | Mail | Opened attachments, plus cached attachments of server-synced accounts (IMAP, Exchange, Gmail, iCloud). Never mailboxes, POP or "On My Mac" | Never | Trash |
 | Duplicate Files | Identical files over 1 MB, matched by size, then partial and full SHA-256 hashes. APFS clones, hard links, iCloud-only files, build output and files inside git repos are excluded | Never | Trash |
 | Project Build Files | `node_modules`, `target`, `build`, `Pods`, `.venv`, … next to their project file | Projects untouched for 90+ days | Deleted (rebuildable) |
@@ -141,6 +143,8 @@ ARCHS=arm64 ./scripts/build-app.sh  # build dist/Spacebar.app (drop ARCHS for a 
 ./scripts/install-local.sh          # build and install to /Applications (replaces the running copy)
 ./scripts/package.sh                # create dist/Spacebar-x.y.z.{zip,dmg} and SHA256SUMS.txt
 ```
+
+Tests: `swift test` runs the path-rule, scanner (against `du`, with hard links, symlinks and APFS clones), suggestion, duplicate, Docker-parsing and cleaner tests. The cleaner tests only create and remove their own files in `~/Library/Caches/spacebar-tests-*`. CI runs them on every push.
 
 The project uses Swift Package Manager with no Xcode project:
 

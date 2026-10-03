@@ -42,6 +42,11 @@ struct SpacebarApp: App {
                 Button("Scan") { model.scanAll() }
                     .keyboardShortcut("r")
             }
+            CommandGroup(after: .undoRedo) {
+                Button("Undo Last Clean (Put Back)") { model.putBackLastClean() }
+                    .keyboardShortcut("z", modifiers: [.command, .option])
+                    .disabled(model.lastTrashed.isEmpty || model.cleaning)
+            }
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates…") { Updates.shared.check() }
                     .disabled(!Updates.shared.available)
@@ -338,11 +343,32 @@ enum DebugSnapshot {
         say("original still exists: \(FileManager.default.fileExists(atPath: fixture.path))")
         let outside = Cleaner.deleteFromTrash([(caches.appendingPathComponent("pip"), 1)], dryRun: false)
         say("delete outside Trash refused: \(outside.skipped.map(\.reason))")
-        let deleted = Cleaner.deleteFromTrash(trashed.trashedItems, dryRun: false)
+        let deleted = Cleaner.deleteFromTrash(trashed.trashedItems.map { ($0.url, $0.bytes) }, dryRun: false)
         say("delete now: deletedBytes=\(deleted.deletedBytes) removed=\(deleted.removed.count) skipped=\(deleted.skipped.map(\.reason))")
         if let landed = trashed.trashedItems.first?.url {
             say("trashed copy still exists: \(FileManager.default.fileExists(atPath: landed.path))")
         }
+
+        // Put Back: restores to the original path…
+        func makeFixture() -> CleanItem {
+            let url = caches.appendingPathComponent("spacebar-selftest-\(UUID().uuidString).txt")
+            FileManager.default.createFile(atPath: url.path, contents: Data(repeating: 1, count: 4096))
+            return CleanItem(url: url, name: url.lastPathComponent, size: 4096, date: nil, detail: nil, owner: nil)
+        }
+        let first = makeFixture()
+        let firstTrash = Cleaner.run([Cleaner.Request(item: first, mode: .trash)], dryRun: false)
+        let back = Cleaner.putBack(firstTrash.trashedItems, dryRun: false)
+        say("put back: restored=\(back.restoredItems.count) atOriginal=\(FileManager.default.fileExists(atPath: first.url.path)) inTrash=\(FileManager.default.fileExists(atPath: firstTrash.trashedItems[0].url.path)) skipped=\(back.skipped.map(\.reason))")
+        // …and never overwrites something new at that path.
+        let second = makeFixture()
+        let secondTrash = Cleaner.run([Cleaner.Request(item: second, mode: .trash)], dryRun: false)
+        FileManager.default.createFile(atPath: second.url.path, contents: Data("new".utf8))
+        let blocked = Cleaner.putBack(secondTrash.trashedItems, dryRun: false)
+        say("put back onto existing file: restored=\(blocked.restoredItems.count) skipped=\(blocked.skipped.map(\.reason)) newFileIntact=\((try? String(contentsOf: second.url, encoding: .utf8)) == "new")")
+        // Clean up this test's own files only.
+        _ = Cleaner.deleteFromTrash(secondTrash.trashedItems.map { ($0.url, $0.bytes) }, dryRun: false)
+        let cleanup = Cleaner.run([Cleaner.Request(item: first, mode: .permanent), Cleaner.Request(item: second, mode: .permanent)], dryRun: false)
+        say("cleanup: removed=\(cleanup.removed.count)")
     }
 
     /// Clicks Spacebar's own menu bar item (opens its panel).

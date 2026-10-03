@@ -33,6 +33,17 @@ struct OverviewView: View {
                     }
                 }
 
+                if !model.lastTrashed.isEmpty {
+                    Banner(icon: "arrow.uturn.backward.circle", tint: .orange,
+                           title: "Your last clean moved \(ByteFormat.string(model.lastTrashedBytes)) to the Trash",
+                           message: "That space isn't free until it's deleted from the Trash. Put it back if you removed something by mistake.") {
+                        Button("Delete Now") { model.deleteTrashed() }
+                            .disabled(model.cleaning)
+                        Button("Put Back") { model.putBackLastClean() }
+                            .disabled(model.cleaning)
+                    }
+                }
+
                 DiskUsageCard(open: { url in
                     explorer.show(url)
                     route = .explorer

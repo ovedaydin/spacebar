@@ -29,6 +29,10 @@ public enum ItemKind: Hashable, Sendable, Codable {
     case simulatorRuntime(identifier: String)
     /// A Mail account folder: only the cached "Attachments" folders inside it are removed.
     case mailAttachments
+    /// Space inside Docker, freed with `docker <arguments>` (e.g. builder prune).
+    case dockerPrune(arguments: [String])
+    /// Time Machine local snapshots on the startup disk, removed with `tmutil deletelocalsnapshots /`.
+    case timeMachineSnapshots
 }
 
 public struct CleanItem: Identifiable, Hashable, Sendable, Codable {
@@ -142,7 +146,8 @@ public struct CleanCategory: Identifiable, Sendable {
     public enum SortOrder: Sendable { case largestFirst, oldestFirst }
     public var group: Group { Self.findSpaceIDs.contains(id) ? .findSpace : .cleanup }
     public var sortOrder: SortOrder { id == "apps" ? .oldestFirst : .largestFirst }
-    static let findSpaceIDs: Set<String> = ["forgotten", "duplicates", "apps", "leftovers", "simulators", "projects", "mail"]
+    static let findSpaceIDs: Set<String> = ["forgotten", "duplicates", "apps", "leftovers", "simulators", "docker",
+                                            "snapshots", "projects", "mail"]
     let collect: @Sendable (ScanContext) -> [Candidate]
 
     struct Candidate {
@@ -209,7 +214,7 @@ public extension CleanCategory {
     static let all: [CleanCategory] = [
         appCaches, logs, xcode, developerCaches, trash,
         xcodeArchives, iosBackups, installers, largeFiles,
-        forgottenFiles, unusedApps, simulators, appLeftovers, mail, duplicates, projectBuildFiles,
+        forgottenFiles, unusedApps, simulators, docker, snapshots, appLeftovers, mail, duplicates, projectBuildFiles,
     ]
 
     static let appCaches = CleanCategory(

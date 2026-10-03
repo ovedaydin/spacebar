@@ -136,6 +136,7 @@ struct ContentView: View {
             let trashed = report.trashedItems.reduce(Int64(0)) { $0 + $1.bytes }
             if !report.dryRun && !report.trashedItems.isEmpty {
                 Button("Delete Now (\(ByteFormat.string(trashed)))", role: .destructive) { model.deleteTrashed(report) }
+                Button("Put Back") { model.putBackLastClean() }
                 Button("Keep in Trash", role: .cancel) {}
             } else {
                 Button("OK", role: .cancel) {}
@@ -178,6 +179,9 @@ extension Cleaner.Report {
     var title: String {
         if dryRun { return "Dry run: nothing was deleted" }
         if emptiedTrash { return skipped.isEmpty ? "Deleted from the Trash" : "Some items couldn't be deleted" }
+        if !restoredItems.isEmpty || (deletedBytes == 0 && trashedBytes == 0 && removed.isEmpty && !skipped.isEmpty) {
+            return skipped.isEmpty ? "Put back" : "Some items couldn't be put back"
+        }
         return skipped.isEmpty ? "Cleanup complete" : "Cleanup finished with some items skipped"
     }
 
@@ -191,6 +195,9 @@ extension Cleaner.Report {
         }
         if emptiedTrash && deletedBytes == 0 && !dryRun && skipped.isEmpty {
             lines.append("Finder emptied the Trash.")
+        }
+        if !restoredItems.isEmpty {
+            lines.append("Moved \(restoredItems.count) item\(restoredItems.count == 1 ? "" : "s") (\(ByteFormat.string(restoredItems.reduce(0) { $0 + $1.bytes }))) back to where \(restoredItems.count == 1 ? "it was" : "they were").")
         }
         if !skipped.isEmpty {
             lines.append("Skipped \(skipped.count):")

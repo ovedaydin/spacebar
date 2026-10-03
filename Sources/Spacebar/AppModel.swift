@@ -154,16 +154,46 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// What the last clean moved to the Trash: can still be put back or deleted for good.
+    @Published private(set) var lastTrashed: [Cleaner.TrashedItem] = []
+    var lastTrashedBytes: Int64 { lastTrashed.reduce(0) { $0 + $1.bytes } }
+
     /// Permanently deletes what the last clean moved to the Trash, and nothing else in the Trash.
-    func deleteTrashed(_ report: Cleaner.Report) {
-        let items = report.trashedItems
+    func deleteTrashed(_ report: Cleaner.Report? = nil) {
+        let items = (report?.trashedItems ?? lastTrashed).map { (url: $0.url, bytes: $0.bytes) }
         guard !items.isEmpty else { return }
+        lastTrashed = []
         runTrashDeletion { Cleaner.deleteFromTrash(items, dryRun: $0) }
+    }
+
+    /// Undo: moves what the last clean trashed back to where it was.
+    func putBackLastClean() {
+        let items = lastTrashed
+        guard !items.isEmpty, !cleaning else { return }
+        cleaning = true
+        let dryRun = dryRun
+        Task.detached(priority: .userInitiated) {
+            let report = Cleaner.putBack(items, dryRun: dryRun)
+            await MainActor.run {
+                self.cleaning = false
+                if !dryRun {
+                    let restored = Set(report.restoredItems.map(\.url))
+                    self.lastTrashed.removeAll { restored.contains($0.url) }
+                    if var storage = self.storage {
+                        for item in report.restoredItems { storage.recordRestore(path: item.original.path, bytes: item.bytes) }
+                        self.storage = storage
+                    }
+                }
+                self.report = report
+                self.scanAll() // restored items show up again in their categories
+            }
+        }
     }
 
     /// Empties the whole Trash. With Full Disk Access Spacebar does it (and knows the size);
     /// without, it asks Finder.
     func emptyTrash() {
+        if !dryRun { lastTrashed = [] }
         runTrashDeletion { dryRun in
             if let contents = Cleaner.trashContents() {
                 return Cleaner.deleteFromTrash(contents, dryRun: dryRun)
@@ -378,6 +408,7 @@ final class AppModel: ObservableObject {
                 self.saveResults()
                 self.cleaning = false
                 self.applyRemovals(report)
+                if !report.trashedItems.isEmpty { self.lastTrashed = report.trashedItems }
                 self.report = report
             }
         }

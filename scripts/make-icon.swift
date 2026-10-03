@@ -28,11 +28,23 @@ func render(_ px: Int) -> Data {
         NSColor.white.withAlphaComponent(i == 2 ? 1 : 0.55).setFill()
         bar.fill()
     }
-    if let spark = NSImage(systemSymbolName: "sparkle", accessibilityDescription: nil)?
-        .withSymbolConfiguration(.init(pointSize: 200 * s, weight: .bold)
-            .applying(.init(paletteColors: [.white]))) {
-        spark.draw(in: NSRect(x: 580 * s, y: 270 * s, width: 210 * s, height: 210 * s))
+    // Four-pointed sparkle, drawn by hand (no SF Symbols: their license excludes app icons).
+    let center = NSPoint(x: 685 * s, y: 375 * s)
+    let radius = 105 * s
+    let pinch = 14 * s
+    let star = NSBezierPath()
+    star.move(to: NSPoint(x: center.x, y: center.y + radius))
+    for (dx, dy) in [(1.0, 0.0), (0.0, -1.0), (-1.0, 0.0), (0.0, 1.0)] {
+        let tip = NSPoint(x: center.x + dx * radius, y: center.y + dy * radius)
+        let previous = star.currentPoint
+        // Concave sides: both control points sit near the centre.
+        star.curve(to: tip,
+                   controlPoint1: NSPoint(x: center.x + (previous.x - center.x) * 0.12 + dx * pinch, y: center.y + (previous.y - center.y) * 0.12 + dy * pinch),
+                   controlPoint2: NSPoint(x: center.x + dx * pinch + (previous.x - center.x) * 0.12, y: center.y + dy * pinch + (previous.y - center.y) * 0.12))
     }
+    star.close()
+    NSColor.white.setFill()
+    star.fill()
     NSGraphicsContext.restoreGraphicsState()
     return rep.representation(using: .png, properties: [:])!
 }

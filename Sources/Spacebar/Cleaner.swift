@@ -18,10 +18,21 @@ enum Cleaner {
         /// What was removed, its size, and whether it went to the Trash (so no space was freed yet).
         var removedItems: [(path: String, bytes: Int64, trashed: Bool)] = []
         var skipped: [(name: String, reason: String)] = []
-        /// Where trashed items ended up, so "Delete Now" can remove exactly those and nothing else.
-        var trashedItems: [(url: URL, bytes: Int64)] = []
+        /// Where trashed items ended up (and came from), so "Delete Now" and "Put Back" act on
+        /// exactly those and nothing else.
+        var trashedItems: [TrashedItem] = []
+        /// Items moved back out of the Trash by "Put Back".
+        var restoredItems: [TrashedItem] = []
         /// This report is for deleting items from the Trash.
         var emptiedTrash = false
+    }
+
+    struct TrashedItem: Sendable {
+        /// Location in the Trash.
+        let url: URL
+        /// Where it was before cleaning.
+        let original: URL
+        let bytes: Int64
     }
 
     static let logURL = FileManager.default.homeDirectoryForCurrentUser
@@ -66,8 +77,9 @@ enum Cleaner {
             }
             do {
                 let landed = try action.perform(url)
-                for (index, location) in landed.enumerated() {
-                    report.trashedItems.append((location, index == 0 ? item.size : 0))
+                for (index, move) in landed.enumerated() {
+                    report.trashedItems.append(TrashedItem(url: move.landed, original: move.original,
+                                                           bytes: index == 0 ? item.size : 0))
                 }
                 if action.freesNow { report.deletedBytes += item.size } else { report.trashedBytes += item.size }
                 report.removed.append(url)
@@ -89,6 +101,8 @@ enum Cleaner {
         case recycleApp
         case simctl([String])
         case trashMailAttachments
+        case docker([String])
+        case deleteSnapshots
 
         init(item: CleanItem, requested: RemovalMode, trashPrefix: String) {
             switch item.kind {
@@ -97,6 +111,8 @@ enum Cleaner {
             case .application: self = .recycleApp
             case .mailAttachments: self = .trashMailAttachments
             case .appLeftover: self = .trash
+            case .dockerPrune(let arguments): self = .docker(arguments)
+            case .timeMachineSnapshots: self = .deleteSnapshots
             case .file:
                 // Items already in the Trash can only be deleted.
                 self = item.url.path.hasPrefix(trashPrefix) || requested == .permanent ? .delete : .trash
@@ -105,7 +121,7 @@ enum Cleaner {
 
         var freesNow: Bool {
             switch self {
-            case .delete, .simctl: return true
+            case .delete, .simctl, .docker, .deleteSnapshots: return true
             case .trash, .recycleApp, .trashMailAttachments: return false
             }
         }
@@ -117,17 +133,19 @@ enum Cleaner {
             case .recycleApp: return "TRASH-APP"
             case .simctl(let args): return "SIMCTL-" + args.dropLast().joined(separator: "-").uppercased()
             case .trashMailAttachments: return "TRASH-MAIL-ATTACHMENTS"
+            case .docker(let args): return "DOCKER-" + args.prefix(2).joined(separator: "-").uppercased()
+            case .deleteSnapshots: return "TMUTIL-DELETE-LOCAL-SNAPSHOTS"
             }
         }
 
-        /// Performs the removal; returns where trashed items landed in the Trash.
-        func perform(_ url: URL) throws -> [URL] {
+        /// Performs the removal; returns what moved to the Trash and from where.
+        func perform(_ url: URL) throws -> [(original: URL, landed: URL)] {
             switch self {
             case .delete:
                 try Cleaner.removePermanently(url)
                 return []
             case .trash:
-                return [try Cleaner.trash(url)]
+                return [(url, try Cleaner.trash(url))]
             case .recycleApp:
                 // Like Finder: asks for an administrator password if the app needs one.
                 return try Cleaner.recycle(url)
@@ -135,7 +153,14 @@ enum Cleaner {
                 try Cleaner.simctl(arguments)
                 return []
             case .trashMailAttachments:
-                return try MailAccounts.attachmentFolders(in: url).map(Cleaner.trash)
+                return try MailAccounts.attachmentFolders(in: url).map { ($0, try Cleaner.trash($0)) }
+            case .docker(let arguments):
+                guard let docker = DockerCLI.path, !arguments.isEmpty else { throw Cleaner.failure("Docker isn't available") }
+                try Cleaner.runTool(docker, arguments, environment: DockerCLI.environment)
+                return []
+            case .deleteSnapshots:
+                try Cleaner.runTool("/usr/bin/tmutil", ["deletelocalsnapshots", "/"])
+                return []
             }
         }
     }
@@ -146,13 +171,13 @@ enum Cleaner {
         return (landed as URL?) ?? url
     }
 
-    private static func recycle(_ url: URL) throws -> [URL] {
+    private static func recycle(_ url: URL) throws -> [(original: URL, landed: URL)] {
         let done = DispatchSemaphore(value: 0)
         var failure: Error?
-        var landed: [URL] = []
+        var landed: [(original: URL, landed: URL)] = []
         NSWorkspace.shared.recycle([url]) { newURLs, error in
             failure = error
-            landed = Array(newURLs.values)
+            landed = newURLs.map { ($0.key, $0.value) }
             done.signal()
         }
         done.wait()
@@ -168,6 +193,41 @@ enum Cleaner {
     }
 
     /// Permanently deletes items that are in the Trash. Anything not in a Trash is refused.
+    /// Moves trashed items back to where they were, like Finder's Put Back.
+    /// Never overwrites: if something now exists at the original path, that item is skipped.
+    static func putBack(_ items: [TrashedItem], dryRun: Bool) -> Report {
+        var report = Report(dryRun: dryRun)
+        var log: [String] = []
+        let fm = FileManager.default
+        for trashed in items {
+            let item = CleanItem(url: trashed.original, name: trashed.original.lastPathComponent, size: trashed.bytes,
+                                 date: nil, detail: nil, owner: nil)
+            guard isInTrash(trashed.url), fm.fileExists(atPath: trashed.url.path) else {
+                report.skipped.append((item.name, "No longer in the Trash"))
+                continue
+            }
+            guard !fm.fileExists(atPath: trashed.original.path) else {
+                report.skipped.append((item.name, "Something else is at its original location now"))
+                continue
+            }
+            if dryRun {
+                log.append(entry("DRY-RUN-PUT-BACK", item))
+                continue
+            }
+            do {
+                try fm.createDirectory(at: trashed.original.deletingLastPathComponent(), withIntermediateDirectories: true)
+                try fm.moveItem(at: trashed.url, to: trashed.original)
+                report.restoredItems.append(trashed)
+                log.append(entry("PUT-BACK", item))
+            } catch {
+                report.skipped.append((item.name, error.localizedDescription))
+                log.append(entry("FAILED", item) + "\t\(error.localizedDescription)")
+            }
+        }
+        appendToLog(log)
+        return report
+    }
+
     static func deleteFromTrash(_ items: [(url: URL, bytes: Int64)], dryRun: Bool) -> Report {
         var report = Report(dryRun: dryRun)
         report.emptiedTrash = true
@@ -218,6 +278,28 @@ enum Cleaner {
         var error: NSDictionary?
         NSAppleScript(source: "tell application \"Finder\" to empty trash")?.executeAndReturnError(&error)
         return error.map { ($0[NSAppleScript.errorMessage] as? String) ?? "Finder couldn't empty the Trash" }
+    }
+
+    static func failure(_ message: String) -> NSError {
+        NSError(domain: "Spacebar", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
+    }
+
+    /// Runs a command-line tool; throws its error output if it fails.
+    static func runTool(_ path: String, _ arguments: [String], environment: [String: String]? = nil) throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: path)
+        process.arguments = arguments
+        if let environment { process.environment = environment }
+        let errors = Pipe()
+        process.standardError = errors
+        process.standardOutput = FileHandle.nullDevice
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            let message = String(decoding: errors.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            throw failure(message.isEmpty ? "\((path as NSString).lastPathComponent) failed" : message)
+        }
     }
 
     private static func simctl(_ arguments: [String]) throws {

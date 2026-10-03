@@ -546,6 +546,133 @@ public extension CleanCategory {
     }
 }
 
+// MARK: - Docker
+
+public enum DockerCLI {
+    /// The docker command from Docker Desktop, Homebrew, OrbStack or Colima, whichever exists.
+    public static var path: String? {
+        let home = NSHomeDirectory()
+        return ["/usr/local/bin/docker", "/opt/homebrew/bin/docker", "\(home)/.docker/bin/docker",
+                "/Applications/Docker.app/Contents/Resources/bin/docker", "\(home)/.orbstack/bin/docker"]
+            .first { FileManager.default.isExecutableFile(atPath: $0) }
+    }
+
+    /// Environment for docker: it looks up credential helpers and plugins on PATH.
+    public static var environment: [String: String] {
+        var env = ProcessInfo.processInfo.environment.filter { !$0.key.hasPrefix("SPACEBAR_") }
+        let home = NSHomeDirectory()
+        env["PATH"] = "/usr/local/bin:/opt/homebrew/bin:\(home)/.docker/bin:\(home)/.orbstack/bin:/usr/bin:/bin"
+        return env
+    }
+
+    public struct Usage: Equatable {
+        public let type: String
+        public let reclaimable: Int64
+        public let total: Int
+        public let active: Int
+    }
+
+    /// Parses `docker system df --format '{{json .}}'` (one JSON object per line).
+    public static func parseSystemDF(_ output: String) -> [Usage] {
+        output.split(separator: "\n").compactMap { line in
+            guard let data = line.data(using: .utf8),
+                  let row = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let type = row["Type"] as? String else { return nil }
+            let reclaimable = (row["Reclaimable"] as? String).map { parseSize(String($0.split(separator: " ").first ?? "")) } ?? 0
+            return Usage(type: type, reclaimable: reclaimable,
+                         total: Int(row["TotalCount"] as? String ?? "") ?? 0, active: Int(row["Active"] as? String ?? "") ?? 0)
+        }
+    }
+
+    /// "1.2GB", "512.3MB", "0B", "3.5kB": Docker's decimal units.
+    public static func parseSize(_ text: String) -> Int64 {
+        let units: [(String, Double)] = [("TB", 1e12), ("GB", 1e9), ("MB", 1e6), ("kB", 1e3), ("KB", 1e3), ("B", 1)]
+        for (suffix, factor) in units where text.hasSuffix(suffix) {
+            return Int64((Double(text.dropLast(suffix.count)) ?? 0) * factor)
+        }
+        return 0
+    }
+
+    /// nil when docker isn't installed or its engine isn't running.
+    static func systemDF() -> [Usage]? {
+        guard let path else { return nil }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: path)
+        process.arguments = ["system", "df", "--format", "{{json .}}"]
+        process.environment = environment
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = FileHandle.nullDevice
+        guard (try? process.run()) != nil else { return nil }
+        let timer = DispatchWorkItem { if process.isRunning { process.terminate() } }
+        DispatchQueue.global().asyncAfter(deadline: .now() + 20, execute: timer)
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        timer.cancel()
+        guard process.terminationStatus == 0 else { return nil }
+        return parseSystemDF(String(decoding: data, as: UTF8.self))
+    }
+}
+
+public extension CleanCategory {
+    static let docker = CleanCategory(
+        id: "docker", name: "Docker", icon: "shippingbox.circle",
+        summary: "Space inside Docker: build cache, unused images, stopped containers and unused volumes, removed with Docker's own prune commands. Build cache is suggested. Volumes are never suggested because they can hold databases. Docker returns freed space to macOS shortly afterwards.",
+        safety: .review, mode: .permanent, needsFullDiskAccess: false, onDemand: false, owners: []
+    ) { context in
+        guard DockerCLI.path != nil else { return [] }
+        let image = context.path("Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw")
+        var st = stat()
+        let imageBytes = lstat(image.path, &st) == 0 ? Int64(st.st_blocks) * 512 : 0
+        let imageNote = imageBytes > 0 ? "Docker's disk image uses \(ByteFormat.string(imageBytes))" : nil
+
+        guard let usage = DockerCLI.systemDF() else {
+            // Engine not running: show the disk image, but nothing can be pruned.
+            guard imageBytes > 0 else { return [] }
+            return [Candidate(url: image, name: "Docker disk image", detail: imageNote, knownSize: imageBytes,
+                              kind: .dockerPrune(arguments: []),
+                              lockedReason: "Start Docker to see what can be pruned")]
+        }
+        let plans: [String: (name: String, arguments: [String], suggested: Bool?, detail: String)] = [
+            "Build Cache": ("Build cache", ["builder", "prune", "--all", "--force"], true, "Rebuilt automatically when you build"),
+            "Images": ("Unused images", ["image", "prune", "--all", "--force"], nil, "Images no container uses; downloaded again when needed"),
+            "Containers": ("Stopped containers", ["container", "prune", "--force"], nil, "Containers that aren't running, and their files"),
+            "Local Volumes": ("Unused volumes", ["volume", "prune", "--all", "--force"], false, "Volumes no container uses. They can hold databases and other data"),
+        ]
+        return usage.compactMap { row in
+            guard let plan = plans[row.type], row.reclaimable > 0 else { return nil }
+            let slug = row.type.lowercased().replacingOccurrences(of: " ", with: "-")
+            return Candidate(url: URL(string: "docker://\(slug)")!, name: plan.name,
+                             detail: ([plan.detail, "\(row.total) total, \(row.active) in use"] + [imageNote].compactMap { $0 })
+                                .joined(separator: " · "),
+                             knownSize: row.reclaimable, kind: .dockerPrune(arguments: plan.arguments),
+                             suggested: plan.suggested)
+        }
+    }
+
+    static let snapshots = CleanCategory(
+        id: "snapshots", name: "Time Machine Snapshots", icon: "clock.arrow.circlepath",
+        summary: "Local Time Machine snapshots on your startup disk. macOS keeps them for 24 hours and removes them by itself when it needs space; you can remove them now. Their exact size isn't reported, so the figure is macOS's purgeable space, which also includes some caches. Snapshots macOS makes for updates (com.apple.os.update) can't be removed.",
+        safety: .review, mode: .permanent, needsFullDiskAccess: false, onDemand: false, owners: []
+    ) { _ in
+        let snapshots = LocalSnapshots.list()
+        guard !snapshots.isEmpty else { return [] }
+        let dates = snapshots.compactMap { name -> Date? in
+            // com.apple.TimeMachine.2026-10-02-101530.local
+            let parts = name.split(separator: ".")
+            guard parts.count >= 4 else { return nil }
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd-HHmmss"
+            return formatter.date(from: String(parts[3]))
+        }
+        let purgeable = VolumeSpace.home()?.purgeable ?? 0
+        return [Candidate(url: URL(string: "tmsnapshot://local")!, name: "\(snapshots.count) local snapshot\(snapshots.count == 1 ? "" : "s")",
+                          date: dates.min(),
+                          detail: "Oldest \(relative(dates.min())) · up to \(ByteFormat.string(purgeable)) purgeable",
+                          knownSize: max(purgeable, 1), kind: .timeMachineSnapshots)]
+    }
+}
+
 // MARK: - Mail accounts
 
 public enum MailAccounts {
