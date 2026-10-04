@@ -2,7 +2,7 @@
 
 # Spacebar
 
-**A free, open-source disk space analyzer and cleaner for Mac.** It shows what's using your disk and helps you safely remove caches, logs, build data, and leftovers.
+**A free, open-source disk space analyzer and cleaner for Mac.** It shows what's using your disk and helps you safely remove caches, logs, build data, and leftovers. [Website](https://ovedaydin.github.io/spacebar/)
 
 - **Disk breakdown.** See what your disk is used for (macOS, Apps, Documents, Developer, App Data, Shared, System Data…), measured rather than estimated. Click a category to explore it.
 - **Space Explorer.** Drill into any folder as a sorted list or a treemap, on any drive. Search, filter by type, Quick Look (space bar), keyboard navigation and multi-select. Subfolders are measured in the same pass, so opening them is instant.
