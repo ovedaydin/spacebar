@@ -51,6 +51,9 @@ public enum PathRules {
               !url.pathComponents.contains(".."),
               path.unicodeScalars.allSatisfy({ $0.value >= 0x20 }) else { return "Unusual path" }
         switch kind {
+        case .messagesAttachments:
+            // A group: the files are found and checked again when removing, inside Messages/Attachments only.
+            return url.scheme == "messages" ? nil : "Not Messages attachments"
         case .simulatorRuntime, .dockerPrune, .timeMachineSnapshots, .photoAsset:
             return nil // removed by simctl, docker, tmutil or Photos, not by file operations
         case .homebrewKeg:
@@ -126,10 +129,11 @@ public enum PathRules {
         case .simulatorDevice:
             return inHome && lower.count == 5 && lower.starts(with: ["library", "developer", "coresimulator", "devices"])
                 ? nil : "Not a simulator device folder"
-        case .mailAttachments:
+        case .mailAttachments, .mailAttachmentsOlderThan:
             return inHome && lower.count == 4 && lower.starts(with: ["library", "mail"]) && lower[2].hasPrefix("v")
                 ? nil : "Not a Mail account folder"
-        case .simulatorRuntime, .file, .dockerPrune, .timeMachineSnapshots, .photoAsset, .homebrewKeg, .gitCompact:
+        case .simulatorRuntime, .file, .dockerPrune, .timeMachineSnapshots, .photoAsset, .homebrewKeg, .gitCompact,
+             .messagesAttachments:
             break
         }
 

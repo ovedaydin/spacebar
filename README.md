@@ -6,6 +6,8 @@
 
 - **Disk breakdown.** See what your disk is used for (macOS, Apps, Documents, Developer, App Data, Shared, System Data…), measured rather than estimated. Click a category to explore it.
 - **Space Explorer.** Drill into any folder as a sorted list or a treemap, on any drive. Search, filter by type, Quick Look (space bar), keyboard navigation and multi-select. Subfolders are measured in the same pass, so opening them is instant.
+- **Uninstaller.** Drop an app on the window (or use Uninstall… / ⇧⌘U) to remove it with its data in ~/Library: app support, caches, containers, settings, saved windows, launch agents. Put Back restores it all.
+- **Automatic (opt-in).** A weekly clean of suggested caches and logs, and emptying what Spacebar moved to the Trash after 7 days.
 - **Live.** Sizes update by themselves as files change (FSEvents), re-measuring only the folders that changed.
 - **What grew.** Spacebar keeps a light history of each measurement and shows which folders grew in the last week, so runaway caches and VM images get caught early.
 - **External drives.** A breakdown of any connected drive's largest folders, with Eject.
@@ -101,7 +103,10 @@ The **Old Downloads** and **Large Files** scans only run when you ask, because r
 | App Leftovers | Data of apps that are no longer installed (Application Support, containers, web data) | Bundle-ID matches that are web data or unchanged for 90+ days; name-only matches are left for review | Trash |
 | Docker | Build cache, unused images, stopped containers and unused volumes, via Docker's own prune commands | Build cache. Volumes never | `docker … prune` |
 | Time Machine Snapshots | Local snapshots on the startup disk | Never | `tmutil deletelocalsnapshots /` |
-| Mail | Opened attachments, plus cached attachments of server-synced accounts (IMAP, Exchange, Gmail, iCloud). Never mailboxes, POP or "On My Mac" | Never | Trash |
+| Mail | Opened attachments, plus cached attachments of server-synced accounts (IMAP, Exchange, Gmail, iCloud), all or only those older than a year. Never mailboxes, POP or "On My Mac" | Never | Trash |
+| Keep in iCloud Only | Large iCloud Drive files also stored on this Mac. The local copy is removed; the file stays in iCloud | Not opened in 90 days | Local copy removed (nothing deleted) |
+| Developer Tools | Unused Android system images, emulators, old build-tools, extra Xcode copies, old JetBrains data, LM Studio models, old Homebrew versions, git repos to compact | Unused Android images, old JetBrains caches, old Homebrew versions | Deleted or Trash; `git gc` runs in Terminal |
+| Messages Attachments | Attachments received more than a year ago, grouped by year | Never | Trash |
 | Similar Photos | Bursts and repeated shots (taken within a minute, nearly identical by on-device Vision analysis) in your Photos library and image folders. Keeps the favorite or highest-resolution shot. iCloud-only photos aren't downloaded | Never | Photos: Recently Deleted (30 days). Files: Trash |
 | Duplicate Files | Identical files over 1 MB, matched by size, then partial and full SHA-256 hashes. APFS clones, hard links, iCloud-only files, build output and files inside git repos are excluded | Never | Trash |
 | Project Build Files | `node_modules`, `target`, `build`, `Pods`, `.venv`, … next to their project file | Projects untouched for 90+ days | Deleted (rebuildable) |

@@ -47,6 +47,10 @@ public enum ItemKind: Hashable, Sendable, Codable {
     case aiModel
     /// A git repository to compact: `git gc` runs in Terminal, outside Spacebar's permissions.
     case gitCompact
+    /// Messages attachments from one year, older than `days` (moved to the Trash file by file).
+    case messagesAttachments(year: Int, olderThanDays: Int)
+    /// A Mail account's cached attachments not touched in `days` (Mail downloads them again).
+    case mailAttachmentsOlderThan(days: Int)
 }
 
 public struct CleanItem: Identifiable, Hashable, Sendable, Codable {
@@ -179,7 +183,7 @@ public struct CleanCategory: Identifiable, Sendable {
     public enum SortOrder: Sendable { case largestFirst, oldestFirst }
     public var group: Group { Self.findSpaceIDs.contains(id) ? .findSpace : .cleanup }
     public var sortOrder: SortOrder { id == "apps" ? .oldestFirst : .largestFirst }
-    static let findSpaceIDs: Set<String> = ["forgotten", "icloud", "devtools", "duplicates", "apps", "leftovers", "simulators", "docker",
+    static let findSpaceIDs: Set<String> = ["forgotten", "icloud", "devtools", "messages", "duplicates", "apps", "leftovers", "simulators", "docker",
                                             "snapshots", "projects", "mail", "photos"]
     let collect: @Sendable (ScanContext) -> [Candidate]
 
@@ -249,7 +253,8 @@ public extension CleanCategory {
     static let all: [CleanCategory] = [
         appCaches, logs, xcode, developerCaches, trash,
         xcodeArchives, iosBackups, installers, largeFiles,
-        forgottenFiles, iCloudDownloads, unusedApps, simulators, developerTools, docker, snapshots, appLeftovers, mail, duplicates, similarPhotos,
+        forgottenFiles, iCloudDownloads, unusedApps, simulators, developerTools, docker, snapshots, appLeftovers, mail, messages,
+        duplicates, similarPhotos,
         projectBuildFiles,
     ]
 

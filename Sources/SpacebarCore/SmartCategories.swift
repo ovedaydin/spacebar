@@ -572,6 +572,15 @@ public extension CleanCategory {
                 result.append(Candidate(url: accountFolder, name: "Cached attachments · \(label)",
                                         detail: "\(attachments.count) attachment folders", knownSize: size,
                                         kind: .mailAttachments, lockedReason: locked))
+                // The same, limited to attachments not opened in a year.
+                let old = MailAccounts.attachments(in: accountFolder, olderThanDays: 365)
+                let oldSize = old.reduce(Int64(0)) { $0 + context.engine.measure($1).allocated }
+                if oldSize > 0 && oldSize < size {
+                    result.append(Candidate(url: accountFolder.appendingPathComponent("older-than-a-year", isDirectory: false),
+                                            name: "Cached attachments older than a year · \(label)",
+                                            detail: "\(old.count) messages' attachments", knownSize: oldSize,
+                                            kind: .mailAttachmentsOlderThan(days: 365), lockedReason: locked))
+                }
             }
         }
         return result
@@ -707,6 +716,48 @@ public extension CleanCategory {
     }
 }
 
+// MARK: - Messages attachments
+
+public enum MessagesAttachments {
+    public static func root(home: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
+        home.appendingPathComponent("Library/Messages/Attachments")
+    }
+
+    /// Attachment files older than `days`, grouped by the year they were received.
+    public static func byYear(olderThanDays days: Int, home: URL = FileManager.default.homeDirectoryForCurrentUser,
+                              minimumBytes: Int64 = 0) -> [Int: [(url: URL, bytes: Int64)]] {
+        let cutoff = Date().addingTimeInterval(-Double(days) * 86400)
+        let keys: Set<URLResourceKey> = [.isRegularFileKey, .contentModificationDateKey, .totalFileAllocatedSizeKey]
+        guard let walker = fm.enumerator(at: root(home: home), includingPropertiesForKeys: Array(keys),
+                                         options: [.skipsPackageDescendants], errorHandler: { _, _ in true }) else { return [:] }
+        var groups: [Int: [(url: URL, bytes: Int64)]] = [:]
+        while let url = walker.nextObject() as? URL {
+            guard let values = try? url.resourceValues(forKeys: keys), values.isRegularFile == true,
+                  let date = values.contentModificationDate, date < cutoff else { continue }
+            let bytes = Int64(values.totalFileAllocatedSize ?? 0)
+            guard bytes >= minimumBytes else { continue }
+            groups[Calendar.current.component(.year, from: date), default: []].append((url, bytes))
+        }
+        return groups
+    }
+
+    public static func url(year: Int) -> URL { URL(string: "messages://attachments/\(year)")! }
+}
+
+public extension CleanCategory {
+    static let messages = CleanCategory(
+        id: "messages", name: "Messages Attachments", icon: "message",
+        summary: "Photos, videos and files received in Messages more than a year ago, grouped by year. They go to the Trash, so Put Back works. If Messages in iCloud is on, they stay in iCloud; otherwise this is the only copy, so review them. Quit Messages first.",
+        safety: .review, mode: .trash, needsFullDiskAccess: true, onDemand: false, owners: ["com.apple.MobileSMS"]
+    ) { context in
+        MessagesAttachments.byYear(olderThanDays: 365, home: context.home).sorted { $0.key > $1.key }.map { year, files in
+            Candidate(url: MessagesAttachments.url(year: year), name: "Attachments from \(year)",
+                      detail: "\(files.count) file\(files.count == 1 ? "" : "s") received in \(year)",
+                      knownSize: files.reduce(0) { $0 + $1.bytes }, kind: .messagesAttachments(year: year, olderThanDays: 365))
+        }
+    }
+}
+
 // MARK: - Mail accounts
 
 public enum MailAccounts {
@@ -747,6 +798,17 @@ public enum MailAccounts {
                                                      typeName: typeName, isServerBacked: backed)
         }
         return accounts
+    }
+
+    /// Per-message attachment folders (Attachments/<message>) whose newest file is older than `days`.
+    public static func attachments(in account: URL, olderThanDays days: Int) -> [URL] {
+        let cutoff = Date().addingTimeInterval(-Double(days) * 86400)
+        return attachmentFolders(in: account).flatMap { folder in
+            ((try? fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []).filter { message in
+                let newest = BulkScanner().measure(message).lastModified ?? .distantFuture
+                return newest < cutoff
+            }
+        }
     }
 
     /// The "Attachments" folders Mail creates inside an account's mailboxes.

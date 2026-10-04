@@ -50,3 +50,26 @@ final class DeveloperToolsTests: XCTestCase {
         }
     }
 }
+
+final class AttachmentsByAgeTests: XCTestCase {
+    func testMessagesGroupedByYearAndAge() throws {
+        let fixture = try Fixture("spacebar-home")
+        let old = try fixture.file("Library/Messages/Attachments/ab/01/GUID1/photo.heic", bytes: 2000)
+        let older = try fixture.file("Library/Messages/Attachments/cd/02/GUID2/video.mov", bytes: 3000)
+        try fixture.file("Library/Messages/Attachments/ef/03/GUID3/recent.jpg", bytes: 1000)
+        let calendar = Calendar.current
+        let twoYearsAgo = calendar.date(byAdding: .year, value: -2, to: Date())!
+        let threeYearsAgo = calendar.date(byAdding: .year, value: -3, to: Date())!
+        try FileManager.default.setAttributes([.modificationDate: twoYearsAgo], ofItemAtPath: old.path)
+        try FileManager.default.setAttributes([.modificationDate: threeYearsAgo], ofItemAtPath: older.path)
+        let groups = MessagesAttachments.byYear(olderThanDays: 365, home: fixture.root)
+        XCTAssertEqual(Set(groups.keys), [calendar.component(.year, from: twoYearsAgo), calendar.component(.year, from: threeYearsAgo)])
+        XCTAssertEqual(groups.values.flatMap { $0 }.count, 2, "recent attachments are left out")
+    }
+
+    func testMessagesGroupsAreOnlyMessagesURLs() {
+        XCTAssertTrue(PathRules.isDeletable(MessagesAttachments.url(year: 2023), kind: .messagesAttachments(year: 2023, olderThanDays: 365)))
+        XCTAssertFalse(PathRules.isDeletable(URL(fileURLWithPath: NSHomeDirectory() + "/Documents"),
+                                             kind: .messagesAttachments(year: 2023, olderThanDays: 365)))
+    }
+}

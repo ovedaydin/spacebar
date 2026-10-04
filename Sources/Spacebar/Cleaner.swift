@@ -134,6 +134,8 @@ enum Cleaner {
         case evict
         case trashEmulator(ini: String)
         case gitGCInTerminal
+        case trashMessages(year: Int, days: Int)
+        case trashOldMailAttachments(days: Int)
 
         init(item: CleanItem, requested: RemovalMode, trashPrefix: String) {
             switch item.kind {
@@ -147,6 +149,8 @@ enum Cleaner {
             case .homebrewKeg: self = .delete
             case .aiModel: self = .trash
             case .gitCompact: self = .gitGCInTerminal
+            case .messagesAttachments(let year, let days): self = .trashMessages(year: year, days: days)
+            case .mailAttachmentsOlderThan(let days): self = .trashOldMailAttachments(days: days)
             case .dockerPrune(let arguments): self = .docker(arguments)
             case .timeMachineSnapshots: self = .deleteSnapshots
             case .file:
@@ -158,7 +162,7 @@ enum Cleaner {
         var freesNow: Bool {
             switch self {
             case .delete, .simctl, .docker, .deleteSnapshots, .evict, .gitGCInTerminal: return true
-            case .trashEmulator: return false
+            case .trashEmulator, .trashMessages, .trashOldMailAttachments: return false
             case .trash, .recycleApp, .trashMailAttachments: return false
             }
         }
@@ -175,6 +179,8 @@ enum Cleaner {
             case .evict: return "ICLOUD-REMOVE-DOWNLOAD"
             case .trashEmulator: return "TRASH-ANDROID-EMULATOR"
             case .gitGCInTerminal: return "GIT-GC-IN-TERMINAL"
+            case .trashMessages: return "TRASH-MESSAGES-ATTACHMENTS"
+            case .trashOldMailAttachments: return "TRASH-OLD-MAIL-ATTACHMENTS"
             }
         }
 
@@ -210,6 +216,15 @@ enum Cleaner {
                 let registration = FileManager.default.fileExists(atPath: ini)
                     ? [(URL(fileURLWithPath: ini), try Cleaner.trash(URL(fileURLWithPath: ini)))] : []
                 return [folder] + registration
+            case .trashMessages(let year, let days):
+                // Found again now, and only inside ~/Library/Messages/Attachments.
+                let root = MessagesAttachments.root().standardizedFileURL.path + "/"
+                return try (MessagesAttachments.byYear(olderThanDays: days)[year] ?? [])
+                    .filter { $0.url.standardizedFileURL.path.hasPrefix(root) }
+                    .map { ($0.url, try Cleaner.trash($0.url)) }
+            case .trashOldMailAttachments(let days):
+                return try MailAccounts.attachments(in: url.deletingLastPathComponent(), olderThanDays: days)
+                    .map { ($0, try Cleaner.trash($0)) }
             case .gitGCInTerminal:
                 // Runs in Terminal, outside Spacebar's Full Disk Access: a repository's own config can run commands.
                 try Cleaner.runInTerminal(directory: url.deletingLastPathComponent(), command: "git gc")
