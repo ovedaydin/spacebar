@@ -353,3 +353,38 @@ final class TimeMachineTests: XCTestCase {
         XCTAssertFalse(TimeMachine.isBackedUp(modified: backup.addingTimeInterval(-60), excluded: false, lastBackup: nil))
     }
 }
+
+final class SpaceTimelineTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+    private let total: Int64 = 500_000_000_000
+
+    func testThinsPointsAndFindsJumpsWithTheirFolders() {
+        var samples: [SpaceForecast.Sample] = []
+        for hour in 0...(30 * 24) {
+            var available: Int64 = 200_000_000_000 - Int64(hour) * 10_000_000
+            if hour >= 20 * 24 { available -= 20_000_000_000 } // a 20 GB download on day 20
+            samples.append(.init(date: now.addingTimeInterval(Double(hour - 30 * 24) * 3600), available: available))
+        }
+        var history = StorageHistory()
+        history.record(["~/Movies": 1_000_000_000], at: now.addingTimeInterval(-11 * 86400))
+        history.record(["~/Movies": 21_000_000_000], at: now.addingTimeInterval(-9 * 86400))
+        let timeline = SpaceTimeline.build(samples: samples, total: total, days: 30, now: now, history: history)
+        XCTAssertLessThanOrEqual(timeline.points.count, 181)
+        XCTAssertEqual(timeline.points.last?.used, total - samples.last!.available)
+        let jumps = timeline.events.filter { $0.kind == .jump }
+        XCTAssertEqual(jumps.count, 1)
+        XCTAssertEqual(jumps.first?.delta ?? 0, 20_000_000_000, accuracy: 1_000_000_000)
+        XCTAssertEqual(jumps.first?.folders.first?.path, "~/Movies")
+    }
+
+    func testCleansAreEventsAndExplainTheDrop() {
+        var samples: [SpaceForecast.Sample] = []
+        for hour in 0...48 {
+            let available: Int64 = hour >= 24 ? 150_000_000_000 : 140_000_000_000
+            samples.append(.init(date: now.addingTimeInterval(Double(hour - 48) * 3600), available: available))
+        }
+        let timeline = SpaceTimeline.build(samples: samples, total: total, days: 7, now: now,
+                                           cleans: [(date: now.addingTimeInterval(-24 * 3600), freed: 10_000_000_000)])
+        XCTAssertEqual(timeline.events.map(\.kind), [.clean], "the clean explains the drop; no separate jump")
+    }
+}

@@ -212,6 +212,9 @@ struct ContentView: View {
             explorer.show(folder)
             route = .explorer
         }
+        .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.timelineDemoNotification)) { _ in
+            model.debugDemoTimeline()
+        }
         // Debug hook: open the rule editor on a preset.
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.newRuleNotification)) { note in
             guard let index = note.object as? Int, CleanupRule.presets.indices.contains(index) else { return }

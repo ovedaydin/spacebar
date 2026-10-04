@@ -330,6 +330,19 @@ enum DebugSnapshot {
                     NSApp.windows.first(where: \.isVisible)?.makeKeyAndOrderFront(nil)
                 case "historytest": historySelfTest(phase: parts[1])
                 case "remindertest": reminderSelfTest()
+                case "scroll":
+                    // Scrolls the main window's largest scroll view down by this many points.
+                    func scrollViews(_ view: NSView) -> [NSScrollView] {
+                        (view as? NSScrollView).map { [$0] } ?? view.subviews.flatMap(scrollViews)
+                    }
+                    let window = NSApp.windows.first { $0.isVisible && $0.canBecomeMain }
+                    if let content = window?.contentView,
+                       let scroll = scrollViews(content).max(by: {
+                           $0.convert($0.bounds, to: nil).minX < $1.convert($1.bounds, to: nil).minX }) {
+                        scroll.contentView.scroll(to: NSPoint(x: 0, y: Double(parts[1]) ?? 0))
+                        scroll.reflectScrolledClipView(scroll.contentView)
+                    }
+                case "timelinedemo": NotificationCenter.default.post(name: timelineDemoNotification, object: nil)
                 case "cloudlist":
                     // Read-only: what Keep in the Cloud Only finds, per drive. Nothing is evicted.
                     Task.detached {
@@ -401,6 +414,7 @@ enum DebugSnapshot {
         }
     }
 
+    static let timelineDemoNotification = Notification.Name("Spacebar.debugTimelineDemo")
     static let newRuleNotification = Notification.Name("Spacebar.debugNewRule")
     private static var historyFixture: URL?
 

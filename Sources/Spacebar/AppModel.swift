@@ -45,8 +45,25 @@ final class AppModel: ObservableObject {
         didSet { if let space { recordSpace(space) } }
     }
     /// Available space over time, and what it says about when the disk fills up.
-    private var spaceLog: SpaceForecast = ScanCache.loadSpaceLog()
+    private(set) var spaceLog: SpaceForecast = ScanCache.loadSpaceLog()
     @Published private(set) var forecast: SpaceForecast.Result?
+
+    /// Debug hook: 30 days of made-up samples in memory (never saved), to look at the timeline.
+    func debugDemoTimeline() {
+        guard DebugSnapshot.enabled, let space else { return }
+        var log = SpaceForecast()
+        let now = Date()
+        for hour in stride(from: 30 * 24, through: 0, by: -1) {
+            var available = space.available + Int64(hour) * 25_000_000
+            if hour < 12 * 24 { available -= 18_000_000_000 }   // an 18 GB download 12 days ago
+            if hour < 4 * 24 { available += 9_000_000_000 }     // a 9 GB clean 4 days ago
+            log.samples.append(.init(date: now.addingTimeInterval(-Double(hour) * 3600), available: available))
+        }
+        spaceLog = log
+        cleaningHistory.insert(CleaningRecord(date: now.addingTimeInterval(-4 * 86400), source: .app,
+                                              freedBytes: 9_000_000_000, trashedBytes: 0, photos: 0, items: []), at: 0)
+        objectWillChange.send()
+    }
 
     private func recordSpace(_ space: VolumeSpace) {
         let count = spaceLog.samples.count

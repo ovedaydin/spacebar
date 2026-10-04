@@ -91,6 +91,8 @@ struct OverviewView: View {
                     route = .explorer
                 }
 
+                TimelineCard()
+
                 summary
 
                 if model.hasScanned {

@@ -5,6 +5,11 @@ public struct SpaceForecast: Codable, Sendable {
     public struct Sample: Codable, Sendable, Equatable {
         public let date: Date
         public let available: Int64
+
+        public init(date: Date, available: Int64) {
+            self.date = date
+            self.available = available
+        }
     }
 
     public struct Result: Sendable, Equatable {
