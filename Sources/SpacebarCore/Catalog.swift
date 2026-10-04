@@ -259,8 +259,8 @@ public extension CleanCategory {
     ]
 
     static let appCaches = CleanCategory(
-        id: "caches", name: "App Caches", icon: "archivebox",
-        summary: "Temporary files apps rebuild automatically. Most Apple system caches are left alone because some of them hold state.",
+        id: "caches", name: String(localized: "App Caches"), icon: "archivebox",
+        summary: String(localized: "Temporary files apps rebuild automatically. Most Apple system caches are left alone because some of them hold state."),
         safety: .safe, mode: .permanent, needsFullDiskAccess: false, onDemand: false, owners: []
     ) { context in
         var result = children(context.path("Library/Caches"))
@@ -283,8 +283,8 @@ public extension CleanCategory {
     }
 
     static let logs = CleanCategory(
-        id: "logs", name: "Logs & Crash Reports", icon: "doc.text.magnifyingglass",
-        summary: "Diagnostic logs and crash reports written by apps and macOS.",
+        id: "logs", name: String(localized: "Logs & Crash Reports"), icon: "doc.text.magnifyingglass",
+        summary: String(localized: "Diagnostic logs and crash reports written by apps and macOS."),
         safety: .safe, mode: .permanent, needsFullDiskAccess: false, onDemand: false, owners: []
     ) { context in
         children(context.path("Library/Logs"))
@@ -293,8 +293,8 @@ public extension CleanCategory {
     }
 
     static let xcode = CleanCategory(
-        id: "xcode", name: "Xcode Build Data", icon: "hammer",
-        summary: "DerivedData, build products, simulator caches, and old device support files. The newest two device support versions per platform are kept.",
+        id: "xcode", name: String(localized: "Xcode Build Data"), icon: "hammer",
+        summary: String(localized: "DerivedData, build products, simulator caches, and old device support files. The newest two device support versions per platform are kept."),
         safety: .safe, mode: .permanent, needsFullDiskAccess: false, onDemand: false,
         owners: ["com.apple.dt.Xcode", "com.apple.iphonesimulator"]
     ) { context in
@@ -307,7 +307,7 @@ public extension CleanCategory {
             result.append(Candidate(url: dev.appendingPathComponent(path), name: path))
         }
         let xcodeCache = context.path("Library/Caches/com.apple.dt.Xcode")
-        if exists(xcodeCache) { result.append(Candidate(url: xcodeCache, name: "Xcode cache")) }
+        if exists(xcodeCache) { result.append(Candidate(url: xcodeCache, name: String(localized: "Xcode cache"))) }
 
         for platform in ["iOS", "watchOS", "tvOS", "visionOS"] {
             let folder = dev.appendingPathComponent("Xcode/\(platform) DeviceSupport")
@@ -322,8 +322,8 @@ public extension CleanCategory {
     }
 
     static let developerCaches = CleanCategory(
-        id: "devcaches", name: "Developer Caches", icon: "shippingbox",
-        summary: "Package-manager download caches (npm, Yarn, pnpm, Bun, Cargo, Gradle, SwiftPM, uv, and more). They are re-downloaded when needed. Model weights and dependency repositories are never touched.",
+        id: "devcaches", name: String(localized: "Developer Caches"), icon: "shippingbox",
+        summary: String(localized: "Package-manager download caches (npm, Yarn, pnpm, Bun, Cargo, Gradle, SwiftPM, uv, and more). They are re-downloaded when needed. Model weights and dependency repositories are never touched."),
         safety: .safe, mode: .permanent, needsFullDiskAccess: false, onDemand: false, owners: []
     ) { context in
         let paths = [
@@ -340,8 +340,8 @@ public extension CleanCategory {
     }
 
     static let trash = CleanCategory(
-        id: "trash", name: "Trash", icon: "trash",
-        summary: "Items already in your Trash. Emptying it is permanent.",
+        id: "trash", name: String(localized: "Trash"), icon: "trash",
+        summary: String(localized: "Items already in your Trash. Emptying it is permanent."),
         safety: .safe, mode: .permanent, needsFullDiskAccess: true, onDemand: false, owners: []
     ) { context in
         children(context.path(".Trash"))
@@ -350,8 +350,8 @@ public extension CleanCategory {
     }
 
     static let xcodeArchives = CleanCategory(
-        id: "archives", name: "Xcode Archives", icon: "archivebox.circle",
-        summary: "App archives from Product › Archive. They contain the debug symbols needed to read crash reports for shipped builds, so keep the ones you still support.",
+        id: "archives", name: String(localized: "Xcode Archives"), icon: "archivebox.circle",
+        summary: String(localized: "App archives from Product › Archive. They contain the debug symbols needed to read crash reports for shipped builds, so keep the ones you still support."),
         safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: false, owners: ["com.apple.dt.Xcode"]
     ) { context in
         children(context.path("Library/Developer/Xcode/Archives")).flatMap { day in
@@ -362,8 +362,8 @@ public extension CleanCategory {
     }
 
     static let iosBackups = CleanCategory(
-        id: "backups", name: "iPhone & iPad Backups", icon: "iphone",
-        summary: "Local device backups made by Finder. Delete only backups you no longer need.",
+        id: "backups", name: String(localized: "iPhone & iPad Backups"), icon: "iphone",
+        summary: String(localized: "Local device backups made by Finder. Delete only backups you no longer need."),
         safety: .review, mode: .trash, needsFullDiskAccess: true, onDemand: false, owners: []
     ) { context in
         children(context.path("Library/Application Support/MobileSync/Backup")).map { backup in
@@ -376,8 +376,8 @@ public extension CleanCategory {
     }
 
     static let installers = CleanCategory(
-        id: "installers", name: "macOS Installers", icon: "arrow.down.app",
-        summary: "Downloaded \"Install macOS\" apps. You can download them again from Apple.",
+        id: "installers", name: String(localized: "macOS Installers"), icon: "arrow.down.app",
+        summary: String(localized: "Downloaded \"Install macOS\" apps. You can download them again from Apple."),
         safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: false, owners: []
     ) { _ in
         children(URL(fileURLWithPath: "/Applications"))
@@ -386,8 +386,8 @@ public extension CleanCategory {
     }
 
     static let largeFiles = CleanCategory(
-        id: "large", name: "Large Files", icon: "doc.badge.ellipsis",
-        summary: "Files over 500 MB in your home folder (outside Library). Review each one carefully.",
+        id: "large", name: String(localized: "Large Files"), icon: "doc.badge.ellipsis",
+        summary: String(localized: "Files over 500 MB in your home folder (outside Library). Review each one carefully."),
         safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: true, owners: []
     ) { context in
         let threshold: Int64 = 500 * 1024 * 1024

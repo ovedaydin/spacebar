@@ -136,7 +136,7 @@ struct OnboardingView: View {
         }
     }
 
-    private func point(_ icon: String, _ title: String, _ text: String) -> some View {
+    private func point(_ icon: String, _ title: LocalizedStringKey, _ text: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)

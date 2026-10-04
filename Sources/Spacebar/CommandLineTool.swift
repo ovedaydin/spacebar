@@ -36,6 +36,8 @@ enum CommandLineTool {
     }
 
     static func run(_ arguments: [String]) -> Never {
+        // Same as the app: background disk priority, and never download iCloud files to measure them.
+        IOPolicy.configureForScanning()
         // Work happens on its own thread; the main queue stays free for AppKit callbacks
         // (moving apps to the Trash completes there).
         Thread.detachNewThread {

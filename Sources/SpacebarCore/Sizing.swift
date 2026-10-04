@@ -65,5 +65,34 @@ public enum IOPolicy {
     public static func configureForScanning() {
         _ = setiopolicy_np(IOPOL_TYPE_VFS_MATERIALIZE_DATALESS_FILES, IOPOL_SCOPE_PROCESS, IOPOL_MATERIALIZE_DATALESS_FILES_OFF)
         _ = setiopolicy_np(IOPOL_TYPE_VFS_ATIME_UPDATES, IOPOL_SCOPE_PROCESS, IOPOL_ATIME_UPDATES_OFF)
+        // Background disk priority: other apps' reads and writes go first, so scanning
+        // never makes the Mac feel stuck. Idle disks still run at full speed.
+        _ = setiopolicy_np(IOPOL_TYPE_DISK, IOPOL_SCOPE_PROCESS, IOPOL_UTILITY)
+    }
+}
+
+/// Keeps Spacebar to about half the Mac, so a scan never makes it unresponsive.
+public enum ResourceBudget {
+    /// Threads one scan may use: half the cores, at least 2.
+    public static let threads = max(2, ProcessInfo.processInfo.activeProcessorCount / 2)
+    /// Heavy jobs (a category scan, the disk breakdown) that run at the same time.
+    public static let heavyJobs = 2
+    /// Scanner threads across all scans at once: `threads` in total, not per scan.
+    static let workerSlots = DispatchSemaphore(value: threads)
+
+    private static let queue: OperationQueue = {
+        let queue = OperationQueue()
+        queue.name = "Spacebar.heavy"
+        queue.maxConcurrentOperationCount = heavyJobs
+        queue.qualityOfService = .utility
+        return queue
+    }()
+
+    /// Runs `work` once a heavy-job slot is free, on its own thread (never blocking
+    /// Swift's shared thread pool while it waits).
+    public static func heavy<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
+        await withCheckedContinuation { continuation in
+            queue.addOperation { continuation.resume(returning: work()) }
+        }
     }
 }

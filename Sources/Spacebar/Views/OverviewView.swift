@@ -82,7 +82,7 @@ struct OverviewView: View {
 
                 if !model.snapshots.isEmpty {
                     Banner(icon: "clock.arrow.circlepath", tint: .purple,
-                           title: "\(model.snapshots.count) Time Machine local snapshot\(model.snapshots.count == 1 ? "" : "s")",
+                           title: "\(model.snapshots.count) Time Machine local snapshots",
                            message: "These count as purgeable space. macOS deletes them automatically when it needs the space, and after 24 hours. To remove them now, run `tmutil thinlocalsnapshots / 999999999999 4` in Terminal.") {}
                 }
 
@@ -99,7 +99,7 @@ struct OverviewView: View {
                 }
     }
 
-    private func categoryList(_ title: String, _ categories: [CleanCategory]) -> some View {
+    private func categoryList(_ title: LocalizedStringKey, _ categories: [CleanCategory]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.headline)
             VStack(spacing: 0) {
@@ -257,8 +257,8 @@ private struct DriveCard: View {
         var result = breakdown.folders.enumerated().map { index, folder in
             (folder.name, folder.bytes, Self.palette[index % Self.palette.count], Optional(folder.path))
         }
-        if breakdown.other > 0 { result.append(("Other items", breakdown.other, Self.otherColor, nil)) }
-        if breakdown.complete && breakdown.system > 0 { result.append(("System & hidden", breakdown.system, Self.systemColor, nil)) }
+        if breakdown.other > 0 { result.append((String(localized: "Other items"), breakdown.other, Self.otherColor, nil)) }
+        if breakdown.complete && breakdown.system > 0 { result.append((String(localized: "System & hidden"), breakdown.system, Self.systemColor, nil)) }
         return result
     }
 
@@ -353,8 +353,7 @@ private struct DiskUsageCard: View {
             // VoiceOver: one summary for the bar; the legend below has each category as a button.
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text("Disk usage"))
-            .accessibilityValue(Text(segments.prefix(4).map { "\($0.name) \(ByteFormat.string($0.bytes))" }.joined(separator: ", ")
-                                     + ", free \(ByteFormat.string(storage.free))"))
+            .accessibilityValue(Text("\(segments.prefix(4).map { "\($0.name) \(ByteFormat.string($0.bytes))" }.joined(separator: ", ")), free \(ByteFormat.string(storage.free))"))
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 16, alignment: .leading)],
                       alignment: .leading, spacing: 6) {
@@ -370,7 +369,7 @@ private struct DiskUsageCard: View {
                     .accessibilityLabel(Text("\(segment.name), \(ByteFormat.string(segment.bytes))"))
                     .accessibilityHint(Text(segment.explanation))
                 }
-                legendRow(Color.secondary.opacity(0.3), "Free", storage.free, clickable: false)
+                legendRow(Color.secondary.opacity(0.3), String(localized: "Free"), storage.free, clickable: false)
                     .help(storage.purgeable > 0
                           ? "Includes nothing purgeable. macOS can also free \(ByteFormat.string(storage.purgeable)) of purgeable space on its own."
                           : "Space not used by anything.")
@@ -382,16 +381,18 @@ private struct DiskUsageCard: View {
                     if let measuring = model.measuringStorage {
                         Text("Measuring \(measuring.name)…")
                     } else {
-                        Text(model.liveUpdatedAt.map { "Updated live \($0.formatted(.relative(presentation: .named)))" }
-                             ?? "Measured \(storage.measuredAt.formatted(.relative(presentation: .named)))")
-                            + Text(". Click a category to explore it.")
+                        if let updated = model.liveUpdatedAt {
+                            Text("Updated live \(updated.formatted(.relative(presentation: .named))). Click a category to explore it.")
+                        } else {
+                            Text("Measured \(storage.measuredAt.formatted(.relative(presentation: .named))). Click a category to explore it.")
+                        }
                     }
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 Spacer()
                 if (model.trashBytes ?? 0) > 0 || model.fullDiskAccess != true {
-                    Button(model.trashBytes.map { $0 > 0 ? "Empty Trash (\(ByteFormat.string($0)))…" : "Empty Trash…" } ?? "Empty Trash…") {
+                    Button(emptyTrashTitle) {
                         confirmEmptyTrash = true
                     }
                     .controlSize(.small)
@@ -407,6 +408,11 @@ private struct DiskUsageCard: View {
                      : "This can't be undone. Without Full Disk Access, Spacebar asks Finder to empty the Trash.")
             }
         }
+    }
+
+    private var emptyTrashTitle: LocalizedStringKey {
+        if let bytes = model.trashBytes, bytes > 0 { return "Empty Trash (\(ByteFormat.string(bytes)))…" }
+        return "Empty Trash…"
     }
 
     /// A slice made of several folders opens them all together, so the total matches the bar.
@@ -433,7 +439,7 @@ private struct DiskUsageCard: View {
         var lines = [segment.explanation]
         lines += segment.parts.map { "• \($0.name): \(ByteFormat.string($0.bytes))" }
         if model.fullDiskAccess != true && (segment.kind == .systemData || segment.kind == .trash) {
-            lines.append("Without Full Disk Access, the Trash can't be measured, so what's in it is counted in System Data.")
+            lines.append(String(localized: "Without Full Disk Access, the Trash can't be measured, so what's in it is counted in System Data."))
         }
         return lines.joined(separator: "\n")
     }
@@ -558,9 +564,9 @@ private struct CategoryRow: View {
     }
 
     private func subtitle(items: [CleanItem], selectedCount: Int) -> String {
-        if category.onDemand && model.results[category.id] == nil { return "Not scanned yet. Open to scan." }
-        if category.needsFullDiskAccess && model.fullDiskAccess != true { return "Needs Full Disk Access" }
-        if items.isEmpty { return "Nothing found" }
-        return "\(items.count) item\(items.count == 1 ? "" : "s") · \(selectedCount) selected"
+        if category.onDemand && model.results[category.id] == nil { return String(localized: "Not scanned yet. Open to scan.") }
+        if category.needsFullDiskAccess && model.fullDiskAccess != true { return String(localized: "Needs Full Disk Access") }
+        if items.isEmpty { return String(localized: "Nothing found") }
+        return String(localized: "\(items.count) items · \(selectedCount) selected")
     }
 }

@@ -1,0 +1,1841 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "%@ %@ runtime" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ runtime"
+          }
+        }
+      }
+    },
+    "%@ (Home)" : {
+
+    },
+    "%@ and %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ and %2$@"
+          }
+        }
+      }
+    },
+    "%@ and %lld more" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ and %2$lld more"
+          }
+        }
+      }
+    },
+    "%@ available" : {
+
+    },
+    "%@ available of %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ available of %2$@"
+          }
+        }
+      }
+    },
+    "%@ available of %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ available of %2$@."
+          }
+        }
+      }
+    },
+    "%@ couldn't start" : {
+
+    },
+    "%@ failed" : {
+
+    },
+    "%@ is running. Quit it before uninstalling." : {
+
+    },
+    "%@ is running. Quit it first." : {
+
+    },
+    "%@ isn't installed" : {
+
+    },
+    "%@ left. Open Spacebar to see what's using space." : {
+
+    },
+    "%@ of caches and logs will be deleted right away. Apps recreate them as needed." : {
+
+    },
+    "%@ selected" : {
+
+    },
+    "%@ will be moved to the Trash, so you can still restore it." : {
+
+    },
+    "%@ · %@ not packed, %lld pack files · git gc runs in Terminal" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ not packed, %3$lld pack files · git gc runs in Terminal"
+          }
+        }
+      }
+    },
+    "%@ · project changed %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · project changed %2$@"
+          }
+        }
+      }
+    },
+    "%@ · runtime no longer installed" : {
+
+    },
+    "%@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "%@, %@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@, %3$@"
+          }
+        }
+      }
+    },
+    "%@, free %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, free %2$@"
+          }
+        }
+      }
+    },
+    "%@. You can put it back from the Trash." : {
+
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%@: %@ · click to open" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@ · click to open"
+          }
+        }
+      }
+    },
+    "%lld GB available" : {
+
+    },
+    "%lld Time Machine local snapshots" : {
+
+    },
+    "%lld attachment folders" : {
+
+    },
+    "%lld files received in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld files received in %2$@"
+          }
+        }
+      }
+    },
+    "%lld folders counted as %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld folders counted as %2$@"
+          }
+        }
+      }
+    },
+    "%lld in iCloud only" : {
+
+    },
+    "%lld items · %lld selected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld items · %2$lld selected"
+          }
+        }
+      }
+    },
+    "%lld local snapshots" : {
+
+    },
+    "%lld messages' attachments" : {
+
+    },
+    "%lld of %lld selected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld selected"
+          }
+        }
+      }
+    },
+    "%lld photos" : {
+
+    },
+    "%lld s apart" : {
+
+    },
+    "%lld selected · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld selected · %2$@"
+          }
+        }
+      }
+    },
+    "%lld selected · %@ ·" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld selected · %2$@ ·"
+          }
+        }
+      }
+    },
+    "%lld smaller items" : {
+
+    },
+    "%lld total, %lld in use" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld total, %2$lld in use"
+          }
+        }
+      }
+    },
+    "+%@" : {
+
+    },
+    "/Users/Shared, which every account can use. Games and some apps keep large content here." : {
+
+    },
+    "1 month" : {
+
+    },
+    "1 week" : {
+
+    },
+    "1. Click Open System Settings." : {
+
+    },
+    "2. Turn on Spacebar. If it isn't listed, click + and choose Spacebar in Applications." : {
+
+    },
+    "3 months" : {
+
+    },
+    "3. Click Quit & Reopen, and Spacebar continues right here." : {
+
+    },
+    "6 months" : {
+
+    },
+    "A drive used by macOS" : {
+
+    },
+    "A folder macOS manages on this drive" : {
+
+    },
+    "A measured breakdown of your disk, and Space Explorer to drill into any folder." : {
+
+    },
+    "A standard folder of your Mac" : {
+
+    },
+    "A system folder macOS and apps rely on" : {
+
+    },
+    "Account type unknown, so it's kept" : {
+
+    },
+    "Activate to select." : {
+
+    },
+    "Add Folder…" : {
+
+    },
+    "Alerts" : {
+
+    },
+    "All Types" : {
+
+    },
+    "Already unzipped into “%@”" : {
+
+    },
+    "Always at hand" : {
+
+    },
+    "An app's data container. Removing it erases that app's data" : {
+
+    },
+    "Android %@ image (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Android %1$@ image (%2$@)"
+          }
+        }
+      }
+    },
+    "Android build-tools %@" : {
+
+    },
+    "Android emulator · used %@" : {
+
+    },
+    "Android system images no emulator uses, old Android build-tools and emulators, extra Xcode copies, older JetBrains IDE data, downloaded AI models, old Homebrew versions, and git repositories worth compacting. The Xcode you're using and the Homebrew versions in use are never offered. git gc runs in Terminal, not inside Spacebar." : {
+
+    },
+    "App Caches" : {
+
+    },
+    "App Data" : {
+
+    },
+    "App Leftovers" : {
+
+    },
+    "App archives from Product › Archive. They contain the debug symbols needed to read crash reports for shipped builds, so keep the ones you still support." : {
+
+    },
+    "App data" : {
+
+    },
+    "App settings" : {
+
+    },
+    "Apple's simctl isn't available or couldn't be verified" : {
+
+    },
+    "Apps" : {
+      "comment" : "Storage breakdown slice name"
+    },
+    "Apps in /Applications and ~/Applications." : {
+
+    },
+    "Apps rebuild these. Items of running apps are skipped." : {
+
+    },
+    "Apps that come with macOS can't be removed." : {
+
+    },
+    "Archives & disk images" : {
+
+    },
+    "Attachments from %@" : {
+
+    },
+    "Automatic" : {
+
+    },
+    "Automatic clean (dry run)" : {
+
+    },
+    "Available space in the menu bar, and an alert before your disk fills up." : {
+
+    },
+    "Back" : {
+
+    },
+    "Build cache" : {
+
+    },
+    "Bursts and repeated shots: photos taken within a minute of each other that look nearly the same, found with on-device image analysis. In each group the favorite, or else the highest-resolution shot, is kept. Library photos go to Recently Deleted in Photos (30 days); image files go to the Trash. Photos stored only in iCloud aren't downloaded or analyzed." : {
+
+    },
+    "Cached attachments older than a year · %@" : {
+
+    },
+    "Cached attachments · %@" : {
+
+    },
+    "Caches" : {
+      "comment" : "Kind of app data in ~/Library, shown when uninstalling an app"
+    },
+    "Caches an app wrote to recently will just be rebuilt, so removing them frees little space for long." : {
+
+    },
+    "Caches nobody has used for a month, logs, and build data are preselected. Your files, apps and anything else are listed for you to review, never preselected." : {
+
+    },
+    "Caches, logs and build data apps rebuild, plus forgotten downloads, unused apps, old simulators and leftovers." : {
+
+    },
+    "Can't Remove: %@" : {
+
+    },
+    "Can't be removed: %@" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Check Again" : {
+
+    },
+    "Check for Updates…" : {
+
+    },
+    "Choose Folder…" : {
+
+    },
+    "Choose a folder." : {
+
+    },
+    "Clean" : {
+
+    },
+    "Clean %@ of caches and logs…" : {
+
+    },
+    "Clean %lld items (%@)?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Clean %1$lld items (%2$@)?"
+          }
+        }
+      }
+    },
+    "Clean Selected" : {
+
+    },
+    "Clean safe items once a week" : {
+
+    },
+    "Cleaning" : {
+
+    },
+    "Cleaning deletes these immediately." : {
+
+    },
+    "Cleaning moves these to the Trash." : {
+
+    },
+    "Cleanup" : {
+
+    },
+    "Cleanup complete" : {
+
+    },
+    "Cleanup finished with some items skipped" : {
+
+    },
+    "Cleanup you can trust" : {
+
+    },
+    "Click a folder to explore it." : {
+
+    },
+    "Click a folder to open it" : {
+
+    },
+    "Cloud storage synced with another service" : {
+
+    },
+    "Containers that aren't running, and their files" : {
+
+    },
+    "Contains the developer tools you're using (%@)" : {
+
+    },
+    "Continue" : {
+
+    },
+    "Cookies" : {
+      "comment" : "Kind of app data in ~/Library, shown when uninstalling an app"
+    },
+    "Copy Path" : {
+
+    },
+    "Couldn't eject: %@" : {
+
+    },
+    "Couldn't open Terminal" : {
+
+    },
+    "Couldn't read the startup disk's size." : {
+
+    },
+    "Data left behind by apps that are no longer installed. Suggested: folders whose bundle ID matches no installed app, if they're web data or window state, or haven't changed in 90 days. Folders matched only by name (they can hold documents or saved games, or belong to an app on another drive) and recently changed ones are left for you to review. Everything goes to the Trash." : {
+
+    },
+    "Data shared between apps" : {
+
+    },
+    "Delete %@ of suggested caches, logs and build data?" : {
+
+    },
+    "Delete Now" : {
+
+    },
+    "Delete Now (%@)" : {
+
+    },
+    "Deleted %@ that Spacebar moved to the Trash a week ago." : {
+
+    },
+    "Deleted from the Trash" : {
+
+    },
+    "Dependencies and build output inside your projects (node_modules, target, build, Pods, .venv…). They're recreated by the project's install or build command. Projects untouched for 90 days are suggested." : {
+
+    },
+    "DerivedData, build products, simulator caches, and old device support files. The newest two device support versions per platform are kept." : {
+
+    },
+    "Deselect all" : {
+
+    },
+    "Deselect all in %@" : {
+
+    },
+    "Desktop" : {
+
+    },
+    "Details: %@" : {
+
+    },
+    "Developer" : {
+      "comment" : "Storage breakdown slice name"
+    },
+    "Developer Caches" : {
+
+    },
+    "Developer Tools" : {
+
+    },
+    "Diagnostic logs and crash reports written by apps and macOS." : {
+
+    },
+    "Disk usage" : {
+
+    },
+    "Docker" : {
+
+    },
+    "Docker disk image" : {
+
+    },
+    "Docker isn't available" : {
+
+    },
+    "Docker's disk image uses %@" : {
+
+    },
+    "Documents" : {
+      "comment" : "Storage breakdown slice name"
+    },
+    "Documents, Desktop, Downloads and your other folders." : {
+
+    },
+    "Downloaded \"Install macOS\" apps. You can download them again from Apple." : {
+
+    },
+    "Downloaded system assets" : {
+
+    },
+    "Downloads" : {
+
+    },
+    "Drive" : {
+
+    },
+    "Drives and folders" : {
+
+    },
+    "Dry Run" : {
+
+    },
+    "Dry run" : {
+
+    },
+    "Dry run is on: nothing will be deleted." : {
+
+    },
+    "Dry run is on: nothing will be deleted. Spacebar will only report and log what it would remove." : {
+
+    },
+    "Dry run is on: nothing will be moved." : {
+
+    },
+    "Dry run: nothing was deleted" : {
+
+    },
+    "Dry run: only show what would be removed" : {
+
+    },
+    "Dry run: show what would be removed without deleting anything" : {
+
+    },
+    "Duplicate Files" : {
+
+    },
+    "Each removal is recorded in ~/Library/Logs/Spacebar/operations.log." : {
+
+    },
+    "Eject" : {
+
+    },
+    "Empty Trash" : {
+
+    },
+    "Empty Trash (%@)…" : {
+
+    },
+    "Empty Trash…" : {
+
+    },
+    "Empty items Spacebar moved to the Trash after 7 days" : {
+
+    },
+    "Everything else: system-wide app support in /Library, temporary files and logs, Spotlight's index, snapshots, and folders Spacebar can't read without Full Disk Access." : {
+
+    },
+    "Everything happens on your Mac. No account, no analytics. The only network use is checking for updates." : {
+
+    },
+    "Everything is logged" : {
+
+    },
+    "Exclude" : {
+
+    },
+    "Exclusions" : {
+
+    },
+    "Explore" : {
+
+    },
+    "Explore Drive" : {
+
+    },
+    "Explore another drive or folder" : {
+
+    },
+    "Files over 1 MB with identical content in your home folder (outside Library). For each set, one copy is kept: the one outside Downloads with the shortest path. Right-click a copy to keep it instead. Copies that already share disk space (APFS clones) are left out, because deleting them frees nothing." : {
+
+    },
+    "Files over 500 MB in your home folder (outside Library). Review each one carefully." : {
+
+    },
+    "Find Space" : {
+
+    },
+    "Find out what's using your disk" : {
+
+    },
+    "Finder couldn't empty the Trash" : {
+
+    },
+    "Finder emptied the Trash." : {
+
+    },
+    "Folder" : {
+
+    },
+    "Folders" : {
+
+    },
+    "Forgotten Files" : {
+
+    },
+    "Free" : {
+
+    },
+    "Free Up Space" : {
+
+    },
+    "Free: %@" : {
+
+    },
+    "Freed %@ of caches and logs nobody used recently." : {
+
+    },
+    "Freed %@." : {
+
+    },
+    "Full Disk Access" : {
+
+    },
+    "Full Disk Access is on" : {
+
+    },
+    "Full Disk Access isn't active yet" : {
+
+    },
+    "Full Disk Access required" : {
+
+    },
+    "Get Available Space" : {
+
+    },
+    "Granted" : {
+
+    },
+    "Grew by %@ since %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Grew by %1$@ since %2$@"
+          }
+        }
+      }
+    },
+    "Growth" : {
+
+    },
+    "Hide this item from cleanup lists. Undo in Settings › Exclusions." : {
+
+    },
+    "Home" : {
+
+    },
+    "If you just turned Spacebar on in Privacy & Security › Full Disk Access, macOS applies it after Spacebar restarts. Click Quit & Reopen. If it's still not active afterwards, remove Spacebar from the list with the – button and add it again with +." : {
+
+    },
+    "Images no container uses; downloaded again when needed" : {
+
+    },
+    "In %@ · same as %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "In %1$@ · same as %2$@"
+          }
+        }
+      }
+    },
+    "In use" : {
+
+    },
+    "Includes nothing purgeable. macOS can also free %@ of purgeable space on its own." : {
+
+    },
+    "Installer for %@, which is installed" : {
+
+    },
+    "Items already in your Trash. Emptying it is permanent." : {
+
+    },
+    "Items in your Trash." : {
+
+    },
+    "Items owned by apps that are running are skipped." : {
+
+    },
+    "Items that might matter go to the Trash. Put Back (⌥⌘Z) returns everything from your last clean." : {
+
+    },
+    "Its app is installed again" : {
+
+    },
+    "Keep This Copy Instead" : {
+
+    },
+    "Keep in Trash" : {
+
+    },
+    "Keep in iCloud Only" : {
+
+    },
+    "LM Studio model by %@ · downloaded %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "LM Studio model by %1$@ · downloaded %2$@"
+          }
+        }
+      }
+    },
+    "Large Files" : {
+
+    },
+    "Large iCloud Drive files that are also stored on this Mac. Removing the local copy frees the space right away; the file stays in iCloud and downloads again when you open it. Nothing is deleted. Files you haven't opened in 90 days are suggested; files with changes not yet uploaded are left alone." : {
+
+    },
+    "Last scanned %@" : {
+
+    },
+    "Last used %@" : {
+
+    },
+    "Launch agent" : {
+
+    },
+    "List" : {
+
+    },
+    "Live" : {
+
+    },
+    "Local Time Machine snapshots on your startup disk. macOS keeps them for 24 hours and removes them by itself when it needs space; you can remove them now. Their exact size isn't reported, so the figure is macOS's purgeable space, which also includes some caches. Snapshots macOS makes for updates (com.apple.os.update) can't be removed." : {
+
+    },
+    "Local copies Mail keeps that the server can restore: attachments you opened, and cached attachments of IMAP, Exchange, Gmail and iCloud accounts (Mail downloads them again when you open a message). Your messages are never touched, and nothing is removed for POP or \"On My Mac\" mailboxes, whose mail exists only on this Mac. Quit Mail first." : {
+
+    },
+    "Local device backups made by Finder. Delete only backups you no longer need." : {
+
+    },
+    "Locked" : {
+
+    },
+    "Logs" : {
+      "comment" : "Kind of app data in ~/Library, shown when uninstalling an app"
+    },
+    "Logs & Crash Reports" : {
+
+    },
+    "Looks like a security key or certificate" : {
+
+    },
+    "Macintosh HD" : {
+
+    },
+    "Mail" : {
+
+    },
+    "Mail & Messages" : {
+
+    },
+    "Mail and Messages, including attachments." : {
+
+    },
+    "Map" : {
+
+    },
+    "Measure again" : {
+
+    },
+    "Measured %@. Click a category to explore it." : {
+
+    },
+    "Measuring %@…" : {
+
+    },
+    "Measuring %lld of %lld…" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Measuring %1$lld of %2$lld…"
+          }
+        }
+      }
+    },
+    "Measuring what's using your disk…" : {
+
+    },
+    "Measuring…" : {
+
+    },
+    "Menu bar" : {
+
+    },
+    "Messages Attachments" : {
+
+    },
+    "Move %@ to the Trash" : {
+
+    },
+    "Move %lld Items to Trash…" : {
+
+    },
+    "Move %lld items to the Trash?" : {
+
+    },
+    "Move Spacebar to Applications" : {
+
+    },
+    "Move to Trash" : {
+
+    },
+    "Move to Trash…" : {
+
+    },
+    "Move “%@” to the Trash?" : {
+
+    },
+    "Moved %@ to the Trash, so that space isn't free yet. Delete Now permanently deletes just these items; nothing else in your Trash is touched." : {
+
+    },
+    "Moved %lld items (%@) back to where they were." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Moved %1$lld items (%2$@) back to where they were."
+          }
+        }
+      }
+    },
+    "Moved %lld photos (%@) to Recently Deleted in Photos. Restore them there within 30 days, or delete them there to free the space now." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Moved %1$lld photos (%2$@) to Recently Deleted in Photos. Restore them there within 30 days, or delete them there to free the space now."
+          }
+        }
+      }
+    },
+    "Needs Full Disk Access" : {
+
+    },
+    "Never Show in Cleanup" : {
+
+    },
+    "Newer build-tools %@ installed" : {
+
+    },
+    "No emulator uses it · downloaded again by Android Studio when needed" : {
+
+    },
+    "No installed app matches this name. It may be left over from an app you removed, or belong to a command-line tool." : {
+
+    },
+    "No longer in the Trash" : {
+
+    },
+    "No matches" : {
+
+    },
+    "No matching app" : {
+
+    },
+    "No other data found for this app." : {
+
+    },
+    "No recent use recorded" : {
+
+    },
+    "Not Messages attachments" : {
+
+    },
+    "Not a Homebrew version folder" : {
+
+    },
+    "Not a Mail account folder" : {
+
+    },
+    "Not a downloaded model" : {
+
+    },
+    "Not a git repository" : {
+
+    },
+    "Not a simulator device folder" : {
+
+    },
+    "Not an Android emulator" : {
+
+    },
+    "Not an app data folder" : {
+
+    },
+    "Not an app in an Applications folder" : {
+
+    },
+    "Not granted" : {
+
+    },
+    "Not in iCloud Drive" : {
+
+    },
+    "Not in the Trash" : {
+
+    },
+    "Not scanned yet. Open to scan." : {
+
+    },
+    "Not the Xcode in use · %@ · opened %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Not the Xcode in use · %1$@ · opened %2$@"
+          }
+        }
+      }
+    },
+    "Not this app's data" : {
+
+    },
+    "Not turned on yet" : {
+
+    },
+    "Nothing excluded. Right-click any item and choose Never Show in Cleanup." : {
+
+    },
+    "Nothing found" : {
+
+    },
+    "Nothing grew by more than 200 MB." : {
+
+    },
+    "Nothing here takes up space" : {
+
+    },
+    "Nothing suggested to clean" : {
+
+    },
+    "Nothing to clean here" : {
+
+    },
+    "Nothing to clean right now." : {
+
+    },
+    "Notify me when the disk is almost full" : {
+
+    },
+    "OK" : {
+
+    },
+    "Old Homebrew version · %@ is in use" : {
+
+    },
+    "Old Simulators" : {
+
+    },
+    "Older version: newer %@ data exists" : {
+
+    },
+    "Oldest %@ · up to %@ purgeable" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Oldest %1$@ · up to %2$@ purgeable"
+          }
+        }
+      }
+    },
+    "Only Docker Desktop's signed docker command is used" : {
+
+    },
+    "Only safe items are suggested" : {
+
+    },
+    "Only suggested caches, logs and build data, with the same rules as a manual clean: exclusions, running apps and Dry Run apply. You get a notification with what was freed." : {
+
+    },
+    "Only what Spacebar put in the Trash. Anything else in your Trash is left alone." : {
+
+    },
+    "Only work out how much would be freed." : {
+
+    },
+    "Open" : {
+
+    },
+    "Open %@" : {
+
+    },
+    "Open %@ (⌘-click to select)" : {
+
+    },
+    "Open Privacy & Security…" : {
+
+    },
+    "Open Spacebar" : {
+
+    },
+    "Open Spacebar at login" : {
+
+    },
+    "Open System Settings" : {
+
+    },
+    "Opened attachment" : {
+
+    },
+    "Opens a folder in Space Explorer to see what takes up space in it." : {
+
+    },
+    "Opens the folder" : {
+
+    },
+    "Optional: grant Full Disk Access" : {
+
+    },
+    "Other files" : {
+
+    },
+    "Other items" : {
+
+    },
+    "Outside your home folder" : {
+
+    },
+    "Overview" : {
+
+    },
+    "Package-manager download caches (npm, Yarn, pnpm, Bun, Cargo, Gradle, SwiftPM, uv, and more). They are re-downloaded when needed. Model weights and dependency repositories are never touched." : {
+
+    },
+    "Part of macOS" : {
+
+    },
+    "Permanently delete everything in the Trash?" : {
+
+    },
+    "Permissions" : {
+
+    },
+    "Photo" : {
+      "comment" : "Fallback name of a photo with no file name"
+    },
+    "Photos, Music & Movies" : {
+
+    },
+    "Photos, video & audio" : {
+
+    },
+    "Photos, videos and files received in Messages more than a year ago, grouped by year. They go to the Trash, so Put Back works. If Messages in iCloud is on, they stay in iCloud; otherwise this is the only copy, so review them. Quit Messages first." : {
+
+    },
+    "Pictures (including the Photos library), Music and Movies." : {
+
+    },
+    "Practice first: cleaning only shows what it would remove." : {
+
+    },
+    "Private" : {
+
+    },
+    "Project Build Files" : {
+
+    },
+    "Protected data" : {
+
+    },
+    "Protected locations" : {
+
+    },
+    "Protected: %@" : {
+
+    },
+    "Put Back" : {
+
+    },
+    "Put back" : {
+
+    },
+    "Quick Look" : {
+
+    },
+    "Quit" : {
+
+    },
+    "Quit %@" : {
+
+    },
+    "Quit & Reopen" : {
+
+    },
+    "Rebuilt automatically when you build" : {
+
+    },
+    "Recently used" : {
+
+    },
+    "Remove %@" : {
+
+    },
+    "Remove apps from the Unused Apps list or with the trash button on the app itself" : {
+
+    },
+    "Removes caches and logs nobody used recently: the same safe clean as Spacebar's automatic cleaning. Your Dry Run setting and Exclusions apply." : {
+
+    },
+    "Returns the bytes available on your startup disk, including space macOS can free on its own." : {
+
+    },
+    "Reveal Kept Copy in Finder" : {
+
+    },
+    "Reveal in Finder" : {
+
+    },
+    "Review first" : {
+
+    },
+    "Run a scan to see what can be cleaned." : {
+
+    },
+    "Running" : {
+      "comment" : "A simulator that is running"
+    },
+    "Runtime · last used %@" : {
+
+    },
+    "Safe to clean" : {
+
+    },
+    "Sandbox container" : {
+
+    },
+    "Saved windows" : {
+
+    },
+    "Scan" : {
+
+    },
+    "Scan %@" : {
+
+    },
+    "Scan Again" : {
+
+    },
+    "Scan again (⌘R)" : {
+
+    },
+    "Scan to find what to clean" : {
+
+    },
+    "Scan to see what's using your disk." : {
+
+    },
+    "Scanning…" : {
+
+    },
+    "Scripts" : {
+      "comment" : "Kind of app data in ~/Library, shown when uninstalling an app"
+    },
+    "Search (⌘F)" : {
+
+    },
+    "See what's using your disk, and free space safely." : {
+
+    },
+    "Select %@" : {
+
+    },
+    "Select All" : {
+
+    },
+    "Select None" : {
+
+    },
+    "Select Suggested" : {
+
+    },
+    "Select suggested in %@" : {
+
+    },
+    "Select suggested items" : {
+
+    },
+    "Selected. Activate to deselect." : {
+
+    },
+    "Settings" : {
+      "comment" : "Kind of app data in ~/Library, shown when uninstalling an app"
+    },
+    "Settings for your shell or developer tools" : {
+
+    },
+    "Settings…" : {
+
+    },
+    "Shared Folder" : {
+
+    },
+    "Shared container" : {
+
+    },
+    "Shared containers are left unchecked: other apps from the same developer may use them." : {
+
+    },
+    "Show Folder in Spacebar" : {
+
+    },
+    "Show Spacebar in the menu bar" : {
+
+    },
+    "Show available space next to the icon" : {
+
+    },
+    "Show this in cleanup lists again" : {
+
+    },
+    "Shrank by %@ since %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Shrank by %1$@ since %2$@"
+          }
+        }
+      }
+    },
+    "Similar Photos" : {
+
+    },
+    "Similar to %@" : {
+
+    },
+    "Similar to %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Similar to %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "Simulate" : {
+
+    },
+    "Simulate Clean" : {
+
+    },
+    "Simulate Uninstall" : {
+
+    },
+    "Simulate cleaning %@ of caches and logs…" : {
+
+    },
+    "Simulate cleaning %@ of suggested caches, logs and build data?" : {
+
+    },
+    "Simulate cleaning %lld items (%@)?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Simulate cleaning %1$lld items (%2$@)?"
+          }
+        }
+      }
+    },
+    "Simulate emptying the Trash?" : {
+
+    },
+    "Simulate moving %lld items to the Trash?" : {
+
+    },
+    "Simulate moving “%@” to the Trash?" : {
+
+    },
+    "Simulator" : {
+
+    },
+    "Size" : {
+
+    },
+    "Sizes from %@" : {
+
+    },
+    "Skip for Now" : {
+
+    },
+    "Skipped %lld:" : {
+
+    },
+    "Snapshots (%lld made by macOS updates, removed by macOS), indexes and unreadable folders" : {
+
+    },
+    "Snapshots, indexes and unreadable folders" : {
+
+    },
+    "Some apps are running" : {
+
+    },
+    "Some items couldn't be deleted" : {
+
+    },
+    "Some items couldn't be put back" : {
+
+    },
+    "Some items couldn't be read. Grant Full Disk Access for a complete total." : {
+
+    },
+    "Something else is at its original location now" : {
+
+    },
+    "Sort" : {
+
+    },
+    "Sort by size, or by how much each item grew since it was last measured" : {
+
+    },
+    "Space Explorer" : {
+
+    },
+    "Space inside Docker: build cache, unused images, stopped containers and unused volumes, removed with Docker's own prune commands. Build cache is suggested. Volumes are never suggested because they can hold databases. Docker returns freed space to macOS shortly afterwards." : {
+
+    },
+    "Space not used by anything." : {
+
+    },
+    "Spacebar" : {
+
+    },
+    "Spacebar can only show folders." : {
+
+    },
+    "Spacebar cleaned up" : {
+
+    },
+    "Spacebar is running from a disk image or a quarantined folder, so macOS may block its permissions. Drag it to your Applications folder and open it from there." : {
+
+    },
+    "Spacebar is still checking the results from last time. Try again in a moment." : {
+
+    },
+    "Spacebar keeps running in the menu bar after you close its window. On Macs with a notch, macOS hides menu bar items that don't fit. If you can't see Spacebar's icon, hold ⌘ and drag it (or other icons) to rearrange, or quit apps you don't need in the menu bar." : {
+
+    },
+    "Spacebar looks for caches, logs, build data, and leftovers. Nothing is removed until you review it and confirm." : {
+
+    },
+    "Spacebar only reads file sizes and dates. It never opens your documents or sends anything anywhere." : {
+
+    },
+    "Spacebar shows what grew once it has measured your disk again on another day." : {
+
+    },
+    "Spacebar would free %@ (dry run, nothing was removed)." : {
+
+    },
+    "Start Docker to see what can be pruned" : {
+
+    },
+    "Start Scan" : {
+
+    },
+    "Step %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Step %1$lld of %2$lld"
+          }
+        }
+      }
+    },
+    "Stopped containers" : {
+
+    },
+    "Stored only on this Mac (%@)" : {
+
+    },
+    "Suggest caches not used in" : {
+
+    },
+    "Suggest items not used in" : {
+
+    },
+    "System & hidden" : {
+
+    },
+    "System Data" : {
+
+    },
+    "System and support volumes" : {
+
+    },
+    "System-wide app support (/Library)" : {
+
+    },
+    "Temporary files apps rebuild automatically. Most Apple system caches are left alone because some of them hold state." : {
+
+    },
+    "Temporary files, logs and system databases" : {
+
+    },
+    "That space isn't free until it's deleted from the Trash. Put it back if you removed something by mistake." : {
+
+    },
+    "That's Spacebar" : {
+
+    },
+    "That's Spacebar." : {
+
+    },
+    "The app" : {
+
+    },
+    "The drive itself" : {
+
+    },
+    "The folder all accounts share" : {
+
+    },
+    "The version Homebrew is using" : {
+
+    },
+    "Their items are skipped. Quit %@ and scan again to clean them." : {
+
+    },
+    "These count as purgeable space. macOS deletes them automatically when it needs the space, and after 24 hours. To remove them now, run `tmutil thinlocalsnapshots / 999999999999 4` in Terminal." : {
+
+    },
+    "These files are still in iCloud Drive and download again when you open them." : {
+
+    },
+    "Things in Downloads and on the Desktop you haven't opened in a long time. \"Opened\" comes from Spotlight, which records opens through Finder and apps (files dragged straight into an app may not show). Suggested: installers for apps you already have, archives already unzipped next to themselves, and installers or archives with no open recorded in 6 months. Photos, videos, music and documents are never suggested, and neither is anything on the Desktop." : {
+
+    },
+    "This can't be undone." : {
+
+    },
+    "This can't be undone. Without Full Disk Access, Spacebar asks Finder to empty the Trash." : {
+
+    },
+    "This docker command isn't signed by Docker, so Spacebar won't run it" : {
+
+    },
+    "This scan reads your personal folders, so macOS may ask for permission." : {
+
+    },
+    "Time Machine Snapshots" : {
+
+    },
+    "Time Machine backups. Manage them in Time Machine" : {
+
+    },
+    "Trash" : {
+
+    },
+    "Trash emptied" : {
+
+    },
+    "Undo Last Clean (Put Back)" : {
+
+    },
+    "Uninstall %@" : {
+
+    },
+    "Uninstall %@…" : {
+
+    },
+    "Uninstall App…" : {
+
+    },
+    "Uninstall…" : {
+
+    },
+    "Unknown account" : {
+
+    },
+    "Unused Apps" : {
+
+    },
+    "Unused images" : {
+
+    },
+    "Unused volumes" : {
+
+    },
+    "Unusual path" : {
+
+    },
+    "Updated automatically %@" : {
+
+    },
+    "Updated live %@. Click a category to explore it." : {
+
+    },
+    "Updates" : {
+
+    },
+    "Updates…" : {
+
+    },
+    "Updating…" : {
+
+    },
+    "Used by an emulator" : {
+
+    },
+    "Used by an emulator: remove the emulator first" : {
+
+    },
+    "Version" : {
+
+    },
+    "Version %@" : {
+
+    },
+    "View" : {
+
+    },
+    "Volumes no container uses. They can hold databases and other data" : {
+
+    },
+    "Web data" : {
+
+    },
+    "Welcome to Spacebar" : {
+
+    },
+    "What apps keep in ~/Library: settings, caches, databases, containers." : {
+
+    },
+    "What grew" : {
+
+    },
+    "What's using space" : {
+
+    },
+    "When less than" : {
+
+    },
+    "When on, cleaning only shows what it would remove" : {
+
+    },
+    "Without Full Disk Access, the Trash can't be measured, so what's in it is counted in System Data." : {
+
+    },
+    "Without it, Spacebar can't see your Trash, Mail attachments, iPhone backups, or sandboxed app caches. Turn on Spacebar under Privacy & Security › Full Disk Access." : {
+
+    },
+    "Would free %@." : {
+
+    },
+    "Would have freed %@ of caches and logs nobody used recently." : {
+
+    },
+    "Would move %@ to the Trash, so that space isn't free yet." : {
+
+    },
+    "Would move %lld photos (%@) to Recently Deleted in Photos. Restore them there within 30 days, or delete them there to free the space now." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Would move %1$lld photos (%2$@) to Recently Deleted in Photos. Restore them there within 30 days, or delete them there to free the space now."
+          }
+        }
+      }
+    },
+    "Xcode Archives" : {
+
+    },
+    "Xcode Build Data" : {
+
+    },
+    "Xcode cache" : {
+
+    },
+    "Xcode data and simulators, Homebrew, and tool folders like .npm, .gradle and .cache in your home folder." : {
+
+    },
+    "You stay in control" : {
+
+    },
+    "Your apps, least recently used first. \"Last used\" combines Spotlight's record with traces apps leave when they run (settings, caches, saved windows). Apps from Apple and apps that are running can't be removed here." : {
+
+    },
+    "Your disk is almost full" : {
+
+    },
+    "Your disk is almost full. macOS needs free space to run smoothly and install updates." : {
+
+    },
+    "Your documents' folders, passwords, Mail, iCloud Drive, security keys and the apps you're running are never removed." : {
+
+    },
+    "Your home folder" : {
+
+    },
+    "Your last clean moved %@ to the Trash" : {
+
+    },
+    "Your mailboxes" : {
+
+    },
+    "Your messages" : {
+
+    },
+    "Your passwords and keys" : {
+
+    },
+    "Your security keys" : {
+
+    },
+    "added %@" : {
+
+    },
+    "caches" : {
+      "comment" : "JetBrains IDE data kind, e.g. PyCharm 2023.1 caches"
+    },
+    "changed recently, so review it" : {
+
+    },
+    "downloaded %@" : {
+
+    },
+    "iCloud" : {
+
+    },
+    "iCloud Drive" : {
+
+    },
+    "iCloud Drive and cloud-storage files downloaded to this Mac." : {
+
+    },
+    "iCloud Drive: deleting here deletes it on all your devices" : {
+
+    },
+    "iOS, watchOS and other simulator devices and runtimes. Devices whose runtime is no longer installed can't be used at all and are suggested. Others are listed if unused for 90 days. Removal goes through `xcrun simctl`, the same as Xcode." : {
+
+    },
+    "iPhone & iPad Backups" : {
+
+    },
+    "last booted %@" : {
+
+    },
+    "last opened %@" : {
+
+    },
+    "local" : {
+      "comment" : "Mail account type when unknown"
+    },
+    "logs" : {
+      "comment" : "JetBrains IDE data kind, e.g. PyCharm 2023.1 logs"
+    },
+    "macOS" : {
+
+    },
+    "macOS Installers" : {
+
+    },
+    "macOS hides some folders from apps unless you allow it. With Full Disk Access, Spacebar can also measure and clean your Trash, Mail attachments, iPhone backups and app containers, and it won't trigger separate permission prompts for Desktop, Documents and Downloads." : {
+
+    },
+    "macOS hides this location from apps without Full Disk Access." : {
+
+    },
+    "macOS itself, its startup, recovery, update and swap volumes, and assets it downloads (voices, simulator runtimes, models). Managed by macOS." : {
+
+    },
+    "macOS update downloaded, waiting to install" : {
+
+    },
+    "matched by name only, so review it" : {
+
+    },
+    "never" : {
+      "comment" : "No date recorded, as in: last opened never"
+    },
+    "never booted" : {
+
+    },
+    "new" : {
+
+    },
+    "no installed app has this ID" : {
+
+    },
+    "no open recorded" : {
+
+    },
+    "now %@" : {
+
+    },
+    "of %@ on Macintosh HD" : {
+
+    },
+    "opened %@" : {
+
+    },
+    "same second" : {
+
+    },
+    "selected to clean" : {
+
+    },
+    "settings" : {
+      "comment" : "JetBrains IDE data kind, e.g. PyCharm 2023.1 settings"
+    },
+    "since %@" : {
+
+    },
+    "unknown" : {
+      "comment" : "Unknown date, as in: used unknown"
+    },
+    "· %lld of %lld items, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "· %1$lld of %2$lld items, %3$@"
+          }
+        }
+      }
+    },
+    "…and %lld more" : {
+
+    }
+  },
+  "version" : "1.0"
+}

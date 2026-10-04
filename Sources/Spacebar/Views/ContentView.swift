@@ -273,40 +273,51 @@ private struct SidebarSize: View {
 
 extension Cleaner.Report {
     var title: String {
-        if dryRun { return "Dry run: nothing was deleted" }
-        if emptiedTrash { return skipped.isEmpty ? "Deleted from the Trash" : "Some items couldn't be deleted" }
-        if !restoredItems.isEmpty || (deletedBytes == 0 && trashedBytes == 0 && removed.isEmpty && !skipped.isEmpty) {
-            return skipped.isEmpty ? "Put back" : "Some items couldn't be put back"
+        if dryRun { return String(localized: "Dry run: nothing was deleted") }
+        if emptiedTrash {
+            return skipped.isEmpty ? String(localized: "Deleted from the Trash") : String(localized: "Some items couldn't be deleted")
         }
-        return skipped.isEmpty ? "Cleanup complete" : "Cleanup finished with some items skipped"
+        if !restoredItems.isEmpty || (deletedBytes == 0 && trashedBytes == 0 && removed.isEmpty && !skipped.isEmpty) {
+            return skipped.isEmpty ? String(localized: "Put back") : String(localized: "Some items couldn't be put back")
+        }
+        return skipped.isEmpty ? String(localized: "Cleanup complete") : String(localized: "Cleanup finished with some items skipped")
     }
 
     var message: String {
         var lines: [String] = []
-        let verb = dryRun ? "Would" : ""
-        if deletedBytes > 0 { lines.append("\(verb.isEmpty ? "Freed" : "Would free") \(ByteFormat.string(deletedBytes)).") }
+        if deletedBytes > 0 {
+            let size = ByteFormat.string(deletedBytes)
+            lines.append(dryRun ? String(localized: "Would free \(size).") : String(localized: "Freed \(size)."))
+        }
         if removedItems.isEmpty == false && dryRun == false && removed.allSatisfy({ $0.path.contains("/Library/Mobile Documents/") }) {
-            lines.append("These files are still in iCloud Drive and download again when you open them.")
+            lines.append(String(localized: "These files are still in iCloud Drive and download again when you open them."))
         }
         if trashedBytes > 0 {
-            lines.append("\(verb.isEmpty ? "Moved" : "Would move") \(ByteFormat.string(trashedBytes)) to the Trash, so that space isn't free yet."
-                + (dryRun ? "" : " Delete Now permanently deletes just these items; nothing else in your Trash is touched."))
+            let size = ByteFormat.string(trashedBytes)
+            lines.append(dryRun
+                ? String(localized: "Would move \(size) to the Trash, so that space isn't free yet.")
+                : String(localized: "Moved \(size) to the Trash, so that space isn't free yet. Delete Now permanently deletes just these items; nothing else in your Trash is touched."))
         }
         if photosCount > 0 {
-            lines.append("\(dryRun ? "Would move" : "Moved") \(photosCount) photo\(photosCount == 1 ? "" : "s") (\(ByteFormat.string(photosBytes))) to Recently Deleted in Photos. Restore them there within 30 days, or delete them there to free the space now.")
+            let size = ByteFormat.string(photosBytes)
+            lines.append(dryRun
+                ? String(localized: "Would move \(photosCount) photos (\(size)) to Recently Deleted in Photos. Restore them there within 30 days, or delete them there to free the space now.")
+                : String(localized: "Moved \(photosCount) photos (\(size)) to Recently Deleted in Photos. Restore them there within 30 days, or delete them there to free the space now."))
         }
         if emptiedTrash && deletedBytes == 0 && !dryRun && skipped.isEmpty {
-            lines.append("Finder emptied the Trash.")
+            lines.append(String(localized: "Finder emptied the Trash."))
         }
         if !restoredItems.isEmpty {
-            lines.append("Moved \(restoredItems.count) item\(restoredItems.count == 1 ? "" : "s") (\(ByteFormat.string(restoredItems.reduce(0) { $0 + $1.bytes }))) back to where \(restoredItems.count == 1 ? "it was" : "they were").")
+            let size = ByteFormat.string(restoredItems.reduce(0) { $0 + $1.bytes })
+            lines.append(String(localized: "Moved \(restoredItems.count) items (\(size)) back to where they were."))
         }
         if !skipped.isEmpty {
-            lines.append("Skipped \(skipped.count):")
+            lines.append(String(localized: "Skipped \(skipped.count):"))
             lines += skipped.prefix(5).map { "• \($0.name): \($0.reason)" }
-            if skipped.count > 5 { lines.append("…and \(skipped.count - 5) more") }
+            if skipped.count > 5 { lines.append(String(localized: "…and \(skipped.count - 5) more")) }
         }
-        lines.append("Details: ~/Library/Logs/Spacebar/operations.log")
+        let log = "~/Library/Logs/Spacebar/operations.log"
+        lines.append(String(localized: "Details: \(log)"))
         return lines.joined(separator: "\n")
     }
 }

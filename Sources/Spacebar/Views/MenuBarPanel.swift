@@ -48,8 +48,14 @@ struct MenuBarPanel: View {
                 if model.cleaning || model.isScanning { ProgressView().controlSize(.small) }
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(model.space.map { "\(ByteFormat.string($0.available)) available" } ?? "Measuring…")
-                    .font(.title3.weight(.semibold))
+                Group {
+                    if let space = model.space {
+                        Text("\(ByteFormat.string(space.available)) available")
+                    } else {
+                        Text("Measuring…")
+                    }
+                }
+                .font(.title3.weight(.semibold))
                 if let space = model.space {
                     Text("of \(ByteFormat.string(space.total)) on Macintosh HD").font(.caption).foregroundStyle(.secondary)
                 }
@@ -85,9 +91,7 @@ struct MenuBarPanel: View {
             Button {
                 confirming = .clean
             } label: {
-                Label(quick.isEmpty ? (model.hasScanned ? "Nothing suggested to clean" : "Scan to find what to clean")
-                      : "\(model.dryRun ? "Simulate cleaning" : "Clean") \(ByteFormat.string(quickSize)) of caches and logs…",
-                      systemImage: "sparkles")
+                Label(quickCleanTitle(isEmpty: quick.isEmpty, size: quickSize), systemImage: "sparkles")
             }
             .disabled(quick.isEmpty || model.cleaning)
             if let trash = model.trashBytes, trash > 0 {
@@ -109,9 +113,7 @@ struct MenuBarPanel: View {
     private func confirmation(_ action: Action) -> some View {
         let quickSize = model.quickCleanItems.reduce(Int64(0)) { $0 + $1.0.size }
         return VStack(alignment: .leading, spacing: 8) {
-            Text(action == .clean
-                 ? "\(model.dryRun ? "Simulate cleaning" : "Delete") \(ByteFormat.string(quickSize)) of suggested caches, logs and build data?"
-                 : (model.dryRun ? "Simulate emptying the Trash?" : "Permanently delete everything in the Trash?"))
+            Text(confirmationTitle(action, size: quickSize))
                 .font(.callout)
                 .fixedSize(horizontal: false, vertical: true)
             Text(model.dryRun ? "Dry run is on: nothing will be deleted."
@@ -127,6 +129,23 @@ struct MenuBarPanel: View {
                 .buttonStyle(.borderedProminent)
                 .tint(model.dryRun ? .accentColor : .red)
             }
+        }
+    }
+
+    private func quickCleanTitle(isEmpty: Bool, size: Int64) -> LocalizedStringKey {
+        if isEmpty { return model.hasScanned ? "Nothing suggested to clean" : "Scan to find what to clean" }
+        let size = ByteFormat.string(size)
+        return model.dryRun ? "Simulate cleaning \(size) of caches and logs…" : "Clean \(size) of caches and logs…"
+    }
+
+    private func confirmationTitle(_ action: Action, size: Int64) -> LocalizedStringKey {
+        let size = ByteFormat.string(size)
+        switch action {
+        case .clean:
+            return model.dryRun ? "Simulate cleaning \(size) of suggested caches, logs and build data?"
+                : "Delete \(size) of suggested caches, logs and build data?"
+        case .emptyTrash:
+            return model.dryRun ? "Simulate emptying the Trash?" : "Permanently delete everything in the Trash?"
         }
     }
 
@@ -213,7 +232,7 @@ struct SettingsView: View {
                     panel.canChooseDirectories = true
                     panel.canChooseFiles = true
                     panel.allowsMultipleSelection = true
-                    panel.prompt = "Exclude"
+                    panel.prompt = String(localized: "Exclude")
                     if panel.runModal() == .OK {
                         for url in panel.urls { model.exclude(Exclusions.key(for: url)) }
                     }
@@ -225,7 +244,7 @@ struct SettingsView: View {
                     .disabled(!Updates.shared.available)
             }
             Section("Permissions") {
-                LabeledContent("Full Disk Access", value: model.fullDiskAccess == true ? "Granted" : "Not granted")
+                LabeledContent("Full Disk Access", value: model.fullDiskAccess == true ? String(localized: "Granted") : String(localized: "Not granted"))
                 Button("Open Privacy & Security…") { FullDiskAccess.openSettings() }
             }
         }

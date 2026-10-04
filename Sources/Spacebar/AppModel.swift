@@ -61,9 +61,11 @@ final class AppModel: ObservableObject {
         let token = CancelToken()
         driveToken = token
         Task.detached(priority: .userInitiated) {
-            _ = DriveBreakdown.analyze(drive, engine: BulkScanner(), cancel: token) { partial in
-                Task { @MainActor in
-                    if !token.isCancelled && self.selectedDrive?.url == drive.url { self.driveBreakdown = partial }
+            await ResourceBudget.heavy {
+                _ = DriveBreakdown.analyze(drive, engine: BulkScanner(), cancel: token) { partial in
+                    Task { @MainActor in
+                        if !token.isCancelled && self.selectedDrive?.url == drive.url { self.driveBreakdown = partial }
+                    }
                 }
             }
         }
@@ -77,7 +79,7 @@ final class AppModel: ObservableObject {
             } catch {
                 await MainActor.run {
                     var report = Cleaner.Report(dryRun: false)
-                    report.skipped.append((drive.name, "Couldn't eject: \(error.localizedDescription)"))
+                    report.skipped.append((drive.name, String(localized: "Couldn't eject: \(error.localizedDescription)")))
                     self.report = report
                 }
             }
@@ -271,7 +273,7 @@ final class AppModel: ObservableObject {
         let panel = NSOpenPanel()
         panel.directoryURL = URL(fileURLWithPath: "/Applications")
         panel.allowedContentTypes = [.application]
-        panel.prompt = "Uninstall…"
+        panel.prompt = String(localized: "Uninstall…")
         if panel.runModal() == .OK, let url = panel.url { uninstall(url) }
     }
 
@@ -330,7 +332,7 @@ final class AppModel: ObservableObject {
             var report = Cleaner.Report(dryRun: dryRun)
             report.emptiedTrash = true
             if !dryRun, let error = Cleaner.emptyTrashWithFinder() {
-                report.skipped.append(("Trash", error))
+                report.skipped.append((String(localized: "Trash"), error))
             }
             return report
         }
@@ -370,8 +372,8 @@ final class AppModel: ObservableObject {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
             guard granted else { return }
             let content = UNMutableNotificationContent()
-            content.title = "Your disk is almost full"
-            content.body = "\(ByteFormat.string(space.available)) left. Open Spacebar to see what's using space."
+            content.title = String(localized: "Your disk is almost full")
+            content.body = String(localized: "\(ByteFormat.string(space.available)) left. Open Spacebar to see what's using space.")
             UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "low-disk", content: content, trigger: nil))
         }
     }
@@ -405,7 +407,7 @@ final class AppModel: ObservableObject {
         Task.detached(priority: .utility) {
             var requests: [Cleaner.Request] = []
             for category in categories {
-                for item in category.scan(context) where Suggestion.isSuggested(item, in: category, staleDays: staleDays) {
+                for item in await ResourceBudget.heavy({ category.scan(context) }) where Suggestion.isSuggested(item, in: category, staleDays: staleDays) {
                     requests.append(Cleaner.Request(item: item, mode: category.mode))
                 }
             }
@@ -414,8 +416,10 @@ final class AppModel: ObservableObject {
                 self.applyRemovals(report)
                 let freed = report.deletedBytes
                 guard freed > 0 else { return }
-                self.notify(title: dryRun ? "Automatic clean (dry run)" : "Spacebar cleaned up",
-                            body: "\(dryRun ? "Would have freed" : "Freed") \(ByteFormat.string(freed)) of caches and logs nobody used recently.")
+                let size = ByteFormat.string(freed)
+                self.notify(title: dryRun ? String(localized: "Automatic clean (dry run)") : String(localized: "Spacebar cleaned up"),
+                            body: dryRun ? String(localized: "Would have freed \(size) of caches and logs nobody used recently.")
+                                : String(localized: "Freed \(size) of caches and logs nobody used recently."))
                 self.scanAll()
             }
         }
@@ -437,7 +441,8 @@ final class AppModel: ObservableObject {
             await MainActor.run {
                 self.applyRemovals(report)
                 if report.deletedBytes > 0 {
-                    self.notify(title: "Trash emptied", body: "Deleted \(ByteFormat.string(report.deletedBytes)) that Spacebar moved to the Trash a week ago.")
+                    self.notify(title: String(localized: "Trash emptied"),
+                                body: String(localized: "Deleted \(ByteFormat.string(report.deletedBytes)) that Spacebar moved to the Trash a week ago."))
                 }
             }
         }
@@ -533,7 +538,8 @@ final class AppModel: ObservableObject {
         let hadComplete = storage?.complete == true
         let activity = ProcessInfo.processInfo.beginActivity(options: .userInitiated, reason: "Measuring disk usage")
         Task.detached(priority: .utility) {
-            let result = StorageAnalyzer.analyze(engine: BulkScanner()) { partial in
+            // Waits for a free slot like category scans do (see ResourceBudget).
+            let result = await ResourceBudget.heavy { StorageAnalyzer.analyze(engine: BulkScanner()) { partial in
                 Task { @MainActor in
                     self.measuringStorage = partial.measuring ?? (partial.complete ? nil : self.measuringStorage)
                     if !hadComplete || partial.complete {
@@ -550,7 +556,7 @@ final class AppModel: ObservableObject {
                         self.storage = current
                     }
                 }
-            }
+            } }
             ProcessInfo.processInfo.endActivity(activity)
             await MainActor.run {
                 self.storageRunning = false
@@ -572,7 +578,8 @@ final class AppModel: ObservableObject {
         let context = ScanContext(engine: engine, runningApps: RunningApps.bundleIDs(),
                                   fullDiskAccess: fullDiskAccess ?? false, excluded: exclusions)
         Task.detached(priority: .userInitiated) {
-            let items = category.scan(context)
+            // At most two categories scan at once, so a full scan leaves room for everything else.
+            let items = await ResourceBudget.heavy { category.scan(context) }
             ProcessInfo.processInfo.endActivity(activity)
             await MainActor.run {
                 self.results[category.id] = items
@@ -637,13 +644,13 @@ final class AppModel: ObservableObject {
         items.removeAll { $0.url == item.url }
         for index in items.indices where items[index].duplicateOf == keeper {
             items[index].duplicateOf = item.url
-            items[index].detail = "In \(short(items[index].url.deletingLastPathComponent())) · same as \(short(item.url))"
+            items[index].detail = String(localized: "In \(short(items[index].url.deletingLastPathComponent())) · same as \(short(item.url))")
         }
         let photo = PhotosLibrary.identifier(from: keeper)
         var previous = CleanItem(url: keeper, name: photo.flatMap(PhotosLibrary.displayName) ?? keeper.lastPathComponent,
                                  size: item.size, date: nil,
-                                 detail: photo != nil ? "Similar to \(item.name)"
-                                     : "In \(short(keeper.deletingLastPathComponent())) · same as \(short(item.url))",
+                                 detail: photo != nil ? String(localized: "Similar to \(item.name)")
+                                     : String(localized: "In \(short(keeper.deletingLastPathComponent())) · same as \(short(item.url))"),
                                  owner: nil)
         previous.duplicateOf = item.url
         if let photo { previous.kind = .photoAsset(identifier: photo) }
@@ -663,7 +670,8 @@ final class AppModel: ObservableObject {
         // ~/Library/Caches, where another program could have edited it.
         guard !showingCachedResults else {
             var report = Cleaner.Report(dryRun: dryRun)
-            report.skipped.append(("Cleanup", "Spacebar is still checking the results from last time. Try again in a moment."))
+            report.skipped.append((String(localized: "Cleanup"),
+                                    String(localized: "Spacebar is still checking the results from last time. Try again in a moment.")))
             self.report = report
             return
         }

@@ -64,7 +64,7 @@ final class ServiceProvider: NSObject {
                                           options: [.urlReadingFileURLsOnly: true]) as? [URL] ?? []
         guard let first = urls.first, let link = FinderIntegration.showURL(for: first),
               let folder = FinderIntegration.folder(from: link) else {
-            error.pointee = "Spacebar can only show folders." as NSString
+            error.pointee = String(localized: "Spacebar can only show folders.") as NSString
             return
         }
         FinderIntegration.request(folder)

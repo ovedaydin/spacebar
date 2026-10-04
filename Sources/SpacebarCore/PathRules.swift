@@ -49,11 +49,11 @@ public enum PathRules {
         let path = url.path
         guard path.hasPrefix("/"), !path.contains("\0"),
               !url.pathComponents.contains(".."),
-              path.unicodeScalars.allSatisfy({ $0.value >= 0x20 }) else { return "Unusual path" }
+              path.unicodeScalars.allSatisfy({ $0.value >= 0x20 }) else { return String(localized: "Unusual path") }
         switch kind {
         case .messagesAttachments:
             // A group: the files are found and checked again when removing, inside Messages/Attachments only.
-            return url.scheme == "messages" ? nil : "Not Messages attachments"
+            return url.scheme == "messages" ? nil : String(localized: "Not Messages attachments")
         case .simulatorRuntime, .dockerPrune, .timeMachineSnapshots, .photoAsset:
             return nil // removed by simctl, docker, tmutil or Photos, not by file operations
         case .homebrewKeg:
@@ -61,12 +61,12 @@ public enum PathRules {
             let parts = url.standardizedFileURL.pathComponents
             let cellar = parts.starts(with: ["/", "opt", "homebrew", "Cellar"]) ? 4
                 : parts.starts(with: ["/", "usr", "local", "Cellar"]) ? 4 : nil
-            guard let cellar, parts.count == cellar + 2, !parts.contains("..") else { return "Not a Homebrew version folder" }
+            guard let cellar, parts.count == cellar + 2, !parts.contains("..") else { return String(localized: "Not a Homebrew version folder") }
             let prefix = "/" + parts[1..<(cellar - 1)].joined(separator: "/")
             let linked = URL(fileURLWithPath: "\(prefix)/opt/\(parts[cellar])").resolvingSymlinksInPath().lastPathComponent
-            return linked == parts[cellar + 1] ? "The version Homebrew is using" : nil
+            return linked == parts[cellar + 1] ? String(localized: "The version Homebrew is using") : nil
         case .gitCompact:
-            return url.lastPathComponent == ".git" ? nil : "Not a git repository"
+            return url.lastPathComponent == ".git" ? nil : String(localized: "Not a git repository")
         default:
             break
         }
@@ -76,7 +76,8 @@ public enum PathRules {
             .appendingPathComponent(url.lastPathComponent).standardizedFileURL
         if let developer = activeDeveloperApp,
            resolved.path == developer || resolved.path.hasPrefix(developer + "/") || developer.hasPrefix(resolved.path + "/") {
-            return "Contains the developer tools you're using (\((developer as NSString).lastPathComponent))"
+            let tools = (developer as NSString).lastPathComponent
+            return String(localized: "Contains the developer tools you're using (\(tools))")
         }
         let components = resolved.pathComponents
         let homeComponents = home.pathComponents
@@ -90,48 +91,48 @@ public enum PathRules {
             let isApp = resolved.pathExtension == "app"
             let inApplications = (components.count == 3 || components.count == 4) && components[1] == "Applications"
             let inUserApplications = lower.count == 2 && lower[0] == "applications"
-            guard isApp, inApplications || inUserApplications else { return "Not an app in an Applications folder" }
+            guard isApp, inApplications || inUserApplications else { return String(localized: "Not an app in an Applications folder") }
             let bundleID = Bundle(url: resolved)?.bundleIdentifier ?? ""
             // Xcode is Apple's but not part of macOS: extra copies may go (the active one is protected above).
-            if bundleID.hasPrefix("com.apple.") && bundleID != "com.apple.dt.Xcode" { return "Part of macOS" }
-            if bundleID == Bundle.main.bundleIdentifier { return "That's Spacebar" }
+            if bundleID.hasPrefix("com.apple.") && bundleID != "com.apple.dt.Xcode" { return String(localized: "Part of macOS") }
+            if bundleID == Bundle.main.bundleIdentifier { return String(localized: "That's Spacebar") }
             return nil
         case .appLeftover:
             guard inHome, lower.count == 3, lower[0] == "library",
                   ["containers", "application support", "saved application state", "httpstorages", "webkit", "caches"].contains(lower[1])
-            else { return "Not an app data folder" }
-            if lower[2].hasPrefix("com.apple.") { return "Part of macOS" }
+            else { return String(localized: "Not an app data folder") }
+            if lower[2].hasPrefix("com.apple.") { return String(localized: "Part of macOS") }
             return neverTouchReason(lower)
         case .appData(let bundleID, let appName):
             // ~/Library/<place>/<entry> (or Preferences/ByHost/<entry>) named for this app, never Apple's.
             guard inHome, lower.first == "library", !bundleID.lowercased().hasPrefix("com.apple.") else {
-                return "Not this app's data"
+                return String(localized: "Not this app's data")
             }
             let folder = relative.count == 4 && lower[1] == "preferences" && lower[2] == "byhost"
                 ? "Preferences/ByHost" : relative.count == 3 ? relative[1] : ""
             guard AppFootprint.places.contains(where: { $0.folder == folder }),
                   AppFootprint.belongs(relative[relative.count - 1], folder: folder, bundleID: bundleID, appName: appName)
-            else { return "Not this app's data" }
+            else { return String(localized: "Not this app's data") }
             return nil
         case .iCloudEvict:
             // Only files inside iCloud Drive (Mobile Documents); nothing is deleted.
             return inHome && lower.count >= 3 && lower.starts(with: ["library", "mobile documents"])
-                ? nil : "Not in iCloud Drive"
+                ? nil : String(localized: "Not in iCloud Drive")
         case .aiModel:
             guard inHome, (lower.starts(with: [".lmstudio", "models"]) || lower.starts(with: [".cache", "lm-studio", "models"])),
-                  lower.count == (lower[0] == ".lmstudio" ? 4 : 5) else { return "Not a downloaded model" }
+                  lower.count == (lower[0] == ".lmstudio" ? 4 : 5) else { return String(localized: "Not a downloaded model") }
             return nil
         case .androidEmulator(let ini):
             guard inHome, lower.count == 3, lower[0] == ".android", lower[1] == "avd", resolved.pathExtension == "avd",
                   URL(fileURLWithPath: ini).deletingLastPathComponent().standardizedFileURL.path == resolved.deletingLastPathComponent().path
-            else { return "Not an Android emulator" }
+            else { return String(localized: "Not an Android emulator") }
             return nil
         case .simulatorDevice:
             return inHome && lower.count == 5 && lower.starts(with: ["library", "developer", "coresimulator", "devices"])
-                ? nil : "Not a simulator device folder"
+                ? nil : String(localized: "Not a simulator device folder")
         case .mailAttachments, .mailAttachmentsOlderThan:
             return inHome && lower.count == 4 && lower.starts(with: ["library", "mail"]) && lower[2].hasPrefix("v")
-                ? nil : "Not a Mail account folder"
+                ? nil : String(localized: "Not a Mail account folder")
         case .simulatorRuntime, .file, .dockerPrune, .timeMachineSnapshots, .photoAsset, .homebrewKeg, .gitCompact,
              .messagesAttachments:
             break
@@ -145,36 +146,36 @@ public enum PathRules {
             if components.count >= 3 && components[1] == "Volumes" {
                 let systemFolders: Set<String> = [".Spotlight-V100", ".fseventsd", ".Trashes", ".DocumentRevisions-V100",
                                                   ".TemporaryItems", ".PKInstallSandboxManager", ".MobileBackups"]
-                if components.count == 3 { return "The drive itself" }
-                if components[2].hasPrefix(".") { return "A drive used by macOS" }
-                if systemFolders.contains(components[3]) { return "A folder macOS manages on this drive" }
+                if components.count == 3 { return String(localized: "The drive itself") }
+                if components[2].hasPrefix(".") { return String(localized: "A drive used by macOS") }
+                if systemFolders.contains(components[3]) { return String(localized: "A folder macOS manages on this drive") }
                 let driveRoot = "/Volumes/" + components[2]
                 if components.contains("Backups.backupdb")
                     || FileManager.default.fileExists(atPath: driveRoot + "/Backups.backupdb")
                     || FileManager.default.fileExists(atPath: driveRoot + "/.com.apple.timemachine.donotpresent") {
-                    return "Time Machine backups. Manage them in Time Machine"
+                    return String(localized: "Time Machine backups. Manage them in Time Machine")
                 }
                 return nil
             }
             // /Users/Shared holds user content (games, app libraries); the folder itself stays.
             if components.count >= 3 && components[1] == "Users" && components[2] == "Shared" {
-                return components.count >= 4 ? nil : "The folder all accounts share"
+                return components.count >= 4 ? nil : String(localized: "The folder all accounts share")
             }
             if components.count >= 2 && components[1] == "Applications" {
-                return "Remove apps from the Unused Apps list or with the trash button on the app itself"
+                return String(localized: "Remove apps from the Unused Apps list or with the trash button on the app itself")
             }
-            return "Outside your home folder"
+            return String(localized: "Outside your home folder")
         }
-        guard !lower.isEmpty else { return "Your home folder" }
+        guard !lower.isEmpty else { return String(localized: "Your home folder") }
         let name = lower[lower.count - 1]
         if securityFilePatterns.contains(where: { name.contains($0) }) || securityExtensions.contains(resolved.pathExtension.lowercased()) {
-            return "Looks like a security key or certificate"
+            return String(localized: "Looks like a security key or certificate")
         }
-        if lower.count == 1 && homeConfigFiles.contains(name) { return "Settings for your shell or developer tools" }
-        if lower.count == 1 && protectedTopLevel.contains(lower[0]) { return "A standard folder of your Mac" }
-        if lower.first == "library" && lower.count <= 2 { return "A system folder macOS and apps rely on" }
+        if lower.count == 1 && homeConfigFiles.contains(name) { return String(localized: "Settings for your shell or developer tools") }
+        if lower.count == 1 && protectedTopLevel.contains(lower[0]) { return String(localized: "A standard folder of your Mac") }
+        if lower.first == "library" && lower.count <= 2 { return String(localized: "A system folder macOS and apps rely on") }
         if lower.count <= 6 && lower.starts(with: ["library", "containers"]) {
-            return "An app's data container. Removing it erases that app's data"
+            return String(localized: "An app's data container. Removing it erases that app's data")
         }
         return neverTouchReason(lower)
     }
@@ -183,15 +184,15 @@ public enum PathRules {
         let joined = lower.joined(separator: "/")
         for rule in neverTouch where joined == rule.lowercased() || joined.hasPrefix(rule.lowercased() + "/") {
             switch rule {
-            case "Library/Keychains": return "Your passwords and keys"
-            case "Library/Mail": return "Your mailboxes"
-            case "Library/Messages": return "Your messages"
-            case "Library/Mobile Documents": return "iCloud Drive: deleting here deletes it on all your devices"
-            case "Library/CloudStorage": return "Cloud storage synced with another service"
-            case "Library/Group Containers": return "Data shared between apps"
-            case "Library/Preferences": return "App settings"
-            case ".ssh", ".gnupg": return "Your security keys"
-            default: return "Protected data"
+            case "Library/Keychains": return String(localized: "Your passwords and keys")
+            case "Library/Mail": return String(localized: "Your mailboxes")
+            case "Library/Messages": return String(localized: "Your messages")
+            case "Library/Mobile Documents": return String(localized: "iCloud Drive: deleting here deletes it on all your devices")
+            case "Library/CloudStorage": return String(localized: "Cloud storage synced with another service")
+            case "Library/Group Containers": return String(localized: "Data shared between apps")
+            case "Library/Preferences": return String(localized: "App settings")
+            case ".ssh", ".gnupg": return String(localized: "Your security keys")
+            default: return String(localized: "Protected data")
             }
         }
         return nil

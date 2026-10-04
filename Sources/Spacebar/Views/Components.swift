@@ -47,8 +47,8 @@ struct FileIcon: View {
 struct Banner<Actions: View>: View {
     let icon: String
     let tint: Color
-    let title: String
-    let message: String
+    let title: LocalizedStringKey
+    let message: LocalizedStringKey
     @ViewBuilder var actions: Actions
 
     var body: some View {
@@ -92,15 +92,17 @@ struct PendingClean: Identifiable {
     var deleteSize: Int64 { size - trashSize }
 
     func title(dryRun: Bool) -> String {
-        "\(dryRun ? "Simulate cleaning" : "Clean") \(pairs.count) item\(pairs.count == 1 ? "" : "s") (\(ByteFormat.string(size)))?"
+        let size = ByteFormat.string(size)
+        return dryRun ? String(localized: "Simulate cleaning \(pairs.count) items (\(size))?")
+            : String(localized: "Clean \(pairs.count) items (\(size))?")
     }
 
     func message(dryRun: Bool) -> String {
         var lines: [String] = []
-        if dryRun { lines.append("Dry run is on: nothing will be deleted. Spacebar will only report and log what it would remove.") }
-        if deleteSize > 0 { lines.append("\(ByteFormat.string(deleteSize)) of caches and logs will be deleted right away. Apps recreate them as needed.") }
-        if trashSize > 0 { lines.append("\(ByteFormat.string(trashSize)) will be moved to the Trash, so you can still restore it.") }
-        lines.append("Items owned by apps that are running are skipped.")
+        if dryRun { lines.append(String(localized: "Dry run is on: nothing will be deleted. Spacebar will only report and log what it would remove.")) }
+        if deleteSize > 0 { lines.append(String(localized: "\(ByteFormat.string(deleteSize)) of caches and logs will be deleted right away. Apps recreate them as needed.")) }
+        if trashSize > 0 { lines.append(String(localized: "\(ByteFormat.string(trashSize)) will be moved to the Trash, so you can still restore it.")) }
+        lines.append(String(localized: "Items owned by apps that are running are skipped."))
         return lines.joined(separator: "\n\n")
     }
 }

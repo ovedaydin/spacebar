@@ -126,8 +126,11 @@ struct CategoryView: View {
 
     private func appList(_ bundleIDs: Set<String>) -> String {
         let names = bundleIDs.map(Cleaner.appName).sorted()
-        return names.count <= 2 ? names.joined(separator: " and ")
-            : "\(names.prefix(2).joined(separator: ", ")) and \(names.count - 2) more"
+        switch names.count {
+        case 0, 1: return names.first ?? ""
+        case 2: return String(localized: "\(names[0]) and \(names[1])")
+        default: return String(localized: "\(names.prefix(2).joined(separator: ", ")) and \(names.count - 2) more")
+        }
     }
 
     private var placeholder: some View {
@@ -222,7 +225,7 @@ private struct ItemRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(item.isSelectable ? .isButton : [])
         .accessibilityHint(item.isSelectable ? Text(selected ? "Selected. Activate to deselect." : "Activate to select.")
-                                             : Text(item.lockedReason ?? "In use"))
+                                             : item.lockedReason.map { Text($0) } ?? Text("In use"))
         .opacity(item.isSelectable ? 1 : 0.6)
     }
 
@@ -231,7 +234,7 @@ private struct ItemRow: View {
         if let detail = item.detail { parts.append(detail) }
         if let reason = item.lockedReason { parts.append(reason) }
         if showsAge, let lastUsed = item.lastUsed {
-            parts.append("Last used \(relativeDate.localizedString(for: lastUsed, relativeTo: Date()))")
+            parts.append(String(localized: "Last used \(relativeDate.localizedString(for: lastUsed, relativeTo: Date()))"))
         } else if let date = item.date {
             parts.append(shortDate.string(from: date))
         }
@@ -241,7 +244,7 @@ private struct ItemRow: View {
 }
 
 private struct Tag: View {
-    let text: String
+    let text: LocalizedStringKey
     let color: Color
 
     var body: some View {

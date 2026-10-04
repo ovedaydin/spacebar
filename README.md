@@ -19,6 +19,7 @@
 - **Safe by design.** You review everything first. "Review" categories are never preselected. Most Apple caches are left alone, apps that are running are skipped, and every removal is logged.
 - **Fast and accurate.** A parallel `getattrlistbulk` scanner that is about 4× faster than `du`, with matching totals (see [Benchmarks](#benchmarks)).
 - **Private.** No network access, no telemetry, no accounts.
+- **In your language.** English, Turkish, Spanish and German, with VoiceOver labels and keyboard navigation.
 
 Requires macOS 13 Ventura or later, on Apple silicon or Intel.
 
@@ -203,6 +204,10 @@ The project uses Swift Package Manager with no Xcode project:
 - `SpacebarCore`: a read-only library for scanning and the cleanup catalog.
 - `Spacebar`: the SwiftUI app. It is the only part that can delete files.
 - `spacebar-bench`: the benchmark tool.
+
+### Translations
+
+Strings live in `packaging/Localizable.xcstrings` (open it in Xcode, or edit the JSON). Each build syncs new strings from the code into it and compiles it into the app. Both steps need Xcode; with only the Command Line Tools, the app builds in English. To add a language, add it to `CFBundleLocalizations` in `packaging/Info.plist` and translate the catalogs in `packaging/`.
 
 ## Releasing (maintainers)
 

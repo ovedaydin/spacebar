@@ -72,7 +72,7 @@ struct ExplorerView: View {
                              growth: explorer.growth(entry.url))
                         .contentShape(Rectangle())
                         .onTapGesture { click(entry) }
-                        .help(entry.isFolder ? "Open \(entry.name) (⌘-click to select)" : entry.name)
+                        .help(entry.isFolder ? String(localized: "Open \(entry.name) (⌘-click to select)") : entry.name)
                         .accessibilityElement(children: .combine)
                         .accessibilityAddTraits(entry.isFolder ? .isButton : [])
                         .accessibilityAddTraits(selection.contains(entry.url) ? .isSelected : [])
@@ -233,7 +233,7 @@ struct ExplorerView: View {
                 if index > 0 || explorer.group != nil {
                     Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
                 }
-                Button(index == 0 && url.path == NSHomeDirectory() ? "Home" : url.lastPathComponent) {
+                Button(index == 0 && url.path == NSHomeDirectory() ? String(localized: "Home") : url.lastPathComponent) {
                     explorer.jump(to: index)
                 }
                 .buttonStyle(.borderless)
@@ -293,7 +293,7 @@ struct ExplorerView: View {
                     Button(kind.name) { typeFilter = kind }
                 }
             } label: {
-                Label(typeFilter?.name ?? "All Types", systemImage: "line.3.horizontal.decrease.circle")
+                Label(typeFilter?.name ?? String(localized: "All Types"), systemImage: "line.3.horizontal.decrease.circle")
             }
             .menuStyle(.borderlessButton)
             .fixedSize()
@@ -316,7 +316,7 @@ struct ExplorerView: View {
             .fixedSize()
             Menu {
                 ForEach(model.drives) { drive in
-                    Button(drive.isStartup ? "\(drive.name) (Home)" : drive.name) {
+                    Button(drive.isStartup ? String(localized: "\(drive.name) (Home)") : drive.name) {
                         explorer.show(drive.isStartup ? FileManager.default.homeDirectoryForCurrentUser : drive.url)
                     }
                 }
@@ -337,10 +337,13 @@ struct ExplorerView: View {
     // MARK: Trash
 
     private var trashTitle: String {
-        let verb = model.dryRun ? "Simulate moving" : "Move"
-        return pendingTrash.count == 1
-            ? "\(verb) “\(pendingTrash[0].name)” to the Trash?"
-            : "\(verb) \(pendingTrash.count) items to the Trash?"
+        if pendingTrash.count == 1 {
+            let name = pendingTrash[0].name
+            return model.dryRun ? String(localized: "Simulate moving “\(name)” to the Trash?")
+                : String(localized: "Move “\(name)” to the Trash?")
+        }
+        return model.dryRun ? String(localized: "Simulate moving \(pendingTrash.count) items to the Trash?")
+            : String(localized: "Move \(pendingTrash.count) items to the Trash?")
     }
 
     private func trash(_ entries: [ExplorerModel.Entry]) {
@@ -434,7 +437,7 @@ private struct EntryRow: View {
                 Label(ByteFormat.string(abs(growth.bytes)), systemImage: growth.bytes > 0 ? "arrow.up" : "arrow.down")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
-                    .help("\(growth.bytes > 0 ? "Grew" : "Shrank") by \(ByteFormat.string(abs(growth.bytes))) since \(growth.since.formatted(.relative(presentation: .named)))")
+                    .help(growthHelp(growth))
             }
             Group {
                 if let totals {
@@ -451,5 +454,12 @@ private struct EntryRow: View {
             }
         }
         .padding(.vertical, 3)
+    }
+
+    private func growthHelp(_ growth: (bytes: Int64, since: Date)) -> String {
+        let size = ByteFormat.string(abs(growth.bytes))
+        let since = growth.since.formatted(.relative(presentation: .named))
+        return growth.bytes > 0 ? String(localized: "Grew by \(size) since \(since)")
+            : String(localized: "Shrank by \(size) since \(since)")
     }
 }

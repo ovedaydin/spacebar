@@ -28,9 +28,10 @@ struct FreeUpSpaceIntent: AppIntent {
         let freed = ByteFormat.string(result.freed)
         let dialog: String
         if result.dryRun {
-            dialog = result.freed > 0 ? "Spacebar would free \(freed) (dry run, nothing was removed)." : "Nothing to clean right now."
+            dialog = result.freed > 0 ? String(localized: "Spacebar would free \(freed) (dry run, nothing was removed).")
+                : String(localized: "Nothing to clean right now.")
         } else {
-            dialog = result.freed > 0 ? "Freed \(freed)." : "Nothing to clean right now."
+            dialog = result.freed > 0 ? String(localized: "Freed \(freed).") : String(localized: "Nothing to clean right now.")
         }
         return .result(value: Int(result.freed), dialog: IntentDialog(stringLiteral: dialog))
     }
@@ -42,10 +43,10 @@ struct AvailableSpaceIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & ReturnsValue<Int> & ProvidesDialog {
         guard let space = VolumeSpace.home() else {
-            return .result(value: 0, dialog: "Couldn't read the startup disk's size.")
+            return .result(value: 0, dialog: IntentDialog(stringLiteral: String(localized: "Couldn't read the startup disk's size.")))
         }
         return .result(value: Int(space.available),
-                       dialog: IntentDialog(stringLiteral: "\(ByteFormat.string(space.available)) available of \(ByteFormat.string(space.total))."))
+                       dialog: IntentDialog(stringLiteral: String(localized: "\(ByteFormat.string(space.available)) available of \(ByteFormat.string(space.total)).")))
     }
 }
 
@@ -65,7 +66,7 @@ struct ShowFolderIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         guard let url = folder.fileURL, let link = FinderIntegration.showURL(for: url),
               let target = FinderIntegration.folder(from: link) else {
-            throw $folder.needsValueError("Choose a folder.")
+            throw $folder.needsValueError(IntentDialog(stringLiteral: String(localized: "Choose a folder.")))
         }
         FinderIntegration.request(target)
         return .result()

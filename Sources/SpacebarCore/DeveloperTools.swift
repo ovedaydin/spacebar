@@ -11,7 +11,7 @@ private func modified(_ url: URL) -> Date? {
 }
 
 private func ago(_ date: Date?) -> String {
-    guard let date else { return "unknown" }
+    guard let date else { return String(localized: "unknown", comment: "Unknown date, as in: used unknown") }
     let formatter = RelativeDateTimeFormatter()
     formatter.unitsStyle = .full
     return formatter.localizedString(for: date, relativeTo: Date())
@@ -51,7 +51,7 @@ enum DeveloperTools {
             if let image = config["image.sysdir.1"] { usedImages.insert(image.trimmingCharacters(in: CharacterSet(charactersIn: "/"))) }
             let lastUsed = list(folder).compactMap(modified).max()
             result.append(Candidate(url: folder, name: config["avd.ini.displayname"] ?? folder.deletingPathExtension().lastPathComponent,
-                                    date: lastUsed, detail: "Android emulator · used \(ago(lastUsed))",
+                                    date: lastUsed, detail: String(localized: "Android emulator · used \(ago(lastUsed))"),
                                     kind: .androidEmulator(ini: ini.path), lastUsed: lastUsed))
         }
 
@@ -62,11 +62,12 @@ enum DeveloperTools {
                 for abi in list(tag) {
                     let relative = "system-images/\(api.lastPathComponent)/\(tag.lastPathComponent)/\(abi.lastPathComponent)"
                     let used = usedImages.contains(relative)
-                    result.append(Candidate(url: abi, name: "Android \(api.lastPathComponent) image (\(tag.lastPathComponent))",
+                    result.append(Candidate(url: abi, name: String(localized: "Android \(api.lastPathComponent) image (\(tag.lastPathComponent))"),
                                             date: modified(abi),
-                                            detail: used ? "Used by an emulator" : "No emulator uses it · downloaded again by Android Studio when needed",
+                                            detail: used ? String(localized: "Used by an emulator")
+                                                : String(localized: "No emulator uses it · downloaded again by Android Studio when needed"),
                                             suggested: used ? nil : true,
-                                            lockedReason: used ? "Used by an emulator: remove the emulator first" : nil))
+                                            lockedReason: used ? String(localized: "Used by an emulator: remove the emulator first") : nil))
                 }
             }
         }
@@ -74,8 +75,8 @@ enum DeveloperTools {
         let tools = list(sdk.appendingPathComponent("build-tools"))
             .sorted { $0.lastPathComponent.compare($1.lastPathComponent, options: .numeric) == .orderedDescending }
         for old in tools.dropFirst() {
-            result.append(Candidate(url: old, name: "Android build-tools \(old.lastPathComponent)",
-                                    detail: "Newer build-tools \(tools[0].lastPathComponent) installed"))
+            result.append(Candidate(url: old, name: String(localized: "Android build-tools \(old.lastPathComponent)"),
+                                    detail: String(localized: "Newer build-tools \(tools[0].lastPathComponent) installed")))
         }
         return result
     }
@@ -90,7 +91,7 @@ enum DeveloperTools {
             let used = NSMetadataItem(url: app.url)?.value(forAttribute: "kMDItemLastUsedDate") as? Date
             let inApplications = app.url.path.hasPrefix("/Applications/")
             return Candidate(url: app.url, name: "Xcode \(version ?? "")".trimmingCharacters(in: .whitespaces),
-                             detail: "Not the Xcode in use · \(app.url.deletingLastPathComponent().path) · opened \(ago(used))",
+                             detail: String(localized: "Not the Xcode in use · \(app.url.deletingLastPathComponent().path) · opened \(ago(used))"),
                              kind: inApplications ? .application : .file, lastUsed: used)
         }
     }
@@ -105,9 +106,9 @@ enum DeveloperTools {
 
     static func jetBrains(home: URL) -> [Candidate] {
         var result: [Candidate] = []
-        for (folder, label, suggest) in [("Library/Caches/JetBrains", "caches", true),
-                                         ("Library/Application Support/JetBrains", "settings", false),
-                                         ("Library/Logs/JetBrains", "logs", true)] {
+        for (folder, label, suggest) in [("Library/Caches/JetBrains", String(localized: "caches", comment: "JetBrains IDE data kind, e.g. PyCharm 2023.1 caches"), true),
+                                         ("Library/Application Support/JetBrains", String(localized: "settings", comment: "JetBrains IDE data kind, e.g. PyCharm 2023.1 settings"), false),
+                                         ("Library/Logs/JetBrains", String(localized: "logs", comment: "JetBrains IDE data kind, e.g. PyCharm 2023.1 logs"), true)] {
             let byProduct = Dictionary(grouping: list(home.appendingPathComponent(folder)).compactMap { url in
                 productVersion(url.lastPathComponent).map { (url, $0.product, $0.version) }
             }, by: { $0.1 })
@@ -118,7 +119,8 @@ enum DeveloperTools {
                 for entry in (installed ? Array(sorted.dropFirst()) : sorted) {
                     result.append(Candidate(url: entry.0, name: "\(product) \(entry.2) \(label)",
                                             date: modified(entry.0),
-                                            detail: installed ? "Older version: newer \(product) data exists" : "\(product) isn't installed",
+                                            detail: installed ? String(localized: "Older version: newer \(product) data exists")
+                                                      : String(localized: "\(product) isn't installed"),
                                             suggested: suggest ? true : nil))
                 }
             }
@@ -135,7 +137,7 @@ enum DeveloperTools {
                 for model in list(publisher) {
                     let downloaded = modified(model)
                     result.append(Candidate(url: model, name: "\(model.lastPathComponent)",
-                                            date: downloaded, detail: "LM Studio model by \(publisher.lastPathComponent) · downloaded \(ago(downloaded))",
+                                            date: downloaded, detail: String(localized: "LM Studio model by \(publisher.lastPathComponent) · downloaded \(ago(downloaded))"),
                                             kind: .aiModel, lastUsed: downloaded))
                 }
             }
@@ -155,7 +157,7 @@ enum DeveloperTools {
                 let linked = URL(fileURLWithPath: "\(prefix)/opt/\(formula.lastPathComponent)").resolvingSymlinksInPath().lastPathComponent
                 for version in versions where version.lastPathComponent != linked && !version.lastPathComponent.hasPrefix(".") {
                     result.append(Candidate(url: version, name: "\(formula.lastPathComponent) \(version.lastPathComponent)",
-                                            date: modified(version), detail: "Old Homebrew version · \(linked) is in use",
+                                            date: modified(version), detail: String(localized: "Old Homebrew version · \(linked) is in use"),
                                             kind: .homebrewKeg, suggested: true))
                 }
             }
@@ -195,8 +197,9 @@ enum DeveloperTools {
             let (bytes, packs) = looseObjects(url)
             guard bytes >= 50_000_000 || packs >= 20 else { continue }
             let repo = url.deletingLastPathComponent()
+            let location = repo.path.replacingOccurrences(of: home.path, with: "~")
             result.append(Candidate(url: url, name: "\(repo.lastPathComponent) (git)",
-                                    detail: "\(repo.path.replacingOccurrences(of: home.path, with: "~")) · \(ByteFormat.string(bytes)) not packed, \(packs) pack files · git gc runs in Terminal",
+                                    detail: String(localized: "\(location) · \(ByteFormat.string(bytes)) not packed, \(packs) pack files · git gc runs in Terminal"),
                                     knownSize: max(bytes, 1), kind: .gitCompact))
         }
         return result

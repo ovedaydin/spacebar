@@ -40,6 +40,12 @@ echo '["AppIntent","EntityQuery","AppEntity","TransientEntity","AppEnum","AppSho
 arch_flags+=(-Xswiftc -emit-const-values-path -Xswiftc "$INTENTS_DIR/Spacebar.swiftconstvalues"
              -Xswiftc -Xfrontend -Xswiftc -const-gather-protocols-file -Xswiftc -Xfrontend -Xswiftc "$INTENTS_DIR/protocols.json")
 
+# Localization: the compiler lists every localizable string (SwiftUI literals, String(localized:)),
+# which is synced into packaging/Localizable.xcstrings, where translations live.
+STRINGS_DIR="$ROOT/.build/stringsdata"
+rm -rf "$STRINGS_DIR" && mkdir -p "$STRINGS_DIR"
+arch_flags+=(-Xswiftc -emit-localized-strings -Xswiftc -emit-localized-strings-path -Xswiftc "$STRINGS_DIR")
+
 echo "==> Building $APP_NAME $VERSION ($BUILD_NUMBER) for: $ARCHS"
 swift build -c release --product "$EXECUTABLE" "${arch_flags[@]}"
 BIN_DIR="$(swift build -c release --product "$EXECUTABLE" "${arch_flags[@]}" --show-bin-path)"
@@ -60,6 +66,20 @@ sed -e "s|__EXECUTABLE__|$EXECUTABLE|g" \
     -e "s|__SPARKLE_PUBLIC_KEY__|$SPARKLE_PUBLIC_KEY|g" \
     packaging/Info.plist > "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
+
+# Translations: new strings from the code go into the catalog (for translating), then every
+# catalog compiles into <language>.lproj folders. Needs Xcode's xcstringstool; English otherwise.
+if xcrun --find xcstringstool >/dev/null 2>&1; then
+    stringsdata=()
+    while IFS= read -r file; do stringsdata+=(--stringsdata "$file"); done < <(find "$STRINGS_DIR" -name '*.stringsdata')
+    [[ ${#stringsdata[@]} -gt 0 ]] && xcrun xcstringstool sync packaging/Localizable.xcstrings "${stringsdata[@]}"
+    for catalog in packaging/*.xcstrings; do
+        xcrun xcstringstool compile "$catalog" --output-directory "$APP/Contents/Resources" >/dev/null
+    done
+    echo "==> Added translations: $(cd "$APP/Contents/Resources" && ls -d *.lproj | sed 's/.lproj//' | tr '\n' ' ')"
+else
+    echo "==> Skipping translations (needs Xcode's xcstringstool)" >&2
+fi
 
 # Shortcuts metadata (Contents/Resources/Metadata.appintents). Needs Xcode, not just the Command Line Tools.
 if PROCESSOR="$(xcrun --find appintentsmetadataprocessor 2>/dev/null)" && [[ -f "$INTENTS_DIR/Spacebar.swiftconstvalues" ]]; then

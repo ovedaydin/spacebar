@@ -33,17 +33,17 @@ public struct StorageSegment: Codable, Sendable, Identifiable, Equatable {
 
     public var explanation: String {
         switch kind {
-        case .macOS: return "macOS itself, its startup, recovery, update and swap volumes, and assets it downloads (voices, simulator runtimes, models). Managed by macOS."
-        case .apps: return "Apps in /Applications and ~/Applications."
-        case .documents: return "Documents, Desktop, Downloads and your other folders."
-        case .media: return "Pictures (including the Photos library), Music and Movies."
-        case .developer: return "Xcode data and simulators, Homebrew, and tool folders like .npm, .gradle and .cache in your home folder."
-        case .appData: return "What apps keep in ~/Library: settings, caches, databases, containers."
-        case .iCloud: return "iCloud Drive and cloud-storage files downloaded to this Mac."
-        case .mail: return "Mail and Messages, including attachments."
-        case .trash: return "Items in your Trash."
-        case .shared: return "/Users/Shared, which every account can use. Games and some apps keep large content here."
-        case .systemData: return "Everything else: system-wide app support in /Library, temporary files and logs, Spotlight's index, snapshots, and folders Spacebar can't read without Full Disk Access."
+        case .macOS: return String(localized: "macOS itself, its startup, recovery, update and swap volumes, and assets it downloads (voices, simulator runtimes, models). Managed by macOS.")
+        case .apps: return String(localized: "Apps in /Applications and ~/Applications.")
+        case .documents: return String(localized: "Documents, Desktop, Downloads and your other folders.")
+        case .media: return String(localized: "Pictures (including the Photos library), Music and Movies.")
+        case .developer: return String(localized: "Xcode data and simulators, Homebrew, and tool folders like .npm, .gradle and .cache in your home folder.")
+        case .appData: return String(localized: "What apps keep in ~/Library: settings, caches, databases, containers.")
+        case .iCloud: return String(localized: "iCloud Drive and cloud-storage files downloaded to this Mac.")
+        case .mail: return String(localized: "Mail and Messages, including attachments.")
+        case .trash: return String(localized: "Items in your Trash.")
+        case .shared: return String(localized: "/Users/Shared, which every account can use. Games and some apps keep large content here.")
+        case .systemData: return String(localized: "Everything else: system-wide app support in /Library, temporary files and logs, Spotlight's index, snapshots, and folders Spacebar can't read without Full Disk Access.")
         }
     }
 }
@@ -51,17 +51,17 @@ public struct StorageSegment: Codable, Sendable, Identifiable, Equatable {
 public extension StorageSegment.Kind {
     var name: String {
         switch self {
-        case .macOS: return "macOS"
-        case .apps: return "Apps"
-        case .documents: return "Documents"
-        case .media: return "Photos, Music & Movies"
-        case .developer: return "Developer"
-        case .appData: return "App Data"
-        case .iCloud: return "iCloud Drive"
-        case .mail: return "Mail & Messages"
-        case .trash: return "Trash"
-        case .shared: return "Shared Folder"
-        case .systemData: return "System Data"
+        case .macOS: return String(localized: "macOS")
+        case .apps: return String(localized: "Apps", comment: "Storage breakdown slice name")
+        case .documents: return String(localized: "Documents", comment: "Storage breakdown slice name")
+        case .media: return String(localized: "Photos, Music & Movies")
+        case .developer: return String(localized: "Developer", comment: "Storage breakdown slice name")
+        case .appData: return String(localized: "App Data")
+        case .iCloud: return String(localized: "iCloud Drive")
+        case .mail: return String(localized: "Mail & Messages")
+        case .trash: return String(localized: "Trash")
+        case .shared: return String(localized: "Shared Folder")
+        case .systemData: return String(localized: "System Data")
         }
     }
 }
@@ -280,8 +280,8 @@ public enum StorageAnalyzer {
         // macOS-managed downloads on the data volume belong with macOS.
         let assets = engine.measure(URL(fileURLWithPath: "\(data)/System"), cancel: cancel).allocated
         breakdown.segments[0].bytes += assets
-        breakdown.segments[0].parts = [.init(name: "System and support volumes", bytes: volumes.macOS),
-                                       .init(name: "Downloaded system assets", bytes: assets)]
+        breakdown.segments[0].parts = [.init(name: String(localized: "System and support volumes"), bytes: volumes.macOS),
+                                       .init(name: String(localized: "Downloaded system assets"), bytes: assets)]
         measured += assets
 
         // System Data is the remainder; itemize what can be measured.
@@ -300,12 +300,12 @@ public enum StorageAnalyzer {
         var systemData = StorageSegment(kind: .systemData, bytes: remainder, explorePath: "/Library",
                                         roots: (libraryRoots.map(\.path) + ["\(data)/private"]).map(displayPath))
         let other = max(0, remainder - library - privateFiles - updates)
-        systemData.parts = [.init(name: "System-wide app support (/Library)", bytes: min(library, remainder)),
-                            .init(name: "Temporary files, logs and system databases", bytes: min(privateFiles, remainder)),
-                            .init(name: "macOS update downloaded, waiting to install", bytes: min(updates, remainder)),
+        systemData.parts = [.init(name: String(localized: "System-wide app support (/Library)"), bytes: min(library, remainder)),
+                            .init(name: String(localized: "Temporary files, logs and system databases"), bytes: min(privateFiles, remainder)),
+                            .init(name: String(localized: "macOS update downloaded, waiting to install"), bytes: min(updates, remainder)),
                             .init(name: updateSnapshots > 0
-                                  ? "Snapshots (\(updateSnapshots) made by macOS updates, removed by macOS), indexes and unreadable folders"
-                                  : "Snapshots, indexes and unreadable folders", bytes: other)]
+                                  ? String(localized: "Snapshots (\(updateSnapshots) made by macOS updates, removed by macOS), indexes and unreadable folders")
+                                  : String(localized: "Snapshots, indexes and unreadable folders"), bytes: other)]
         breakdown.segments.append(systemData)
         breakdown.complete = true
         breakdown.measuredAt = Date()

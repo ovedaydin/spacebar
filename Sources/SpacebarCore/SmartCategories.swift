@@ -17,7 +17,7 @@ private func modified(_ url: URL) -> Date? {
 }
 
 private func relative(_ date: Date?) -> String {
-    guard let date else { return "never" }
+    guard let date else { return String(localized: "never", comment: "No date recorded, as in: last opened never") }
     let formatter = RelativeDateTimeFormatter()
     formatter.unitsStyle = .full
     return formatter.localizedString(for: date, relativeTo: Date())
@@ -281,8 +281,8 @@ public enum DuplicateFinder {
 
 public extension CleanCategory {
     static let iCloudDownloads = CleanCategory(
-        id: "icloud", name: "Keep in iCloud Only", icon: "icloud.and.arrow.down",
-        summary: "Large iCloud Drive files that are also stored on this Mac. Removing the local copy frees the space right away; the file stays in iCloud and downloads again when you open it. Nothing is deleted. Files you haven't opened in 90 days are suggested; files with changes not yet uploaded are left alone.",
+        id: "icloud", name: String(localized: "Keep in iCloud Only"), icon: "icloud.and.arrow.down",
+        summary: String(localized: "Large iCloud Drive files that are also stored on this Mac. Removing the local copy frees the space right away; the file stays in iCloud and downloads again when you open it. Nothing is deleted. Files you haven't opened in 90 days are suggested; files with changes not yet uploaded are left alone."),
         safety: .review, mode: .permanent, needsFullDiskAccess: false, onDemand: true, owners: []
     ) { context in
         let root = context.path("Library/Mobile Documents")
@@ -303,10 +303,11 @@ public extension CleanCategory {
             let lastActivity = [opened, values.contentModificationDate].compactMap { $0 }.max()
             let stale = (lastActivity ?? .distantPast) < daysAgo(90)
             let place = url.deletingLastPathComponent().path
-                .replacingOccurrences(of: root.path + "/com~apple~CloudDocs", with: "iCloud Drive")
-                .replacingOccurrences(of: root.path, with: "iCloud")
+                .replacingOccurrences(of: root.path + "/com~apple~CloudDocs", with: String(localized: "iCloud Drive"))
+                .replacingOccurrences(of: root.path, with: String(localized: "iCloud"))
+            let openedNote = opened.map { String(localized: "opened \(relative($0))") } ?? String(localized: "no open recorded")
             result.append(Candidate(url: url, date: lastActivity,
-                                    detail: "\(place) · \(opened.map { "opened \(relative($0))" } ?? "no open recorded")",
+                                    detail: "\(place) · \(openedNote)",
                                     knownSize: Int64(size), kind: .iCloudEvict, lastUsed: lastActivity,
                                     suggested: stale ? true : nil))
         }
@@ -314,16 +315,16 @@ public extension CleanCategory {
     }
 
     static let developerTools = CleanCategory(
-        id: "devtools", name: "Developer Tools", icon: "wrench.and.screwdriver",
-        summary: "Android system images no emulator uses, old Android build-tools and emulators, extra Xcode copies, older JetBrains IDE data, downloaded AI models, old Homebrew versions, and git repositories worth compacting. The Xcode you're using and the Homebrew versions in use are never offered. git gc runs in Terminal, not inside Spacebar.",
+        id: "devtools", name: String(localized: "Developer Tools"), icon: "wrench.and.screwdriver",
+        summary: String(localized: "Android system images no emulator uses, old Android build-tools and emulators, extra Xcode copies, older JetBrains IDE data, downloaded AI models, old Homebrew versions, and git repositories worth compacting. The Xcode you're using and the Homebrew versions in use are never offered. git gc runs in Terminal, not inside Spacebar."),
         safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: false, owners: []
     ) { context in
         DeveloperTools.candidates(home: context.home, cancel: context.cancel)
     }
 
     static let forgottenFiles = CleanCategory(
-        id: "forgotten", name: "Forgotten Files", icon: "tray.full",
-        summary: "Things in Downloads and on the Desktop you haven't opened in a long time. \"Opened\" comes from Spotlight, which records opens through Finder and apps (files dragged straight into an app may not show). Suggested: installers for apps you already have, archives already unzipped next to themselves, and installers or archives with no open recorded in 6 months. Photos, videos, music and documents are never suggested, and neither is anything on the Desktop.",
+        id: "forgotten", name: String(localized: "Forgotten Files"), icon: "tray.full",
+        summary: String(localized: "Things in Downloads and on the Desktop you haven't opened in a long time. \"Opened\" comes from Spotlight, which records opens through Finder and apps (files dragged straight into an app may not show). Suggested: installers for apps you already have, archives already unzipped next to themselves, and installers or archives with no open recorded in 6 months. Photos, videos, music and documents are never suggested, and neither is anything on the Desktop."),
         safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: true, owners: []
     ) { context in
         let installed = InstalledAppsIndex.current()
@@ -352,20 +353,22 @@ public extension CleanCategory {
                 var reasons: [String] = []
                 var suggested = false
                 if installerTypes.contains(type), let app = installed.appMatching(fileName: url.lastPathComponent) {
-                    reasons.append("Installer for \(app), which is installed")
+                    reasons.append(String(localized: "Installer for \(app), which is installed"))
                     suggested = suggests && lastActivity < daysAgo(7)
                 } else if archiveTypes.contains(type), names.contains(stem) {
-                    reasons.append("Already unzipped into “\(stem)”")
+                    reasons.append(String(localized: "Already unzipped into “\(stem)”"))
                     suggested = suggests && lastActivity < daysAgo(7)
                 }
                 if let opened {
-                    reasons.append("last opened \(relative(opened))")
+                    reasons.append(String(localized: "last opened \(relative(opened))"))
                 } else {
-                    reasons.append("no open recorded")
+                    reasons.append(String(localized: "no open recorded"))
                     if suggests && throwawayTypes.contains(type) && (added ?? .distantFuture) < daysAgo(180) { suggested = true }
                 }
-                reasons.append("\(folder == "Downloads" ? "downloaded" : "added") \(relative(added))")
-                result.append(Candidate(url: url, date: added, detail: "\(folder) · " + reasons.joined(separator: " · "),
+                let since = relative(added)
+                reasons.append(folder == "Downloads" ? String(localized: "downloaded \(since)") : String(localized: "added \(since)"))
+                let folderName = folder == "Downloads" ? String(localized: "Downloads") : String(localized: "Desktop")
+                result.append(Candidate(url: url, date: added, detail: "\(folderName) · " + reasons.joined(separator: " · "),
                                         lastUsed: opened ?? added, suggested: suggested ? true : nil))
             }
         }
@@ -373,8 +376,8 @@ public extension CleanCategory {
     }
 
     static let duplicates = CleanCategory(
-        id: "duplicates", name: "Duplicate Files", icon: "doc.on.doc",
-        summary: "Files over 1 MB with identical content in your home folder (outside Library). For each set, one copy is kept: the one outside Downloads with the shortest path. Right-click a copy to keep it instead. Copies that already share disk space (APFS clones) are left out, because deleting them frees nothing.",
+        id: "duplicates", name: String(localized: "Duplicate Files"), icon: "doc.on.doc",
+        summary: String(localized: "Files over 1 MB with identical content in your home folder (outside Library). For each set, one copy is kept: the one outside Downloads with the shortest path. Right-click a copy to keep it instead. Copies that already share disk space (APFS clones) are left out, because deleting them frees nothing."),
         safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: true, owners: []
     ) { context in
         let home = context.home.path
@@ -383,16 +386,18 @@ public extension CleanCategory {
             group.copies.compactMap { copy -> Candidate? in
                 let freed = DuplicateFinder.reclaimableBytes(copy.url.path, allocated: copy.size)
                 guard freed >= 64 * 1024 else { return nil } // a clone: deleting frees nothing
+                let folder = short(copy.url.deletingLastPathComponent())
+                let original = short(group.keep.url)
                 return Candidate(url: copy.url, date: modified(copy.url),
-                                 detail: "In \(short(copy.url.deletingLastPathComponent())) · same as \(short(group.keep.url))", knownSize: freed,
+                                 detail: String(localized: "In \(folder) · same as \(original)"), knownSize: freed,
                                  duplicateOf: group.keep.url)
             }
         }
     }
 
     static let unusedApps = CleanCategory(
-        id: "apps", name: "Unused Apps", icon: "square.grid.2x2",
-        summary: "Your apps, least recently used first. \"Last used\" combines Spotlight's record with traces apps leave when they run (settings, caches, saved windows). Apps from Apple and apps that are running can't be removed here.",
+        id: "apps", name: String(localized: "Unused Apps"), icon: "square.grid.2x2",
+        summary: String(localized: "Your apps, least recently used first. \"Last used\" combines Spotlight's record with traces apps leave when they run (settings, caches, saved windows). Apps from Apple and apps that are running can't be removed here."),
         safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: false, owners: []
     ) { context in
         let library = context.path("Library")
@@ -409,14 +414,14 @@ public extension CleanCategory {
             let name = (bundle.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String)
                 ?? url.deletingPathExtension().lastPathComponent
             return Candidate(url: url, name: name,
-                             detail: lastUsed.map { "Last used \(relative($0))" } ?? "No recent use recorded",
+                             detail: lastUsed.map { String(localized: "Last used \(relative($0))") } ?? String(localized: "No recent use recorded"),
                              owner: id, kind: .application, lastUsed: lastUsed ?? .distantPast)
         }
     }
 
     static let appLeftovers = CleanCategory(
-        id: "leftovers", name: "App Leftovers", icon: "shippingbox.and.arrow.backward",
-        summary: "Data left behind by apps that are no longer installed. Suggested: folders whose bundle ID matches no installed app, if they're web data or window state, or haven't changed in 90 days. Folders matched only by name (they can hold documents or saved games, or belong to an app on another drive) and recently changed ones are left for you to review. Everything goes to the Trash.",
+        id: "leftovers", name: String(localized: "App Leftovers"), icon: "shippingbox.and.arrow.backward",
+        summary: String(localized: "Data left behind by apps that are no longer installed. Suggested: folders whose bundle ID matches no installed app, if they're web data or window state, or haven't changed in 90 days. Folders matched only by name (they can hold documents or saved games, or belong to an app on another drive) and recently changed ones are left for you to review. Everything goes to the Trash."),
         safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: false, owners: []
     ) { context in
         let index = InstalledAppsIndex.current()
@@ -439,8 +444,8 @@ public extension CleanCategory {
                 let lastChange = modified(entry)
                 let disposable = ["Saved Application State", "HTTPStorages", "WebKit"].contains(source)
                 let suggested = isBundleID && (disposable || (lastChange ?? .distantFuture) < daysAgo(90))
-                let why = !isBundleID ? "matched by name only, so review it"
-                    : suggested ? "no installed app has this ID" : "changed recently, so review it"
+                let why = !isBundleID ? String(localized: "matched by name only, so review it")
+                    : suggested ? String(localized: "no installed app has this ID") : String(localized: "changed recently, so review it")
                 result.append(Candidate(url: entry, name: name, date: lastChange,
                                         detail: "\(source) · \(why)", owner: isBundleID ? name : nil,
                                         kind: .appLeftover, suggested: suggested ? true : nil))
@@ -450,8 +455,8 @@ public extension CleanCategory {
     }
 
     static let simulators = CleanCategory(
-        id: "simulators", name: "Old Simulators", icon: "iphone.gen3",
-        summary: "iOS, watchOS and other simulator devices and runtimes. Devices whose runtime is no longer installed can't be used at all and are suggested. Others are listed if unused for 90 days. Removal goes through `xcrun simctl`, the same as Xcode.",
+        id: "simulators", name: String(localized: "Old Simulators"), icon: "iphone.gen3",
+        summary: String(localized: "iOS, watchOS and other simulator devices and runtimes. Devices whose runtime is no longer installed can't be used at all and are suggested. Others are listed if unused for 90 days. Removal goes through `xcrun simctl`, the same as Xcode."),
         safety: .review, mode: .permanent, needsFullDiskAccess: false, onDemand: false,
         owners: ["com.apple.iphonesimulator", "com.apple.dt.Xcode"]
     ) { context in
@@ -476,12 +481,13 @@ public extension CleanCategory {
                     guard !available || stale else { continue }
                     let folder = URL(fileURLWithPath: dataPath).deletingLastPathComponent()
                     let size = (device["dataPathSize"] as? NSNumber)?.int64Value
-                    let detail = !available ? "\(runtimeName) · runtime no longer installed"
-                        : "\(runtimeName) · \(lastBooted.map { "last booted \(relative($0))" } ?? "never booted")"
+                    let booting = lastBooted.map { String(localized: "last booted \(relative($0))") } ?? String(localized: "never booted")
+                    let detail = !available ? String(localized: "\(runtimeName) · runtime no longer installed")
+                        : "\(runtimeName) · \(booting)"
                     result.append(Candidate(url: folder, name: device["name"] as? String ?? udid, date: lastBooted,
                                             detail: detail, knownSize: size, kind: .simulatorDevice(udid: udid),
                                             lastUsed: lastBooted, suggested: !available ? true : nil,
-                                            lockedReason: booted ? "Running" : nil))
+                                            lockedReason: booted ? String(localized: "Running", comment: "A simulator that is running") : nil))
                 }
             }
         }
@@ -495,11 +501,11 @@ public extension CleanCategory {
                 guard (lastUsed ?? .distantPast) < cutoff else { continue }
                 let platforms = ["iphonesimulator": "iOS", "watchsimulator": "watchOS", "appletvsimulator": "tvOS", "xrsimulator": "visionOS"]
                 let platformID = (runtime["platformIdentifier"] as? String)?.split(separator: ".").last.map(String.init) ?? ""
-                let platform = platforms[platformID] ?? "Simulator"
+                let platform = platforms[platformID] ?? String(localized: "Simulator")
                 let version = runtime["version"] as? String ?? ""
                 let path = runtime["path"] as? String ?? "/Library/Developer/CoreSimulator/Images/\(id).dmg"
-                result.append(Candidate(url: URL(fileURLWithPath: path), name: "\(platform) \(version) runtime",
-                                        date: lastUsed, detail: "Runtime · last used \(relative(lastUsed))",
+                result.append(Candidate(url: URL(fileURLWithPath: path), name: String(localized: "\(platform) \(version) runtime"),
+                                        date: lastUsed, detail: String(localized: "Runtime · last used \(relative(lastUsed))"),
                                         knownSize: (runtime["sizeBytes"] as? NSNumber)?.int64Value,
                                         kind: .simulatorRuntime(identifier: id), lastUsed: lastUsed))
             }
@@ -508,8 +514,8 @@ public extension CleanCategory {
     }
 
     static let projectBuildFiles = CleanCategory(
-        id: "projects", name: "Project Build Files", icon: "hammer.circle",
-        summary: "Dependencies and build output inside your projects (node_modules, target, build, Pods, .venv…). They're recreated by the project's install or build command. Projects untouched for 90 days are suggested.",
+        id: "projects", name: String(localized: "Project Build Files"), icon: "hammer.circle",
+        summary: String(localized: "Dependencies and build output inside your projects (node_modules, target, build, Pods, .venv…). They're recreated by the project's install or build command. Projects untouched for 90 days are suggested."),
         safety: .review, mode: .permanent, needsFullDiskAccess: false, onDemand: true, owners: []
     ) { context in
         /// Artifact folder → files that must sit next to it, so a random "build" folder isn't mistaken for one.
@@ -544,19 +550,19 @@ public extension CleanCategory {
             let inactive = (latest ?? .distantPast) < daysAgo(90)
             let projectPath = project.path.replacingOccurrences(of: home, with: "~")
             result.append(Candidate(url: url, name: "\(project.lastPathComponent) › \(name)",
-                                    detail: "\(projectPath) · project changed \(relative(latest))",
+                                    detail: String(localized: "\(projectPath) · project changed \(relative(latest))"),
                                     lastUsed: latest, suggested: inactive ? true : nil))
         }
         return result
     }
 
     static let mail = CleanCategory(
-        id: "mail", name: "Mail", icon: "envelope",
-        summary: "Local copies Mail keeps that the server can restore: attachments you opened, and cached attachments of IMAP, Exchange, Gmail and iCloud accounts (Mail downloads them again when you open a message). Your messages are never touched, and nothing is removed for POP or \"On My Mac\" mailboxes, whose mail exists only on this Mac. Quit Mail first.",
+        id: "mail", name: String(localized: "Mail"), icon: "envelope",
+        summary: String(localized: "Local copies Mail keeps that the server can restore: attachments you opened, and cached attachments of IMAP, Exchange, Gmail and iCloud accounts (Mail downloads them again when you open a message). Your messages are never touched, and nothing is removed for POP or \"On My Mac\" mailboxes, whose mail exists only on this Mac. Quit Mail first."),
         safety: .review, mode: .trash, needsFullDiskAccess: true, onDemand: false, owners: ["com.apple.mail"]
     ) { context in
         var result = children(context.path("Library/Containers/com.apple.mail/Data/Library/Mail Downloads")).map {
-            Candidate(url: $0, date: modified($0), detail: "Opened attachment")
+            Candidate(url: $0, date: modified($0), detail: String(localized: "Opened attachment"))
         }
         let accounts = MailAccounts.load(home: context.home)
         for version in children(context.path("Library/Mail")) where version.lastPathComponent.hasPrefix("V") {
@@ -565,20 +571,21 @@ public extension CleanCategory {
                 let attachments = MailAccounts.attachmentFolders(in: accountFolder)
                 let size = attachments.reduce(Int64(0)) { $0 + context.engine.measure($1).allocated }
                 guard size > 0 else { continue }
-                let label = account?.label ?? "Unknown account"
+                let label = account?.label ?? String(localized: "Unknown account")
+                let typeName = account?.typeName ?? String(localized: "local", comment: "Mail account type when unknown")
                 let locked = account?.isServerBacked == true ? nil
-                    : account == nil ? "Account type unknown, so it's kept"
-                    : "Stored only on this Mac (\(account?.typeName ?? "local"))"
-                result.append(Candidate(url: accountFolder, name: "Cached attachments · \(label)",
-                                        detail: "\(attachments.count) attachment folders", knownSize: size,
+                    : account == nil ? String(localized: "Account type unknown, so it's kept")
+                    : String(localized: "Stored only on this Mac (\(typeName))")
+                result.append(Candidate(url: accountFolder, name: String(localized: "Cached attachments · \(label)"),
+                                        detail: String(localized: "\(attachments.count) attachment folders"), knownSize: size,
                                         kind: .mailAttachments, lockedReason: locked))
                 // The same, limited to attachments not opened in a year.
                 let old = MailAccounts.attachments(in: accountFolder, olderThanDays: 365)
                 let oldSize = old.reduce(Int64(0)) { $0 + context.engine.measure($1).allocated }
                 if oldSize > 0 && oldSize < size {
                     result.append(Candidate(url: accountFolder.appendingPathComponent("older-than-a-year", isDirectory: false),
-                                            name: "Cached attachments older than a year · \(label)",
-                                            detail: "\(old.count) messages' attachments", knownSize: oldSize,
+                                            name: String(localized: "Cached attachments older than a year · \(label)"),
+                                            detail: String(localized: "\(old.count) messages' attachments"), knownSize: oldSize,
                                             kind: .mailAttachmentsOlderThan(days: 365), lockedReason: locked))
                 }
             }
@@ -652,41 +659,45 @@ public enum DockerCLI {
 
 public extension CleanCategory {
     static let docker = CleanCategory(
-        id: "docker", name: "Docker", icon: "shippingbox.circle",
-        summary: "Space inside Docker: build cache, unused images, stopped containers and unused volumes, removed with Docker's own prune commands. Build cache is suggested. Volumes are never suggested because they can hold databases. Docker returns freed space to macOS shortly afterwards.",
+        id: "docker", name: String(localized: "Docker"), icon: "shippingbox.circle",
+        summary: String(localized: "Space inside Docker: build cache, unused images, stopped containers and unused volumes, removed with Docker's own prune commands. Build cache is suggested. Volumes are never suggested because they can hold databases. Docker returns freed space to macOS shortly afterwards."),
         safety: .review, mode: .permanent, needsFullDiskAccess: false, onDemand: false, owners: []
     ) { context in
         guard DockerCLI.path != nil else {
             // A docker command we can't verify is never run; say so instead of hiding the category.
             guard DockerCLI.unverifiedPresent else { return [] }
             return [Candidate(url: URL(string: "docker://unverified")!, name: "Docker",
-                              detail: "Only Docker Desktop's signed docker command is used", knownSize: 1,
+                              detail: String(localized: "Only Docker Desktop's signed docker command is used"), knownSize: 1,
                               kind: .dockerPrune(arguments: []),
-                              lockedReason: "This docker command isn't signed by Docker, so Spacebar won't run it")]
+                              lockedReason: String(localized: "This docker command isn't signed by Docker, so Spacebar won't run it"))]
         }
         let image = context.path("Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw")
         var st = stat()
         let imageBytes = lstat(image.path, &st) == 0 ? Int64(st.st_blocks) * 512 : 0
-        let imageNote = imageBytes > 0 ? "Docker's disk image uses \(ByteFormat.string(imageBytes))" : nil
+        let imageNote = imageBytes > 0 ? String(localized: "Docker's disk image uses \(ByteFormat.string(imageBytes))") : nil
 
         guard let usage = DockerCLI.systemDF() else {
             // Engine not running: show the disk image, but nothing can be pruned.
             guard imageBytes > 0 else { return [] }
-            return [Candidate(url: image, name: "Docker disk image", detail: imageNote, knownSize: imageBytes,
+            return [Candidate(url: image, name: String(localized: "Docker disk image"), detail: imageNote, knownSize: imageBytes,
                               kind: .dockerPrune(arguments: []),
-                              lockedReason: "Start Docker to see what can be pruned")]
+                              lockedReason: String(localized: "Start Docker to see what can be pruned"))]
         }
         let plans: [String: (name: String, arguments: [String], suggested: Bool?, detail: String)] = [
-            "Build Cache": ("Build cache", ["builder", "prune", "--all", "--force"], true, "Rebuilt automatically when you build"),
-            "Images": ("Unused images", ["image", "prune", "--all", "--force"], nil, "Images no container uses; downloaded again when needed"),
-            "Containers": ("Stopped containers", ["container", "prune", "--force"], nil, "Containers that aren't running, and their files"),
-            "Local Volumes": ("Unused volumes", ["volume", "prune", "--all", "--force"], false, "Volumes no container uses. They can hold databases and other data"),
+            "Build Cache": (String(localized: "Build cache"), ["builder", "prune", "--all", "--force"], true,
+                            String(localized: "Rebuilt automatically when you build")),
+            "Images": (String(localized: "Unused images"), ["image", "prune", "--all", "--force"], nil,
+                       String(localized: "Images no container uses; downloaded again when needed")),
+            "Containers": (String(localized: "Stopped containers"), ["container", "prune", "--force"], nil,
+                           String(localized: "Containers that aren't running, and their files")),
+            "Local Volumes": (String(localized: "Unused volumes"), ["volume", "prune", "--all", "--force"], false,
+                              String(localized: "Volumes no container uses. They can hold databases and other data")),
         ]
         return usage.compactMap { row in
             guard let plan = plans[row.type], row.reclaimable > 0 else { return nil }
             let slug = row.type.lowercased().replacingOccurrences(of: " ", with: "-")
             return Candidate(url: URL(string: "docker://\(slug)")!, name: plan.name,
-                             detail: ([plan.detail, "\(row.total) total, \(row.active) in use"] + [imageNote].compactMap { $0 })
+                             detail: ([plan.detail, String(localized: "\(row.total) total, \(row.active) in use")] + [imageNote].compactMap { $0 })
                                 .joined(separator: " · "),
                              knownSize: row.reclaimable, kind: .dockerPrune(arguments: plan.arguments),
                              suggested: plan.suggested)
@@ -694,8 +705,8 @@ public extension CleanCategory {
     }
 
     static let snapshots = CleanCategory(
-        id: "snapshots", name: "Time Machine Snapshots", icon: "clock.arrow.circlepath",
-        summary: "Local Time Machine snapshots on your startup disk. macOS keeps them for 24 hours and removes them by itself when it needs space; you can remove them now. Their exact size isn't reported, so the figure is macOS's purgeable space, which also includes some caches. Snapshots macOS makes for updates (com.apple.os.update) can't be removed.",
+        id: "snapshots", name: String(localized: "Time Machine Snapshots"), icon: "clock.arrow.circlepath",
+        summary: String(localized: "Local Time Machine snapshots on your startup disk. macOS keeps them for 24 hours and removes them by itself when it needs space; you can remove them now. Their exact size isn't reported, so the figure is macOS's purgeable space, which also includes some caches. Snapshots macOS makes for updates (com.apple.os.update) can't be removed."),
         safety: .review, mode: .permanent, needsFullDiskAccess: false, onDemand: false, owners: []
     ) { _ in
         let snapshots = LocalSnapshots.list()
@@ -709,9 +720,9 @@ public extension CleanCategory {
             return formatter.date(from: String(parts[3]))
         }
         let purgeable = VolumeSpace.home()?.purgeable ?? 0
-        return [Candidate(url: URL(string: "tmsnapshot://local")!, name: "\(snapshots.count) local snapshot\(snapshots.count == 1 ? "" : "s")",
+        return [Candidate(url: URL(string: "tmsnapshot://local")!, name: String(localized: "\(snapshots.count) local snapshots"),
                           date: dates.min(),
-                          detail: "Oldest \(relative(dates.min())) · up to \(ByteFormat.string(purgeable)) purgeable",
+                          detail: String(localized: "Oldest \(relative(dates.min())) · up to \(ByteFormat.string(purgeable)) purgeable"),
                           knownSize: max(purgeable, 1), kind: .timeMachineSnapshots)]
     }
 }
@@ -746,13 +757,13 @@ public enum MessagesAttachments {
 
 public extension CleanCategory {
     static let messages = CleanCategory(
-        id: "messages", name: "Messages Attachments", icon: "message",
-        summary: "Photos, videos and files received in Messages more than a year ago, grouped by year. They go to the Trash, so Put Back works. If Messages in iCloud is on, they stay in iCloud; otherwise this is the only copy, so review them. Quit Messages first.",
+        id: "messages", name: String(localized: "Messages Attachments"), icon: "message",
+        summary: String(localized: "Photos, videos and files received in Messages more than a year ago, grouped by year. They go to the Trash, so Put Back works. If Messages in iCloud is on, they stay in iCloud; otherwise this is the only copy, so review them. Quit Messages first."),
         safety: .review, mode: .trash, needsFullDiskAccess: true, onDemand: false, owners: ["com.apple.MobileSMS"]
     ) { context in
         MessagesAttachments.byYear(olderThanDays: 365, home: context.home).sorted { $0.key > $1.key }.map { year, files in
-            Candidate(url: MessagesAttachments.url(year: year), name: "Attachments from \(year)",
-                      detail: "\(files.count) file\(files.count == 1 ? "" : "s") received in \(year)",
+            Candidate(url: MessagesAttachments.url(year: year), name: String(localized: "Attachments from \(String(year))"),
+                      detail: String(localized: "\(files.count) files received in \(String(year))"),
                       knownSize: files.reduce(0) { $0 + $1.bytes }, kind: .messagesAttachments(year: year, olderThanDays: 365))
         }
     }

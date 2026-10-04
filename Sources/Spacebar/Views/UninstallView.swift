@@ -14,8 +14,8 @@ struct UninstallView: View {
     @State private var running = false
 
     private var refusal: String? {
-        if app.bundleID.hasPrefix("com.apple.") && app.bundleID != "com.apple.dt.Xcode" { return "Apps that come with macOS can't be removed." }
-        if app.bundleID == Bundle.main.bundleIdentifier { return "That's Spacebar." }
+        if app.bundleID.hasPrefix("com.apple.") && app.bundleID != "com.apple.dt.Xcode" { return String(localized: "Apps that come with macOS can't be removed.") }
+        if app.bundleID == Bundle.main.bundleIdentifier { return String(localized: "That's Spacebar.") }
         return nil
     }
 
@@ -30,7 +30,7 @@ struct UninstallView: View {
                 Image(nsImage: NSWorkspace.shared.icon(forFile: app.url.path)).resizable().frame(width: 48, height: 48)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Uninstall \(app.name)").font(.title2.weight(.semibold))
-                    Text([app.version.map { "Version \($0)" }, app.url.deletingLastPathComponent().path]
+                    Text([app.version.map { String(localized: "Version \($0)") }, app.url.deletingLastPathComponent().path]
                         .compactMap { $0 }.joined(separator: " · "))
                         .font(.callout).foregroundStyle(.secondary)
                 }
@@ -50,7 +50,7 @@ struct UninstallView: View {
                     }
                 }
                 List {
-                    row(app.url, label: "The app", name: app.url.lastPathComponent)
+                    row(app.url, label: String(localized: "The app"), name: app.url.lastPathComponent)
                     ForEach(parts) { part in
                         row(part.url, label: part.label, name: part.url.lastPathComponent)
                     }

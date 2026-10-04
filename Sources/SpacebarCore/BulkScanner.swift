@@ -19,7 +19,7 @@ public final class BulkScanner: SizeEngine, @unchecked Sendable {
     /// Count blocks shared by APFS clones once (costs a lookup per clone).
     public let cloneAware: Bool
 
-    public init(workers: Int = min(max(ProcessInfo.processInfo.activeProcessorCount, 4), 16),
+    public init(workers: Int = ResourceBudget.threads,
                 bufferSize: Int = 128 * 1024, breadthFirst: Bool = false, cloneAware: Bool = true) {
         self.workers = workers
         self.bufferSize = bufferSize
@@ -150,10 +150,15 @@ public final class BulkScanner: SizeEngine, @unchecked Sendable {
         for _ in 0..<workers {
             done.enter()
             let thread = Thread { [self] in
+                // Dedicated threads, so waiting for a slot here doesn't block Swift's thread pool.
+                ResourceBudget.workerSlots.wait()
                 self.work(job, cancel: cancel)
+                ResourceBudget.workerSlots.signal()
                 done.leave()
             }
-            thread.qualityOfService = .userInitiated
+            // Background priority: macOS favors the apps you're using, and runs this on
+            // efficiency cores when it can.
+            thread.qualityOfService = .utility
             thread.start()
         }
         done.wait()

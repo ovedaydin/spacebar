@@ -169,7 +169,7 @@ public enum PhotosLibrary {
     }
 
     static func name(_ asset: PHAsset) -> String {
-        PHAssetResource.assetResources(for: asset).first?.originalFilename ?? "Photo"
+        PHAssetResource.assetResources(for: asset).first?.originalFilename ?? String(localized: "Photo", comment: "Fallback name of a photo with no file name")
     }
 
     /// Similar photos in the library. Uses only thumbnails already on this Mac (never downloads from iCloud).
@@ -234,8 +234,8 @@ public enum PhotosLibrary {
 
 public extension CleanCategory {
     static let similarPhotos = CleanCategory(
-        id: "photos", name: "Similar Photos", icon: "photo.on.rectangle.angled",
-        summary: "Bursts and repeated shots: photos taken within a minute of each other that look nearly the same, found with on-device image analysis. In each group the favorite, or else the highest-resolution shot, is kept. Library photos go to Recently Deleted in Photos (30 days); image files go to the Trash. Photos stored only in iCloud aren't downloaded or analyzed.",
+        id: "photos", name: String(localized: "Similar Photos"), icon: "photo.on.rectangle.angled",
+        summary: String(localized: "Bursts and repeated shots: photos taken within a minute of each other that look nearly the same, found with on-device image analysis. In each group the favorite, or else the highest-resolution shot, is kept. Library photos go to Recently Deleted in Photos (30 days); image files go to the Trash. Photos stored only in iCloud aren't downloaded or analyzed."),
         safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: true, owners: []
     ) { context in
         var result: [Candidate] = []
@@ -244,8 +244,9 @@ public extension CleanCategory {
                 let keep = SimilarImages.keeper(group)
                 for shot in group where shot.id != keep.id {
                     let seconds = Int(abs(shot.date.timeIntervalSince(keep.date)).rounded())
+                    let gap = seconds == 0 ? String(localized: "same second") : String(localized: "\(seconds) s apart")
                     result.append(Candidate(url: url(shot), name: shot.name, date: shot.date,
-                                            detail: "Similar to \(keep.name) · \(seconds == 0 ? "same second" : "\(seconds) s apart")",
+                                            detail: String(localized: "Similar to \(keep.name) · \(gap)"),
                                             knownSize: max(shot.bytes, 1), kind: kind(shot), duplicateOf: url(keep)))
                 }
             }

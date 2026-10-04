@@ -1,0 +1,209 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSDesktopFolderUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar measures your Desktop to show what is using disk space."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar, disk alanını neyin kullandığını göstermek için Masaüstünüzü ölçer."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar mide tu Escritorio para mostrar qué está ocupando espacio en el disco."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar misst deinen Schreibtisch, um zu zeigen, was Speicherplatz belegt."
+          }
+        }
+      }
+    },
+    "NSDocumentsFolderUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar measures your Documents folder to show what is using disk space."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar, disk alanını neyin kullandığını göstermek için Belgeler klasörünüzü ölçer."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar mide tu carpeta Documentos para mostrar qué está ocupando espacio en el disco."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar misst deinen Ordner „Dokumente“, um zu zeigen, was Speicherplatz belegt."
+          }
+        }
+      }
+    },
+    "NSDownloadsFolderUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar looks for old and large downloads you may want to remove."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar, kaldırmak isteyebileceğiniz eski ve büyük indirmeleri arar."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar busca descargas antiguas y grandes que quizá quieras eliminar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar sucht nach alten und großen Downloads, die du vielleicht entfernen möchtest."
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar finds near-duplicate photos in your library. Photos are analyzed on your Mac and never leave it."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar, fotoğraf arşivinizdeki birbirine çok benzeyen fotoğrafları bulur. Fotoğraflar Mac'inizde analiz edilir ve asla Mac'inizden çıkmaz."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar encuentra fotos casi duplicadas en tu fototeca. Las fotos se analizan en tu Mac y nunca salen de él."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar findet nahezu doppelte Fotos in deiner Mediathek. Die Fotos werden auf deinem Mac analysiert und verlassen ihn nie."
+          }
+        }
+      }
+    },
+    "NSAppleEventsUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar asks Finder to empty the Trash when it can't access the Trash itself."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar, Çöp Sepeti'ne kendisi erişemediğinde Finder'dan Çöp Sepeti'ni boşaltmasını ister."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar pide al Finder que vacíe la Papelera cuando no puede acceder a ella directamente."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar bittet den Finder, den Papierkorb zu leeren, wenn es selbst nicht darauf zugreifen kann."
+          }
+        }
+      }
+    },
+    "NSRemovableVolumesUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar can measure external drives you choose to scan."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar, taramayı seçtiğiniz harici diskleri ölçebilir."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar puede medir los discos externos que elijas analizar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar kann externe Laufwerke messen, die du zum Scannen auswählst."
+          }
+        }
+      }
+    },
+    "NSNetworkVolumesUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar can measure network drives you choose to scan."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar, taramayı seçtiğiniz ağ disklerini ölçebilir."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar puede medir las unidades de red que elijas analizar."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spacebar kann Netzlaufwerke messen, die du zum Scannen auswählst."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

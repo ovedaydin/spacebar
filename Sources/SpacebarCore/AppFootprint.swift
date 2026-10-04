@@ -29,10 +29,19 @@ public enum AppFootprint {
 
     /// Folders in ~/Library where apps keep data, and how each is labelled.
     static let places: [(folder: String, label: String)] = [
-        ("Application Support", "App data"), ("Caches", "Caches"), ("Containers", "Sandbox container"),
-        ("Group Containers", "Shared container"), ("Preferences", "Settings"), ("Preferences/ByHost", "Settings"),
-        ("Saved Application State", "Saved windows"), ("HTTPStorages", "Web data"), ("WebKit", "Web data"),
-        ("Cookies", "Cookies"), ("Logs", "Logs"), ("LaunchAgents", "Launch agent"), ("Application Scripts", "Scripts"),
+        ("Application Support", String(localized: "App data")),
+        ("Caches", String(localized: "Caches", comment: "Kind of app data in ~/Library, shown when uninstalling an app")),
+        ("Containers", String(localized: "Sandbox container")),
+        ("Group Containers", String(localized: "Shared container")),
+        ("Preferences", String(localized: "Settings", comment: "Kind of app data in ~/Library, shown when uninstalling an app")),
+        ("Preferences/ByHost", String(localized: "Settings", comment: "Kind of app data in ~/Library, shown when uninstalling an app")),
+        ("Saved Application State", String(localized: "Saved windows")),
+        ("HTTPStorages", String(localized: "Web data")),
+        ("WebKit", String(localized: "Web data")),
+        ("Cookies", String(localized: "Cookies", comment: "Kind of app data in ~/Library, shown when uninstalling an app")),
+        ("Logs", String(localized: "Logs", comment: "Kind of app data in ~/Library, shown when uninstalling an app")),
+        ("LaunchAgents", String(localized: "Launch agent")),
+        ("Application Scripts", String(localized: "Scripts", comment: "Kind of app data in ~/Library, shown when uninstalling an app")),
     ]
 
     /// Whether an entry named `name` in one of `places` belongs to the app.

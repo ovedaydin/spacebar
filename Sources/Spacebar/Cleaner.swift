@@ -54,7 +54,7 @@ enum Cleaner {
             let item = request.item
             let url = item.url
             if let reason = PathRules.reasonNotDeletable(url, kind: item.kind) {
-                report.skipped.append((item.name, "Protected: \(reason)"))
+                report.skipped.append((item.name, String(localized: "Protected: \(reason)")))
                 continue
             }
             if let reason = item.lockedReason {
@@ -62,14 +62,14 @@ enum Cleaner {
                 continue
             }
             if let owner = item.owner, running.contains(owner) {
-                report.skipped.append((item.name, "\(appName(owner)) is running. Quit it first."))
+                report.skipped.append((item.name, String(localized: "\(appName(owner)) is running. Quit it first.")))
                 continue
             }
             if item.kind == .appLeftover {
                 // The app may have been reinstalled since the scan.
                 if installedApps == nil { installedApps = InstalledAppsIndex.current() }
                 if installedApps?.isOrphan(url.lastPathComponent) == false {
-                    report.skipped.append((item.name, "Its app is installed again"))
+                    report.skipped.append((item.name, String(localized: "Its app is installed again")))
                     continue
                 }
             }
@@ -114,7 +114,7 @@ enum Cleaner {
                     photos.forEach { log.append(entry("PHOTOS-RECENTLY-DELETED", $0.item)) }
                 } catch {
                     // Includes the user choosing Don't Allow in the Photos confirmation.
-                    report.skipped.append(("\(photos.count) photo\(photos.count == 1 ? "" : "s")", error.localizedDescription))
+                    report.skipped.append((String(localized: "\(photos.count) photos"), error.localizedDescription))
                 }
             }
         }
@@ -201,7 +201,7 @@ enum Cleaner {
             case .trashMailAttachments:
                 return try MailAccounts.attachmentFolders(in: url).map { ($0, try Cleaner.trash($0)) }
             case .docker(let arguments):
-                guard let docker = DockerCLI.path, !arguments.isEmpty else { throw Cleaner.failure("Docker isn't available") }
+                guard let docker = DockerCLI.path, !arguments.isEmpty else { throw Cleaner.failure(String(localized: "Docker isn't available")) }
                 try Cleaner.runTool(docker, arguments, environment: DockerCLI.environment)
                 return []
             case .deleteSnapshots:
@@ -271,11 +271,11 @@ enum Cleaner {
             let item = CleanItem(url: trashed.original, name: trashed.original.lastPathComponent, size: trashed.bytes,
                                  date: nil, detail: nil, owner: nil)
             guard isInTrash(trashed.url), fm.fileExists(atPath: trashed.url.path) else {
-                report.skipped.append((item.name, "No longer in the Trash"))
+                report.skipped.append((item.name, String(localized: "No longer in the Trash")))
                 continue
             }
             guard !fm.fileExists(atPath: trashed.original.path) else {
-                report.skipped.append((item.name, "Something else is at its original location now"))
+                report.skipped.append((item.name, String(localized: "Something else is at its original location now")))
                 continue
             }
             if dryRun {
@@ -303,11 +303,11 @@ enum Cleaner {
         for (url, bytes) in items {
             let item = CleanItem(url: url, name: url.lastPathComponent, size: bytes, date: nil, detail: nil, owner: nil)
             guard isInTrash(url) else {
-                report.skipped.append((url.lastPathComponent, "Not in the Trash"))
+                report.skipped.append((url.lastPathComponent, String(localized: "Not in the Trash")))
                 continue
             }
             guard FileManager.default.fileExists(atPath: url.path) || (try? url.checkResourceIsReachable()) == true else {
-                report.skipped.append((url.lastPathComponent, "No longer in the Trash"))
+                report.skipped.append((url.lastPathComponent, String(localized: "No longer in the Trash")))
                 continue
             }
             if dryRun {
@@ -345,7 +345,7 @@ enum Cleaner {
     static func emptyTrashWithFinder() -> String? {
         var error: NSDictionary?
         NSAppleScript(source: "tell application \"Finder\" to empty trash")?.executeAndReturnError(&error)
-        return error.map { ($0[NSAppleScript.errorMessage] as? String) ?? "Finder couldn't empty the Trash" }
+        return error.map { ($0[NSAppleScript.errorMessage] as? String) ?? String(localized: "Finder couldn't empty the Trash") }
     }
 
     /// Opens Terminal in `directory` and runs `command` there.
@@ -359,7 +359,7 @@ enum Cleaner {
         """
         var error: NSDictionary?
         NSAppleScript(source: script)?.executeAndReturnError(&error)
-        if let error { throw failure((error[NSAppleScript.errorMessage] as? String) ?? "Couldn't open Terminal") }
+        if let error { throw failure((error[NSAppleScript.errorMessage] as? String) ?? String(localized: "Couldn't open Terminal")) }
     }
 
     static func failure(_ message: String) -> NSError {
@@ -369,16 +369,16 @@ enum Cleaner {
     /// Runs a command-line tool (absolute path, clean environment); throws its error output if it fails.
     static func runTool(_ path: String, _ arguments: [String], environment: [String: String] = [:]) throws {
         guard let result = Tools.run(path, arguments, timeout: 600, extraEnvironment: environment) else {
-            throw failure("\((path as NSString).lastPathComponent) couldn't start")
+            throw failure(String(localized: "\((path as NSString).lastPathComponent) couldn't start"))
         }
         guard result.status == 0 else {
-            throw failure(result.errors.isEmpty ? "\((path as NSString).lastPathComponent) failed" : result.errors)
+            throw failure(result.errors.isEmpty ? String(localized: "\((path as NSString).lastPathComponent) failed") : result.errors)
         }
     }
 
     /// Apple's simctl, verified (see Tools.simctl).
     private static func simctl(_ arguments: [String]) throws {
-        guard let simctl = Tools.simctl else { throw failure("Apple's simctl isn't available or couldn't be verified") }
+        guard let simctl = Tools.simctl else { throw failure(String(localized: "Apple's simctl isn't available or couldn't be verified")) }
         try runTool(simctl, arguments, environment: Tools.developerDirectory)
     }
 

@@ -67,12 +67,12 @@ enum TileKind: Int, CaseIterable {
 
     var name: String {
         switch self {
-        case .folder: return "Folders"
-        case .document: return "Documents"
-        case .media: return "Photos, video & audio"
-        case .archive: return "Archives & disk images"
-        case .app: return "Apps"
-        case .other: return "Other files"
+        case .folder: return String(localized: "Folders")
+        case .document: return String(localized: "Documents")
+        case .media: return String(localized: "Photos, video & audio")
+        case .archive: return String(localized: "Archives & disk images")
+        case .app: return String(localized: "Apps")
+        case .other: return String(localized: "Other files")
         }
     }
 
@@ -147,7 +147,7 @@ struct TreemapView: View {
         }.sorted { $0.bytes > $1.bytes }
         guard measured.count > maxTiles else { return measured }
         let rest = measured.dropFirst(maxTiles - 1)
-        var other = Tile(id: "other", entry: nil, name: "\(rest.count) smaller items",
+        var other = Tile(id: "other", entry: nil, name: String(localized: "\(rest.count) smaller items"),
                          bytes: rest.reduce(0) { $0 + $1.bytes }, kind: .other)
         other.count = rest.count
         return Array(measured.prefix(maxTiles - 1)) + [other]
@@ -199,7 +199,7 @@ private struct TileView: View {
         }
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
-        .help("\(name): \(ByteFormat.string(bytes))" + (isFolder ? " · click to open" : ""))
+        .help(isFolder ? "\(name): \(ByteFormat.string(bytes)) · click to open" : "\(name): \(ByteFormat.string(bytes))")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text("\(name), \(ByteFormat.string(bytes)), \(kind.name)"))
         .accessibilityAddTraits(isFolder ? .isButton : [])

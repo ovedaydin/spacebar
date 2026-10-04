@@ -118,7 +118,7 @@ final class ExplorerModel: ObservableObject {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.directoryURL = current
-        panel.prompt = "Explore"
+        panel.prompt = String(localized: "Explore")
         guard panel.runModal() == .OK, let url = panel.url else { return }
         group = nil
         trail = [url]
