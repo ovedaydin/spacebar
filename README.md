@@ -230,7 +230,7 @@ Strings live in `packaging/Localizable.xcstrings` (open it in Xcode, or edit the
 
 - Set `SIGN_IDENTITY` to your "Developer ID Application" certificate.
 - Set the repository variable `NOTARIZE=true` and add the secrets `ASC_KEY_P8`, `ASC_KEY_ID`, and `ASC_ISSUER_ID`.
-- Releases are then notarized, so there's no Gatekeeper prompt. Remove the `postflight_steps` block from the cask.
+- Releases (the app and the DMG) are then notarized, so there's no Gatekeeper prompt. Remove the `postflight_steps` block from the cask.
 - Developer ID builds use `packaging/Spacebar.entitlements`, which keeps library validation on. Self-signed builds need `Spacebar.selfsigned.entitlements` to load Sparkle, because they have no Team ID.
 
 ## License

@@ -69,6 +69,20 @@ jobs:
           V="${VERSION#v}"
           echo "ZIP_SHA=$(shasum -a 256 "dist/Spacebar-$V.zip" | cut -d' ' -f1)" >> "$GITHUB_ENV"
 
+      # The DMG is checked by Gatekeeper too when downloaded in a browser.
+      - name: Notarize disk image
+        if: env.NOTARIZE == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          V="${VERSION#v}"
+          xcrun notarytool submit "dist/Spacebar-$V.dmg" --key "$RUNNER_TEMP/AuthKey.p8" \
+            --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER" --wait
+          xcrun stapler staple "dist/Spacebar-$V.dmg"
+          # Stapling changed the DMG: update its checksum.
+          (cd dist && shasum -a 256 "Spacebar-$V.zip" "Spacebar-$V.dmg" > SHA256SUMS.txt)
+
       # Sparkle: secret SPARKLE_PRIVATE_KEY = contents of signing/sparkle_private_key.
       - name: Sign update and write appcast
         if: env.HAS_SPARKLE == 'true'
