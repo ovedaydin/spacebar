@@ -102,97 +102,8 @@ struct ContentView: View {
                                           "apps": .apps, "media": .media, "offload": .offload]
             route = pages[id] ?? .category(id)
         }
-        .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.dumpNotification)) { note in
-            let window = NSApp.windows.first(where: \.isVisible)
-            if let report = model.report {
-                let skipped: String = report.skipped.map { "\($0.name): \($0.reason)" }.joined(separator: " | ")
-                let counts: String = "deleted=\(report.deletedBytes) trashed=\(report.trashedBytes) removed=\(report.removed.count)"
-                let summary: String = "[report] dryRun=\(report.dryRun) \(counts) skipped=\(report.skipped.count) [\(skipped)]\n"
-                let message: String = report.message.replacingOccurrences(of: "\n", with: " / ")
-                let text: String = summary + "[report-title] \(report.title)\n[report-message] \(message)\n"
-                FileHandle.standardError.write(Data(text.utf8))
-            }
-            if let storage = model.storage {
-                FileHandle.standardError.write(Data("[storage] appData=\(storage.segments.first { $0.kind == .appData }?.bytes ?? -1) free=\(storage.free) live=\(model.liveUpdatedAt.map { "\($0)" } ?? "-") explorerLive=\(explorer.liveUpdatedAt.map { "\($0)" } ?? "-")\n".utf8))
-            }
-            let selectedBytes = model.allSelected.reduce(Int64(0)) { $0 + $1.0.size }
-            FileHandle.standardError.write(Data("[selection] items=\(model.allSelected.count) bytes=\(selectedBytes) dryRun=\(model.dryRun) cleaning=\(model.cleaning) scanning=\(model.isScanning)\n".utf8))
-            if note.object as? String == "paths" {
-                for (item, category) in model.allSelected {
-                    FileHandle.standardError.write(Data("[path] \(category.mode.rawValue)\t\(item.size)\t\(item.url.path)\n".utf8))
-                }
-            }
-            let state = "[state] \(note.object ?? "") route=\(String(describing: route)) selected=\(model.selection.count) folder=\(explorer.current.path) "
-                + "visible=\(window?.occlusionState.contains(.visible) == true) key=\(window?.isKeyWindow == true)\n"
-            FileHandle.standardError.write(Data(state.utf8))
-            if note.object as? String == "explorer" {
-                let rows = explorer.ordered.prefix(12).map { "\($0.name)=\(ByteFormat.string(explorer.sizes[$0.url]?.allocated ?? -1))" }
-                FileHandle.standardError.write(Data("[explorer] group=\(explorer.group?.title ?? "-") atGroup=\(explorer.atGroupLevel) entries=\(explorer.entries.count) total=\(ByteFormat.string(explorer.currentTotal)) measuring=\(explorer.progress.map { "\($0.done)/\($0.total)" } ?? "done")\n  \(rows.joined(separator: "\n  "))\n".utf8))
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.segmentNotification)) { note in
-            if let target = note.object as? String, target.hasPrefix("uninstall:") {
-                model.uninstall(URL(fileURLWithPath: String(target.dropFirst("uninstall:".count))))
-                return
-            }
-            if let target = note.object as? String, target.hasPrefix("drive:") {
-                let name = String(target.dropFirst("drive:".count))
-                model.refreshDrives()
-                model.selectDrive(model.drives.first { $0.name == name })
-                route = .overview
-                FileHandle.standardError.write(Data("[drives] \(model.drives.map { "\($0.name)\($0.isStartup ? "*" : "")" }) selected=\(model.selectedDrive?.name ?? "startup")\n".utf8))
-                return
-            }
-            if let target = note.object as? String, target.hasPrefix("explore:") {
-                explorer.show(URL(fileURLWithPath: (String(target.dropFirst("explore:".count)) as NSString).expandingTildeInPath))
-                route = .explorer
-                return
-            }
-            if let action = note.object as? String, action.hasPrefix("action:") {
-                if action == "action:autotest" {
-                    // 1) weekly clean (the test sets Dry Run on); 2) empty-after-7-days on a fixture of our own.
-                    model.runAutomaticTasks()
-                    let fixture = FileManager.default.homeDirectoryForCurrentUser
-                        .appendingPathComponent("Library/Caches/spacebar-selftest-\(UUID().uuidString).txt")
-                    FileManager.default.createFile(atPath: fixture.path, contents: Data(repeating: 1, count: 4096))
-                    let item = CleanItem(url: fixture, name: fixture.lastPathComponent, size: 4096, date: nil, detail: nil, owner: nil)
-                    let trashed = Cleaner.run([Cleaner.Request(item: item, mode: .trash)], dryRun: false)
-                    var ledger = ScanCache.loadLedger()
-                    ledger.entries += trashed.trashedItems.map { .init(path: $0.url.path, bytes: $0.bytes, date: Date().addingTimeInterval(-8 * 86400)) }
-                    ScanCache.save(ledger)
-                    let landed = trashed.trashedItems.first?.url.path ?? "-"
-                    let wasDry = model.dryRun
-                    model.dryRun = false
-                    model.emptyOldTrashed()
-                    model.dryRun = wasDry
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        FileHandle.standardError.write(Data("[autotest] fixture in Trash after empty: \(FileManager.default.fileExists(atPath: landed)) · ledger left: \(ScanCache.loadLedger().entries.filter { $0.path == landed }.count)\n".utf8))
-                    }
-                    return
-                }
-                if action == "action:applylive" {
-                    model.applyStorageChanges()
-                    return
-                }
-                if action == "action:fdacheck" {
-                    model.checkFullDiskAccessAgain()
-                    FileHandle.standardError.write(Data("[fda] granted=\(String(describing: model.fullDiskAccess)) checkFailed=\(model.accessCheckFailed)\n".utf8))
-                } else {
-                    model.relaunch()
-                }
-                return
-            }
-            // Same as clicking a slice in the disk breakdown legend.
-            guard let raw = note.object as? String, let kind = StorageSegment.Kind(rawValue: raw),
-                  let segment = model.storage?.segments.first(where: { $0.kind == kind }) else { return }
-            FileHandle.standardError.write(Data("[segment] \(segment.name) \(segment.bytes) roots=\(segment.roots ?? [])\n".utf8))
-            if let roots = segment.roots, roots.count > 1 {
-                explorer.showGroup(segment.name, roots: roots.map { URL(fileURLWithPath: $0) })
-            } else if let path = segment.roots?.first ?? segment.explorePath {
-                explorer.show(URL(fileURLWithPath: path))
-            }
-            route = .explorer
-        }
+        .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.dumpNotification)) { note in debugDump(note) }
+        .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.segmentNotification)) { note in debugSegment(note) }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.simulateNotification)) { _ in
             // Debug-only path, and it refuses to run unless Dry Run is on.
             guard model.dryRun else {
@@ -225,39 +136,7 @@ struct ContentView: View {
             route = .explorer
         }
         // Debug self-test: offload a fixture of our own to a test drive, bring it back, clean up.
-        .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.offloadTestNotification)) { note in
-            guard let volume = note.object as? String else { return }
-            Task { @MainActor in
-                func say(_ s: String) { FileHandle.standardError.write(Data("[offloadtest] \(s)\n".utf8)) }
-                @MainActor func idle() async { while model.offloadProgress != nil || model.cleaning { try? await Task.sleep(nanoseconds: 200_000_000) } }
-                let fm = FileManager.default
-                let fixture = fm.homeDirectoryForCurrentUser.appendingPathComponent("Downloads/spacebar-offload-selftest-\(UUID().uuidString.prefix(6)).bin")
-                fm.createFile(atPath: fixture.path, contents: Data((0..<4_000_000).map { UInt8($0 % 253) }))
-                let original = try? Data(contentsOf: fixture)
-                guard let drive = model.offloadDrives.first(where: { $0.name == volume }) else { say("FAIL: no drive \(volume)"); return }
-                model.offload([fixture], to: drive)
-                await idle()
-                guard let record = model.offloads.first(where: { $0.original == fixture.path }) else {
-                    say("FAIL: no record; skipped=\(model.report?.skipped.map { "\($0.name): \($0.reason)" } ?? [])"); return
-                }
-                let onDrive = try? Data(contentsOf: URL(fileURLWithPath: record.destination))
-                say("offloaded: original gone=\(!fm.fileExists(atPath: fixture.path)) drive copy identical=\(onDrive == original) in Trash=\(model.lastTrashed.contains { $0.original.path == fixture.path })")
-                let trashed = model.lastTrashed.first { $0.original.path == fixture.path }?.url
-                model.bringBack(record)
-                await idle()
-                let back = try? Data(contentsOf: fixture)
-                say("brought back: identical=\(back == original) marked=\(model.offloads.first { $0.id == record.id }?.broughtBack != nil) drive copy kept=\(fm.fileExists(atPath: record.destination))")
-                // Clean up everything the test made.
-                try? fm.removeItem(at: fixture)
-                try? fm.removeItem(atPath: record.destination)
-                if let trashed { try? fm.removeItem(at: trashed) }
-                model.debugForgetOffload(record.id)
-                for entry in CleaningHistory.load() where entry.items.contains(where: { $0.original == fixture.path }) {
-                    CleaningHistory.remove(entry.id)
-                }
-                say("cleaned up: fixture=\(!fm.fileExists(atPath: fixture.path)) trash=\(trashed.map { !fm.fileExists(atPath: $0.path) } ?? false)")
-            }
-        }
+        .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.offloadTestNotification)) { note in debugOffloadTest(note) }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.timelineDemoNotification)) { _ in
             model.debugDemoTimeline()
             FileHandle.standardError.write(Data("[summary] \(model.weeklySummaryText() ?? "(none)")\n".utf8))
@@ -319,6 +198,139 @@ struct ContentView: View {
             Text(report.message)
         }
     }
+
+    // MARK: Debug hooks (only posted in DEBUG_HOOKS builds), kept out of `body` so it type-checks quickly
+
+    private func debugDump(_ note: Notification) {
+        let window = NSApp.windows.first(where: \.isVisible)
+        if let report = model.report {
+            let skipped: String = report.skipped.map { "\($0.name): \($0.reason)" }.joined(separator: " | ")
+            let counts: String = "deleted=\(report.deletedBytes) trashed=\(report.trashedBytes) removed=\(report.removed.count)"
+            let summary: String = "[report] dryRun=\(report.dryRun) \(counts) skipped=\(report.skipped.count) [\(skipped)]\n"
+            let message: String = report.message.replacingOccurrences(of: "\n", with: " / ")
+            let text: String = summary + "[report-title] \(report.title)\n[report-message] \(message)\n"
+            FileHandle.standardError.write(Data(text.utf8))
+        }
+        if let storage = model.storage {
+            FileHandle.standardError.write(Data("[storage] appData=\(storage.segments.first { $0.kind == .appData }?.bytes ?? -1) free=\(storage.free) live=\(model.liveUpdatedAt.map { "\($0)" } ?? "-") explorerLive=\(explorer.liveUpdatedAt.map { "\($0)" } ?? "-")\n".utf8))
+        }
+        let selectedBytes = model.allSelected.reduce(Int64(0)) { $0 + $1.0.size }
+        FileHandle.standardError.write(Data("[selection] items=\(model.allSelected.count) bytes=\(selectedBytes) dryRun=\(model.dryRun) cleaning=\(model.cleaning) scanning=\(model.isScanning)\n".utf8))
+        if note.object as? String == "paths" {
+            for (item, category) in model.allSelected {
+                FileHandle.standardError.write(Data("[path] \(category.mode.rawValue)\t\(item.size)\t\(item.url.path)\n".utf8))
+            }
+        }
+        let state = "[state] \(note.object ?? "") route=\(String(describing: route)) selected=\(model.selection.count) folder=\(explorer.current.path) "
+            + "visible=\(window?.occlusionState.contains(.visible) == true) key=\(window?.isKeyWindow == true)\n"
+        FileHandle.standardError.write(Data(state.utf8))
+        if note.object as? String == "explorer" {
+            let rows = explorer.ordered.prefix(12).map { "\($0.name)=\(ByteFormat.string(explorer.sizes[$0.url]?.allocated ?? -1))" }
+            FileHandle.standardError.write(Data("[explorer] group=\(explorer.group?.title ?? "-") atGroup=\(explorer.atGroupLevel) entries=\(explorer.entries.count) total=\(ByteFormat.string(explorer.currentTotal)) measuring=\(explorer.progress.map { "\($0.done)/\($0.total)" } ?? "done")\n  \(rows.joined(separator: "\n  "))\n".utf8))
+        }
+    
+    }
+
+    private func debugSegment(_ note: Notification) {
+        if let target = note.object as? String, target.hasPrefix("uninstall:") {
+            model.uninstall(URL(fileURLWithPath: String(target.dropFirst("uninstall:".count))))
+            return
+        }
+        if let target = note.object as? String, target.hasPrefix("drive:") {
+            let name = String(target.dropFirst("drive:".count))
+            model.refreshDrives()
+            model.selectDrive(model.drives.first { $0.name == name })
+            route = .overview
+            FileHandle.standardError.write(Data("[drives] \(model.drives.map { "\($0.name)\($0.isStartup ? "*" : "")" }) selected=\(model.selectedDrive?.name ?? "startup")\n".utf8))
+            return
+        }
+        if let target = note.object as? String, target.hasPrefix("explore:") {
+            explorer.show(URL(fileURLWithPath: (String(target.dropFirst("explore:".count)) as NSString).expandingTildeInPath))
+            route = .explorer
+            return
+        }
+        if let action = note.object as? String, action.hasPrefix("action:") {
+            if action == "action:autotest" {
+                // 1) weekly clean (the test sets Dry Run on); 2) empty-after-7-days on a fixture of our own.
+                model.runAutomaticTasks()
+                let fixture = FileManager.default.homeDirectoryForCurrentUser
+                    .appendingPathComponent("Library/Caches/spacebar-selftest-\(UUID().uuidString).txt")
+                FileManager.default.createFile(atPath: fixture.path, contents: Data(repeating: 1, count: 4096))
+                let item = CleanItem(url: fixture, name: fixture.lastPathComponent, size: 4096, date: nil, detail: nil, owner: nil)
+                let trashed = Cleaner.run([Cleaner.Request(item: item, mode: .trash)], dryRun: false)
+                var ledger = ScanCache.loadLedger()
+                ledger.entries += trashed.trashedItems.map { .init(path: $0.url.path, bytes: $0.bytes, date: Date().addingTimeInterval(-8 * 86400)) }
+                ScanCache.save(ledger)
+                let landed = trashed.trashedItems.first?.url.path ?? "-"
+                let wasDry = model.dryRun
+                model.dryRun = false
+                model.emptyOldTrashed()
+                model.dryRun = wasDry
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    FileHandle.standardError.write(Data("[autotest] fixture in Trash after empty: \(FileManager.default.fileExists(atPath: landed)) · ledger left: \(ScanCache.loadLedger().entries.filter { $0.path == landed }.count)\n".utf8))
+                }
+                return
+            }
+            if action == "action:applylive" {
+                model.applyStorageChanges()
+                return
+            }
+            if action == "action:fdacheck" {
+                model.checkFullDiskAccessAgain()
+                FileHandle.standardError.write(Data("[fda] granted=\(String(describing: model.fullDiskAccess)) checkFailed=\(model.accessCheckFailed)\n".utf8))
+            } else {
+                model.relaunch()
+            }
+            return
+        }
+        // Same as clicking a slice in the disk breakdown legend.
+        guard let raw = note.object as? String, let kind = StorageSegment.Kind(rawValue: raw),
+              let segment = model.storage?.segments.first(where: { $0.kind == kind }) else { return }
+        FileHandle.standardError.write(Data("[segment] \(segment.name) \(segment.bytes) roots=\(segment.roots ?? [])\n".utf8))
+        if let roots = segment.roots, roots.count > 1 {
+            explorer.showGroup(segment.name, roots: roots.map { URL(fileURLWithPath: $0) })
+        } else if let path = segment.roots?.first ?? segment.explorePath {
+            explorer.show(URL(fileURLWithPath: path))
+        }
+        route = .explorer
+    
+    }
+
+    private func debugOffloadTest(_ note: Notification) {
+        guard let volume = note.object as? String else { return }
+        Task { @MainActor in
+            func say(_ s: String) { FileHandle.standardError.write(Data("[offloadtest] \(s)\n".utf8)) }
+            @MainActor func idle() async { while model.offloadProgress != nil || model.cleaning { try? await Task.sleep(nanoseconds: 200_000_000) } }
+            let fm = FileManager.default
+            let fixture = fm.homeDirectoryForCurrentUser.appendingPathComponent("Downloads/spacebar-offload-selftest-\(UUID().uuidString.prefix(6)).bin")
+            fm.createFile(atPath: fixture.path, contents: Data((0..<4_000_000).map { UInt8($0 % 253) }))
+            let original = try? Data(contentsOf: fixture)
+            guard let drive = model.offloadDrives.first(where: { $0.name == volume }) else { say("FAIL: no drive \(volume)"); return }
+            model.offload([fixture], to: drive)
+            await idle()
+            guard let record = model.offloads.first(where: { $0.original == fixture.path }) else {
+                say("FAIL: no record; skipped=\(model.report?.skipped.map { "\($0.name): \($0.reason)" } ?? [])"); return
+            }
+            let onDrive = try? Data(contentsOf: URL(fileURLWithPath: record.destination))
+            say("offloaded: original gone=\(!fm.fileExists(atPath: fixture.path)) drive copy identical=\(onDrive == original) in Trash=\(model.lastTrashed.contains { $0.original.path == fixture.path })")
+            let trashed = model.lastTrashed.first { $0.original.path == fixture.path }?.url
+            model.bringBack(record)
+            await idle()
+            let back = try? Data(contentsOf: fixture)
+            say("brought back: identical=\(back == original) marked=\(model.offloads.first { $0.id == record.id }?.broughtBack != nil) drive copy kept=\(fm.fileExists(atPath: record.destination))")
+            // Clean up everything the test made.
+            try? fm.removeItem(at: fixture)
+            try? fm.removeItem(atPath: record.destination)
+            if let trashed { try? fm.removeItem(at: trashed) }
+            model.debugForgetOffload(record.id)
+            for entry in CleaningHistory.load() where entry.items.contains(where: { $0.original == fixture.path }) {
+                CleaningHistory.remove(entry.id)
+            }
+            say("cleaned up: fixture=\(!fm.fileExists(atPath: fixture.path)) trash=\(trashed.map { !fm.fileExists(atPath: $0.path) } ?? false)")
+        }
+    
+    }
+
 }
 
 private struct UninstallTarget: Identifiable {
