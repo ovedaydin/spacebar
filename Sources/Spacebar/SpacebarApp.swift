@@ -350,6 +350,13 @@ enum DebugSnapshot {
                         window.orderFrontRegardless()
                     }
                 case "offloadtest": NotificationCenter.default.post(name: offloadTestNotification, object: parts[1])
+                case "drivecleantest":
+                    let volume = URL(fileURLWithPath: "/Volumes/\(parts[1])")
+                    let found = DriveCleanup.find(on: volume)
+                    FileHandle.standardError.write(Data("[drivecleantest] applies=\(DriveCleanup.applies(to: volume)) found=\(found.files.map(\.lastPathComponent).sorted()) appleDouble=\(found.appleDouble)\n".utf8))
+                    let freed = DriveCleanup.remove(found, on: volume)
+                    let left = (try? FileManager.default.subpathsOfDirectory(atPath: volume.path)) ?? []
+                    FileHandle.standardError.write(Data("[drivecleantest] freed=\(freed) left=\(left.sorted())\n".utf8))
                 case "timelinedemo": NotificationCenter.default.post(name: timelineDemoNotification, object: nil)
                 case "cloudlist":
                     // Read-only: what Keep in the Cloud Only finds, per drive. Nothing is evicted.

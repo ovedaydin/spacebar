@@ -127,3 +127,21 @@ final class BrowserRulesTests: XCTestCase {
         XCTAssertEqual(parsed.lastActive["Profile 2"]?.timeIntervalSince1970 ?? 0, old, accuracy: 1)
     }
 }
+
+final class DriveCleanupTests: XCTestCase {
+    func testOnlyMacOSClutterOnThatDrive() {
+        let drive = URL(fileURLWithPath: "/Volumes/USB")
+        for path in ["/Volumes/USB/.DS_Store", "/Volumes/USB/Photos/._IMG_1.jpg", "/Volumes/USB/.Trashes",
+                     "/Volumes/USB/.Spotlight-V100", "/Volumes/USB/Photos/.DS_Store"] {
+            XCTAssertTrue(DriveCleanup.isClutter(URL(fileURLWithPath: path), on: drive), path)
+        }
+        for path in ["/Volumes/USB/Photos/IMG_1.jpg", "/Volumes/USB/Photos/.Trashes", "/Volumes/USB/._",
+                     "/Volumes/Other/.DS_Store", "/Users/me/.DS_Store", "/Volumes/USB/.git"] {
+            XCTAssertFalse(DriveCleanup.isClutter(URL(fileURLWithPath: path), on: drive), path)
+        }
+    }
+
+    func testMacFormattedDrivesAreLeftAlone() {
+        XCTAssertFalse(DriveCleanup.applies(to: URL(fileURLWithPath: "/")), "APFS")
+    }
+}

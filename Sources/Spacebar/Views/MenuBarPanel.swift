@@ -1,3 +1,4 @@
+import Charts
 import AppKit
 import SpacebarCore
 import SwiftUI
@@ -59,6 +60,7 @@ struct MenuBarPanel: View {
                 if let space = model.space {
                     Text("of \(ByteFormat.string(space.total)) on Macintosh HD").font(.caption).foregroundStyle(.secondary)
                 }
+                FreeSpaceSparkline(samples: model.spaceLog.samples)
             }
         }
     }
@@ -258,5 +260,34 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 500, height: 640)
+    }
+}
+
+/// Free space over the last 7 days, as a small line (no axes): the trend at a glance.
+private struct FreeSpaceSparkline: View {
+    let samples: [SpaceForecast.Sample]
+    private let lineColor = Color.dynamic(light: 0x2A78D6, dark: 0x3987E5)
+
+    var body: some View {
+        let week = samples.filter { $0.date > Date().addingTimeInterval(-7 * 86400) }
+        // Needs about a day of hourly samples to say anything.
+        if week.count >= 24, let low = week.map(\.available).min(), let high = week.map(\.available).max() {
+            let pad = max(Int64(500_000_000), (high - low) / 5)
+            Chart(week, id: \.date) { sample in
+                LineMark(x: .value("Date", sample.date), y: .value("Free", sample.available))
+                    .foregroundStyle(lineColor)
+                    .lineStyle(StrokeStyle(lineWidth: 1.5))
+                    .interpolationMethod(.monotone)
+            }
+            .chartXAxis(.hidden)
+            .chartYAxis(.hidden)
+            .chartYScale(domain: (low - pad)...(high + pad))
+            .frame(height: 28)
+            .padding(.top, 4)
+            .accessibilityElement()
+            .accessibilityLabel(Text("Free space over the last 7 days"))
+            .accessibilityValue(Text("From \(ByteFormat.string(week.first!.available)) to \(ByteFormat.string(week.last!.available))"))
+            .help("Free space over the last 7 days")
+        }
     }
 }

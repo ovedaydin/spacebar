@@ -229,6 +229,9 @@ private struct DriveCard: View {
     @EnvironmentObject private var model: AppModel
     let drive: Drive
     let open: (URL) -> Void
+    /// macOS's hidden files found on a FAT/exFAT/NTFS drive, waiting for confirmation.
+    @State private var clutter: DriveCleanup.Found?
+    @State private var findingClutter = false
 
     private static let palette: [Color] = [
         .dynamic(light: 0x2A78D6, dark: 0x3987E5), .dynamic(light: 0xEB6834, dark: 0xD95926),
@@ -258,13 +261,42 @@ private struct DriveCard: View {
                     .font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 Button("Explore Drive") { open(drive.url) }
+                if DriveCleanup.applies(to: drive.url) {
+                    Button(findingClutter ? "Looking…" : "Remove Mac Hidden Files…") { findClutter() }
+                        .disabled(findingClutter)
+                        .help("Removes the .DS_Store and ._ files, Trash and Spotlight data macOS left on this drive")
+                }
                 if drive.isRemovable {
                     Button("Eject") { model.eject(drive) }
                 }
             }
         }
+        .alert(clutter.map { $0.count == 0 ? String(localized: "No hidden Mac files on \(drive.name)")
+                                 : String(localized: "Remove \($0.count) hidden files (\(ByteFormat.string($0.bytes))) from \(drive.name)?") } ?? "",
+               isPresented: Binding(get: { clutter != nil }, set: { if !$0 { clutter = nil } })) {
+            if let clutter, clutter.count > 0 {
+                Button(model.dryRun ? "Simulate" : "Remove", role: .destructive) {
+                    let found = clutter, volume = drive.url, dryRun = model.dryRun
+                    Task.detached { if !dryRun { DriveCleanup.remove(found, on: volume) } }
+                    self.clutter = nil
+                }
+            }
+            Button("Cancel", role: .cancel) { clutter = nil }
+        } message: {
+            Text("macOS makes these on drives it doesn't own: ._ files (with tags and other Mac-only details), .DS_Store, the drive's Trash and Spotlight's index. Windows, TVs and cameras show them as junk. Your files themselves aren't touched. macOS may make some again while the drive is connected.")
+        }
         .padding(16)
         .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func findClutter() {
+        findingClutter = true
+        let volume = drive.url
+        Task {
+            let found = await Task.detached(priority: .userInitiated) { DriveCleanup.find(on: volume) }.value
+            findingClutter = false
+            clutter = found
+        }
     }
 
     private func slices(_ breakdown: DriveBreakdown) -> [(name: String, bytes: Int64, color: Color, path: String?)] {

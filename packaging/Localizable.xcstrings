@@ -6361,6 +6361,9 @@
         }
       }
     },
+    "Free space over the last 7 days" : {
+
+    },
     "Free: %@" : {
       "localizations" : {
         "de" : {
@@ -6575,6 +6578,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ yer açıldı."
+          }
+        }
+      }
+    },
+    "From %@ to %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "From %1$@ to %2$@"
           }
         }
       }
@@ -9025,6 +9038,9 @@
         }
       }
     },
+    "No hidden Mac files on %@" : {
+
+    },
     "No installed app matches this name. It may be left over from an app you removed, or belong to a command-line tool." : {
       "localizations" : {
         "de" : {
@@ -10983,6 +10999,9 @@
         }
       }
     },
+    "Remove" : {
+
+    },
     "Remove %@" : {
       "localizations" : {
         "de" : {
@@ -11004,6 +11023,19 @@
           }
         }
       }
+    },
+    "Remove %lld hidden files (%@) from %@?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Remove %1$lld hidden files (%2$@) from %3$@?"
+          }
+        }
+      }
+    },
+    "Remove Mac Hidden Files…" : {
+
     },
     "Remove apps from the Unused Apps list or with the trash button on the app itself" : {
       "localizations" : {
@@ -11048,6 +11080,9 @@
           }
         }
       }
+    },
+    "Removes the .DS_Store and ._ files, Trash and Spotlight data macOS left on this drive" : {
+
     },
     "Returns the bytes available on your startup disk, including space macOS can free on its own." : {
       "localizations" : {
@@ -16319,6 +16354,9 @@
           }
         }
       }
+    },
+    "macOS makes these on drives it doesn't own: ._ files (with tags and other Mac-only details), .DS_Store, the drive's Trash and Spotlight's index. Windows, TVs and cameras show them as junk. Your files themselves aren't touched. macOS may make some again while the drive is connected." : {
+
     },
     "macOS removes the %lld snapshots it made for updates on its own." : {
       "localizations" : {
