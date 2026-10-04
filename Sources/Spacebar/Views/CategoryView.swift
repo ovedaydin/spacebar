@@ -6,6 +6,9 @@ struct CategoryView: View {
     @EnvironmentObject private var model: AppModel
     let category: CleanCategory
     @State private var pending: PendingClean?
+    /// Files in the last Time Machine backup (checked off the main thread when the list changes).
+    @State private var backedUp: Set<URL> = []
+    @State private var lastBackup: Date?
 
     var body: some View {
         let items = model.items(category.id)
@@ -19,7 +22,8 @@ struct CategoryView: View {
             } else {
                 List(items) { item in
                     ItemRow(item: item, selected: binding(item), showsAge: category.ageBased,
-                            suggested: model.isSuggested(item, in: category))
+                            suggested: model.isSuggested(item, in: category),
+                            backedUp: backedUp.contains(item.url) ? lastBackup : nil)
                         .contextMenu {
                             if item.kind == .application || (category.id == "apps") {
                                 Button("Uninstall \(item.name)…") { model.uninstall(item.url) }
@@ -48,6 +52,7 @@ struct CategoryView: View {
             }
         }
         .navigationTitle(category.name)
+        .task(id: items.map(\.url)) { await checkBackups(items) }
         .toolbar {
             if category.group == .rules {
                 ToolbarItem {
@@ -59,6 +64,22 @@ struct CategoryView: View {
             }
         }
         .cleanConfirmation($pending, model: model)
+    }
+
+    /// Only where people delete their own files: large, forgotten, duplicates and rules.
+    private func checkBackups(_ items: [CleanItem]) async {
+        guard ["large", "forgotten", "duplicates"].contains(category.id) || category.group == .rules else { return }
+        let files = items.filter { $0.kind == .file && $0.url.isFileURL }.map(\.url)
+        let result = await Task.detached(priority: .utility) { () -> (Date?, Set<URL>) in
+            guard let last = TimeMachine.lastBackup() else { return (nil, []) }
+            let backed = files.filter { url in
+                let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+                return TimeMachine.isBackedUp(modified: modified, excluded: TimeMachine.isExcluded(url), lastBackup: last)
+            }
+            return (last, Set(backed))
+        }.value
+        lastBackup = result.0
+        backedUp = result.1
     }
 
     private func binding(_ item: CleanItem) -> Binding<Bool> {
@@ -200,6 +221,8 @@ private struct ItemRow: View {
     @Binding var selected: Bool
     var showsAge = false
     var suggested = false
+    /// The date of the Time Machine backup this file is in, if it is.
+    var backedUp: Date? = nil
 
     var body: some View {
         HStack(spacing: 10) {
@@ -225,6 +248,10 @@ private struct ItemRow: View {
             if showsAge && item.ownerInstalled == false {
                 Tag(text: "No matching app", color: .purple)
                     .help("No installed app matches this name. It may be left over from an app you removed, or belong to a command-line tool.")
+            }
+            if let backedUp {
+                Tag(text: "Backed up", color: .green)
+                    .help("In your Time Machine backup from \(backedUp.formatted(date: .abbreviated, time: .shortened)), and unchanged since.")
             }
             Text(ByteFormat.string(item.size)).monospacedDigit().frame(minWidth: 80, alignment: .trailing)
         }

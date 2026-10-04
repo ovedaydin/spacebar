@@ -122,11 +122,17 @@ struct TreemapView: View {
                 let frames = squarify(tiles.map { Double($0.bytes) }, in: CGRect(origin: .zero, size: geo.size))
                 ZStack(alignment: .topLeading) {
                     ForEach(Array(zip(tiles, frames)), id: \.0.id) { tile, frame in
-                        TileView(name: tile.name, bytes: tile.bytes, kind: tile.kind,
-                                 isFolder: tile.entry?.isFolder == true, count: tile.count)
-                            .frame(width: max(0, frame.width - 2), height: max(0, frame.height - 2))
-                            .offset(x: frame.minX + 1, y: frame.minY + 1)
-                            .onTapGesture { if let entry = tile.entry, entry.isFolder { explorer.open(entry) } }
+                        // Folder tiles are buttons, so Tab (with keyboard navigation on) reaches them
+                        // and Space opens them.
+                        Button {
+                            if let entry = tile.entry, entry.isFolder { explorer.open(entry) }
+                        } label: {
+                            TileView(name: tile.name, bytes: tile.bytes, kind: tile.kind,
+                                     isFolder: tile.entry?.isFolder == true, count: tile.count)
+                        }
+                        .buttonStyle(.plain)
+                        .frame(width: max(0, frame.width - 2), height: max(0, frame.height - 2))
+                        .offset(x: frame.minX + 1, y: frame.minY + 1)
                     }
                 }
             }

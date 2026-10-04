@@ -329,3 +329,27 @@ final class IncrementalScanTests: XCTestCase {
         XCTAssertFalse(CleanCategory.rule(rule).isAffected(by: ["/Users/test/Desktop"], home: home))
     }
 }
+
+final class TimeMachineTests: XCTestCase {
+    func testLastBackupIsTheNewestSnapshotOfAnyDestination() throws {
+        let old = Date(timeIntervalSince1970: 1_800_000_000), new = old.addingTimeInterval(86400)
+        let plist: [String: Any] = ["Destinations": [["SnapshotDates": [old]], ["SnapshotDates": [old, new]]]]
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tm-\(UUID().uuidString).plist")
+        try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+        XCTAssertEqual(TimeMachine.lastBackup(settings: url), new)
+
+        let empty = FileManager.default.temporaryDirectory.appendingPathComponent("tm-\(UUID().uuidString).plist")
+        try PropertyListSerialization.data(fromPropertyList: ["AutoBackup": false], format: .xml, options: 0).write(to: empty)
+        defer { try? FileManager.default.removeItem(at: empty) }
+        XCTAssertNil(TimeMachine.lastBackup(settings: empty), "not set up: no badge")
+    }
+
+    func testBackedUpOnlyWhenIncludedAndUnchangedSince() {
+        let backup = Date(timeIntervalSince1970: 1_800_000_000)
+        XCTAssertTrue(TimeMachine.isBackedUp(modified: backup.addingTimeInterval(-60), excluded: false, lastBackup: backup))
+        XCTAssertFalse(TimeMachine.isBackedUp(modified: backup.addingTimeInterval(60), excluded: false, lastBackup: backup))
+        XCTAssertFalse(TimeMachine.isBackedUp(modified: backup.addingTimeInterval(-60), excluded: true, lastBackup: backup))
+        XCTAssertFalse(TimeMachine.isBackedUp(modified: backup.addingTimeInterval(-60), excluded: false, lastBackup: nil))
+    }
+}
