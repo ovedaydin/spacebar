@@ -112,6 +112,9 @@ public struct StorageBreakdown: Codable, Sendable {
     public var measuring: StorageSegment.Kind?
     /// Size of every folder measured for the breakdown (display paths), for growth history.
     public var folderSizes: [String: Int64]?
+    /// The file system's change position (FSEvents) when this was measured: changes after it are
+    /// replayed at launch, so only those folders are measured again.
+    public var eventID: UInt64?
 
     public init(total: Int64, free: Int64, purgeable: Int64, segments: [StorageSegment],
                 measuredAt: Date, complete: Bool, measuring: StorageSegment.Kind?) {
@@ -260,6 +263,8 @@ public enum StorageAnalyzer {
     public static func analyze(engine: BulkScanner, cancel: CancelToken? = nil,
                                progress: @escaping (StorageBreakdown) -> Void) -> StorageBreakdown? {
         guard let volumes = volumes() else { return nil }
+        // Taken first: anything that changes while measuring is replayed next time.
+        let eventID = FileWatcher.currentEventID
         let fm = FileManager.default
         let home = fm.homeDirectoryForCurrentUser
         let data = "/System/Volumes/Data"
@@ -333,6 +338,7 @@ public enum StorageAnalyzer {
         breakdown.segments.append(systemData)
         breakdown.complete = true
         breakdown.measuredAt = Date()
+        breakdown.eventID = eventID
         progress(breakdown)
         return breakdown
     }

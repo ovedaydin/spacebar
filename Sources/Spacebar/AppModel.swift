@@ -272,9 +272,11 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func scanAll() {
+    /// `fullStorage: false` (at launch): when the saved breakdown can be caught up from the changes
+    /// made since (see `startLiveUpdates`), skip measuring the whole disk again.
+    func scanAll(fullStorage: Bool = true) {
         refreshSystem()
-        refreshStorage()
+        if fullStorage || !catchingUpStorage { refreshStorage() }
         // On-demand scans read Desktop/Documents/Downloads; with Full Disk Access that shows no prompts.
         let includeOnDemand = fullDiskAccess == true
         for category in categories where !category.onDemand || includeOnDemand || results[category.id] != nil {
@@ -535,18 +537,57 @@ final class AppModel: ObservableObject {
 
     /// Watches the folders behind the breakdown. Changes are collected and applied every ~20 s
     /// while Spacebar is active (and when it becomes active again).
+    /// A full measurement is redone at least this often, even when changes could be replayed.
+    static let fullMeasurementInterval: TimeInterval = 7 * 86400
+
+    /// Watches for changes. At launch it first replays what changed since the saved breakdown was
+    /// measured (macOS keeps that history), so only those folders are measured again.
     func startLiveUpdates() {
         guard storageWatcher == nil else { return }
-        storageWatcher = FileWatcher(paths: StorageAnalyzer.watchedFolders, latency: 5) { [weak self] changed, rescan in
+        var since: UInt64?
+        if let storage, storage.complete, let eventID = storage.eventID,
+           Date().timeIntervalSince(storage.measuredAt) < Self.fullMeasurementInterval {
+            since = eventID
+            catchingUpStorage = true
+        }
+        storageWatcher = FileWatcher(paths: StorageAnalyzer.watchedFolders, latency: 5, since: since) { [weak self] changed, rescan in
             Task { @MainActor in self?.noteStorageChanges(changed, rescan: rescan) }
+        } progress: { [weak self] lastEventID, historyDone in
+            Task { @MainActor in
+                guard let self else { return }
+                self.lastStorageEventID = lastEventID
+                if historyDone && self.catchingUpStorage {
+                    self.catchingUpStorage = false
+                    self.storageTrace("storage: caught up from history, \(self.storageChanges.count) changed paths, rescan=\(self.storageRescan)")
+                    self.applyStorageChanges() // right away, not after the usual pause
+                }
+            }
         }
         storageWatcher?.start()
+        if catchingUpStorage {
+            // If the replay never finishes, measure everything instead.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 60) { [weak self] in
+                guard let self, self.catchingUpStorage else { return }
+                self.catchingUpStorage = false
+                self.refreshStorage()
+            }
+        }
     }
+
+    private func storageTrace(_ message: String) {
+        guard DebugSnapshot.enabled else { return }
+        FileHandle.standardError.write(Data("[\(Date())] \(message)\n".utf8))
+    }
+
+    /// Replaying changes made while Spacebar wasn't running.
+    private var catchingUpStorage = false
+    /// The newest change the watcher delivered (saved with the breakdown once applied).
+    private var lastStorageEventID: UInt64?
 
     private func noteStorageChanges(_ changed: [String], rescan: Bool) {
         storageChanges.formUnion(changed.map(StorageAnalyzer.displayPath))
         storageRescan = storageRescan || rescan
-        guard NSApp.isActive, storageChangeTask == nil else { return }
+        guard NSApp.isActive, storageChangeTask == nil, !catchingUpStorage else { return }
         storageChangeTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 20_000_000_000)
             self.storageChangeTask = nil
@@ -567,14 +608,22 @@ final class AppModel: ObservableObject {
         let roots = storage.folderSizes.map { Array($0.keys) } ?? []
         let affected = Set(storageChanges.compactMap { FileWatcher.owningRoot(of: $0, in: roots) })
         storageChanges = []
-        guard !affected.isEmpty else { return }
+        // Every change up to here is in `affected`, so the saved breakdown can resume after it.
+        let eventID = lastStorageEventID
+        guard !affected.isEmpty else {
+            if let eventID, var current = self.storage { current.eventID = eventID; self.storage = current; ScanCache.save(current) }
+            return
+        }
         let paths = Array(affected)
+        let started = Date()
         Task.detached(priority: .utility) {
             let sizes = BulkScanner().measure(paths.map { URL(fileURLWithPath: StorageAnalyzer.measurablePath($0)) }, cancel: nil)
             let free = VolumeSpace.home()?.free
             await MainActor.run {
                 guard var current = self.storage, !self.storageRunning else { return }
                 current.update(folders: Dictionary(uniqueKeysWithValues: zip(paths, sizes.map(\.allocated))), free: free)
+                if let eventID { current.eventID = eventID }
+                self.storageTrace("storage: re-measured \(paths.count) changed folders in \(String(format: "%.1f", Date().timeIntervalSince(started))) s")
                 self.storage = current
                 self.space = .home()
                 self.liveUpdatedAt = Date()
@@ -585,6 +634,7 @@ final class AppModel: ObservableObject {
 
     func refreshStorage() {
         guard !storageRunning else { return }
+        storageTrace("storage: full measurement")
         storageRunning = true
         let hadComplete = storage?.complete == true
         let activity = ProcessInfo.processInfo.beginActivity(options: .userInitiated, reason: "Measuring disk usage")

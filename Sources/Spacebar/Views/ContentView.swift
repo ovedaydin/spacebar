@@ -201,7 +201,7 @@ struct ContentView: View {
             }
             // Cached results are on screen already; measure again in the background.
             if onboardingDone && (model.showingCachedResults || DebugSnapshot.environment("SPACEBAR_AUTOSCAN") != nil) {
-                model.scanAll()
+                model.scanAll(fullStorage: false)
             }
         }
         .onReceive(FinderIntegration.requests) { folder in
