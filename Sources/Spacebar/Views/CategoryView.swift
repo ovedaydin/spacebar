@@ -48,6 +48,16 @@ struct CategoryView: View {
             }
         }
         .navigationTitle(category.name)
+        .toolbar {
+            if category.group == .rules {
+                ToolbarItem {
+                    Button { model.editRule(categoryID: category.id) } label: {
+                        Label("Edit Rule…", systemImage: "slider.horizontal.3")
+                    }
+                    .help("Edit Rule…")
+                }
+            }
+        }
         .cleanConfirmation($pending, model: model)
     }
 

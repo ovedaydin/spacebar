@@ -1706,6 +1706,9 @@
         }
       }
     },
+    "*.dmg, *.zip" : {
+
+    },
     "+%@" : {
       "localizations" : {
         "de" : {
@@ -1751,6 +1754,9 @@
         }
       }
     },
+    "1 day" : {
+
+    },
     "1 month" : {
       "localizations" : {
         "de" : {
@@ -1795,6 +1801,9 @@
         }
       }
     },
+    "1 year" : {
+
+    },
     "1. Click Open System Settings." : {
       "localizations" : {
         "de" : {
@@ -1816,6 +1825,12 @@
           }
         }
       }
+    },
+    "2 months" : {
+
+    },
+    "2 weeks" : {
+
     },
     "2. Turn on Spacebar. If it isn't listed, click + and choose Spacebar in Applications." : {
       "localizations" : {
@@ -2085,6 +2100,9 @@
           }
         }
       }
+    },
+    "Add Rule" : {
+
     },
     "Alerts" : {
       "localizations" : {
@@ -2977,6 +2995,9 @@
         }
       }
     },
+    "Choose" : {
+
+    },
     "Choose Folder…" : {
       "localizations" : {
         "de" : {
@@ -3020,6 +3041,9 @@
           }
         }
       }
+    },
+    "Choose…" : {
+
     },
     "Clean" : {
       "localizations" : {
@@ -3162,6 +3186,9 @@
           }
         }
       }
+    },
+    "Clean files you choose: for example old DMGs in Downloads, or screenshots on the Desktop" : {
+
     },
     "Clean safe items once a week" : {
       "localizations" : {
@@ -3703,6 +3730,12 @@
           }
         }
       }
+    },
+    "Delete Rule" : {
+
+    },
+    "Delete “%@”?" : {
+
     },
     "Deleted" : {
 
@@ -4475,6 +4508,12 @@
         }
       }
     },
+    "Edit Rule" : {
+
+    },
+    "Edit Rule…" : {
+
+    },
     "Eject" : {
       "localizations" : {
         "de" : {
@@ -4770,6 +4809,9 @@
           }
         }
       }
+    },
+    "Files it found aren't touched." : {
+
     },
     "Files over 1 MB with identical content in your home folder (outside Library). For each set, one copy is kept: the one outside Downloads with the shortest path. Right-click a copy to keep it instead. Copies that already share disk space (APFS clones) are left out, because deleting them frees nothing." : {
       "extractionState" : "stale",
@@ -5432,6 +5474,9 @@
         }
       }
     },
+    "Include in automatic cleaning" : {
+
+    },
     "Includes nothing purgeable. macOS can also free %@ of purgeable space on its own." : {
       "localizations" : {
         "de" : {
@@ -5980,6 +6025,12 @@
         }
       }
     },
+    "Look in" : {
+
+    },
+    "Looking…" : {
+
+    },
     "Looks like a security key or certificate" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6115,6 +6166,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Harita"
+          }
+        }
+      }
+    },
+    "Matches %lld items (%@) right now. You review them before anything is removed." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Matches %1$lld items (%2$@) right now. You review them before anything is removed."
           }
         }
       }
@@ -6751,6 +6812,12 @@
     "Moves them from the Trash to where they were" : {
 
     },
+    "Name" : {
+
+    },
+    "Names to match" : {
+
+    },
     "Needs Full Disk Access" : {
       "localizations" : {
         "de" : {
@@ -6794,6 +6861,12 @@
           }
         }
       }
+    },
+    "New Rule" : {
+
+    },
+    "New Rule…" : {
+
     },
     "Newer build-tools %@ installed" : {
       "extractionState" : "stale",
@@ -7434,6 +7507,9 @@
           }
         }
       }
+    },
+    "Nothing matches right now." : {
+
     },
     "Nothing suggested to clean" : {
       "localizations" : {
@@ -8883,6 +8959,9 @@
         }
       }
     },
+    "Save" : {
+
+    },
     "Saved windows" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -9281,6 +9360,9 @@
           }
         }
       }
+    },
+    "Separate with commas. * matches any text, ? one character. Case doesn't matter." : {
+
     },
     "Settings" : {
       "comment" : "Kind of app data in ~/Library, shown when uninstalling an app",
@@ -10617,6 +10699,9 @@
         }
       }
     },
+    "Start From" : {
+
+    },
     "Start Scan" : {
       "localizations" : {
         "de" : {
@@ -10712,6 +10797,15 @@
           }
         }
       }
+    },
+    "Subfolders, 2 levels" : {
+
+    },
+    "Subfolders, 3 levels" : {
+
+    },
+    "Subfolders, 5 levels" : {
+
     },
     "Suggest caches not used in" : {
       "localizations" : {
@@ -11052,6 +11146,9 @@
         }
       }
     },
+    "The weekly automatic clean (Settings → Automatic) moves matches to the Trash." : {
+
+    },
     "Their items are skipped. Quit %@ and scan again to clean them." : {
       "localizations" : {
         "de" : {
@@ -11208,6 +11305,9 @@
         }
       }
     },
+    "This folder only" : {
+
+    },
     "This scan reads your personal folders, so macOS may ask for permission." : {
       "localizations" : {
         "de" : {
@@ -11319,6 +11419,9 @@
           }
         }
       }
+    },
+    "Unchanged for" : {
+
     },
     "Undo Last Clean (Put Back)" : {
       "localizations" : {
@@ -12251,6 +12354,9 @@
           }
         }
       }
+    },
+    "Your Rules" : {
+
     },
     "Your apps, least recently used first. \"Last used\" combines Spotlight's record with traces apps leave when they run (settings, caches, saved windows). Apps from Apple and apps that are running can't be removed here." : {
       "extractionState" : "stale",

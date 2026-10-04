@@ -320,6 +320,7 @@ enum DebugSnapshot {
                     NSApp.activate(ignoringOtherApps: true)
                     NSApp.windows.first(where: \.isVisible)?.makeKeyAndOrderFront(nil)
                 case "historytest": historySelfTest(phase: parts[1])
+                case "newrule": NotificationCenter.default.post(name: newRuleNotification, object: Int(parts[1]))
                 case "closewin": NSApp.windows.filter { $0.canBecomeMain }.forEach { $0.close() }
                 case "windows":
                     let titles = NSApp.windows.filter { $0.canBecomeMain && $0.isVisible }.map(\.title)
@@ -349,6 +350,7 @@ enum DebugSnapshot {
         window.sendEvent(down)
     }
 
+    static let newRuleNotification = Notification.Name("Spacebar.debugNewRule")
     private static var historyFixture: URL?
 
     /// Cleaning history on a fixture of our own: "clean" trashes it with history on, "putback"

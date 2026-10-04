@@ -179,9 +179,9 @@ public struct CleanCategory: Identifiable, Sendable {
     /// Suggest only items that haven't been modified for a while (see `Suggestion`).
     public var ageBased: Bool { ["caches", "xcode", "devcaches"].contains(id) }
 
-    public enum Group: Sendable { case cleanup, findSpace }
+    public enum Group: Sendable { case cleanup, findSpace, rules }
     public enum SortOrder: Sendable { case largestFirst, oldestFirst }
-    public var group: Group { Self.findSpaceIDs.contains(id) ? .findSpace : .cleanup }
+    public var group: Group { id.hasPrefix("rule-") ? .rules : Self.findSpaceIDs.contains(id) ? .findSpace : .cleanup }
     public var sortOrder: SortOrder { id == "apps" ? .oldestFirst : .largestFirst }
     static let findSpaceIDs: Set<String> = ["forgotten", "icloud", "devtools", "messages", "duplicates", "apps", "leftovers", "simulators", "docker",
                                             "snapshots", "projects", "mail", "photos"]

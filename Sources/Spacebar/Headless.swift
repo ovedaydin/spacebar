@@ -23,6 +23,16 @@ enum Headless {
         var bytes: Int64 { pairs.reduce(0) { $0 + $1.item.size } }
     }
 
+    /// Spacebar's categories plus the user's rules.
+    static var allCategories: [CleanCategory] {
+        CleanCategory.all + CleanupRules.load(from: AppDefaults.shared).map(CleanCategory.rule)
+    }
+
+    /// Rules the user included in automatic cleaning.
+    static var automaticRuleCategories: [CleanCategory] {
+        CleanupRules.load(from: AppDefaults.shared).filter(\.automatic).map(CleanCategory.rule)
+    }
+
     /// What a safe clean covers: caches and logs. Same as automatic cleaning (the Trash is left alone).
     static var safeCategories: [CleanCategory] {
         CleanCategory.all.filter { $0.group == .cleanup && $0.safety == .safe && $0.id != "trash" }

@@ -44,6 +44,20 @@ struct ContentView: View {
                         SidebarRow(category: category).tag(Route.category(category.id))
                     }
                 }
+                Section("Your Rules") {
+                    ForEach(model.categories.filter { $0.group == .rules }) { category in
+                        SidebarRow(category: category).tag(Route.category(category.id))
+                            .contextMenu {
+                                Button("Edit Rule…") { model.editRule(categoryID: category.id) }
+                            }
+                    }
+                    Button { model.newRule() } label: {
+                        Label("New Rule…", systemImage: "plus")
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .help("Clean files you choose: for example old DMGs in Downloads, or screenshots on the Desktop")
+                }
             }
             .navigationSplitViewColumnWidth(min: 230, ideal: 250)
         } detail: {
@@ -193,6 +207,18 @@ struct ContentView: View {
         .onReceive(FinderIntegration.requests) { folder in
             explorer.show(folder)
             route = .explorer
+        }
+        // Debug hook: open the rule editor on a preset.
+        .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.newRuleNotification)) { note in
+            guard let index = note.object as? Int, CleanupRule.presets.indices.contains(index) else { return }
+            model.editingRule = .init(rule: CleanupRule.presets[index], isNew: true)
+        }
+        .sheet(item: $model.editingRule) { editing in
+            RuleEditor(rule: editing.rule, isNew: editing.isNew).environmentObject(model)
+        }
+        // A deleted rule's page would point at a category that's gone.
+        .onChange(of: model.rules) { _ in
+            if case .category(let id) = route, model.category(id) == nil { route = .overview }
         }
         .sheet(item: Binding(get: { model.uninstalling.map(UninstallTarget.init) },
                              set: { if $0 == nil { model.uninstalling = nil } })) { target in

@@ -6,7 +6,36 @@ import UserNotifications
 
 @MainActor
 final class AppModel: ObservableObject {
-    let categories = CleanCategory.all
+    /// Spacebar's categories, then the user's rules.
+    @Published private(set) var categories = Headless.allCategories
+    /// The rule editor sheet: a rule being created (new) or edited.
+    struct RuleEditing: Identifiable { let rule: CleanupRule; let isNew: Bool; var id: UUID { rule.id } }
+    @Published var editingRule: RuleEditing?
+
+    func newRule() {
+        editingRule = RuleEditing(rule: CleanupRule(name: "", folder: "~/Downloads", patterns: [], olderThanDays: 30), isNew: true)
+    }
+
+    func editRule(categoryID: String) {
+        if let rule = rules.first(where: { $0.categoryID == categoryID }) { editingRule = RuleEditing(rule: rule, isNew: false) }
+    }
+
+    /// The user's cleanup rules (saved with the app's settings, which the `spacebar` command reads too).
+    @Published var rules: [CleanupRule] = CleanupRules.load(from: AppDefaults.shared) {
+        didSet {
+            guard rules != oldValue else { return }
+            CleanupRules.save(rules, to: AppDefaults.shared)
+            categories = CleanCategory.all + rules.map(CleanCategory.rule)
+            let kept = Set(rules.map(\.categoryID))
+            for removed in oldValue where !kept.contains(removed.categoryID) {
+                results[removed.categoryID] = nil
+            }
+            // New or edited rules are scanned right away.
+            for rule in rules where !oldValue.contains(rule) {
+                if let category = category(rule.categoryID) { scan(category) }
+            }
+        }
+    }
     private let engine = BulkScanner()
 
     @Published private(set) var results: [String: [CleanItem]] = [:]
@@ -411,7 +440,7 @@ final class AppModel: ObservableObject {
            Date().timeIntervalSince(last) < 7 * 86400 { return }
         defaults.set(Date(), forKey: Preferences.lastAutoClean)
 
-        let categories = Headless.safeCategories
+        let categories = Headless.safeCategories + Headless.automaticRuleCategories
         let context = ScanContext(engine: BulkScanner(), runningApps: RunningApps.bundleIDs(),
                                   fullDiskAccess: fullDiskAccess ?? false, excluded: exclusions)
         let staleDays = staleDays

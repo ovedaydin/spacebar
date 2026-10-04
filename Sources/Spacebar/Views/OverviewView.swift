@@ -96,6 +96,9 @@ struct OverviewView: View {
                 if model.hasScanned {
                     categoryList("Cleanup", model.categories.filter { $0.group == .cleanup })
                     categoryList("Find Space", model.categories.filter { $0.group == .findSpace })
+                    if !model.rules.isEmpty {
+                        categoryList("Your Rules", model.categories.filter { $0.group == .rules })
+                    }
                 }
     }
 

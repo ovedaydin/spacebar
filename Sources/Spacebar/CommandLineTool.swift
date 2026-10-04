@@ -94,8 +94,8 @@ enum CommandLineTool {
     }
 
     private static func categories() {
-        let rows = CleanCategory.all.map { category in
-            [category.id, category.name, category.group == .cleanup ? "Cleanup" : "Find Space",
+        let rows = Headless.allCategories.map { category in
+            [category.id, category.name, category.group == .cleanup ? "Cleanup" : category.group == .rules ? "Your Rules" : "Find Space",
              Headless.safeCategories.contains { $0.id == category.id } ? "yes" : ""]
         }
         printTable(["ID", "NAME", "GROUP", "IN --safe"], rows)
@@ -104,7 +104,7 @@ enum CommandLineTool {
     private static func scan(_ ids: [String], flags: Set<String>) throws {
         try checkFlags(flags, allowed: ["--json"])
         let settings = Headless.Settings.current()
-        let categories = try resolve(ids, default: CleanCategory.all.filter { !$0.onDemand })
+        let categories = try resolve(ids, default: Headless.allCategories.filter { !$0.onDemand })
         let results = Headless.scan(categories, settings: settings, progress: progress)
         clearProgress()
         let plans = results.map { ($0, Headless.plan([$0], settings: settings)) }
@@ -179,8 +179,10 @@ enum CommandLineTool {
             return report.skipped.isEmpty ? 0 : 1
         }
         if report.dryRun {
-            print("\nDry run: nothing was removed. Spacebar would free \(ByteFormat.string(report.deletedBytes))"
-                  + (report.trashedBytes > 0 ? " and move \(ByteFormat.string(report.trashedBytes)) to the Trash." : "."))
+            var parts: [String] = []
+            if report.deletedBytes > 0 { parts.append("free \(ByteFormat.string(report.deletedBytes))") }
+            if report.trashedBytes > 0 { parts.append("move \(ByteFormat.string(report.trashedBytes)) to the Trash") }
+            print("\nDry run: nothing was removed. Spacebar would \(parts.isEmpty ? "remove nothing" : parts.joined(separator: " and ")).")
         } else {
             var line = "\nFreed \(ByteFormat.string(report.deletedBytes))."
             if report.trashedBytes > 0 {
@@ -231,7 +233,7 @@ enum CommandLineTool {
     private static func resolve(_ ids: [String], default all: [CleanCategory]) throws -> [CleanCategory] {
         guard !ids.isEmpty else { return all }
         return try ids.map { id in
-            guard let category = CleanCategory.all.first(where: { $0.id.lowercased() == id.lowercased() }) else {
+            guard let category = Headless.allCategories.first(where: { $0.id.lowercased() == id.lowercased() }) else {
                 throw UsageError(message: "No category “\(id)”. See “spacebar categories”.")
             }
             return category
