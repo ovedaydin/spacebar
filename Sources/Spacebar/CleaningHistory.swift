@@ -3,7 +3,7 @@ import Foundation
 /// One clean Spacebar did (never dry runs), kept so it can be put back later.
 struct CleaningRecord: Codable, Identifiable, Sendable {
     enum Source: String, Codable, Sendable {
-        case app, explorer, automatic, uninstall, commandLine, shortcuts
+        case app, explorer, automatic, uninstall, commandLine, shortcuts, reminder
     }
 
     struct Item: Codable, Sendable {

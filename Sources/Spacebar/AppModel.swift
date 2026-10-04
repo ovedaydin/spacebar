@@ -435,6 +435,16 @@ final class AppModel: ObservableObject {
     func runAutomaticTasks() {
         let defaults = UserDefaults.standard
         if defaults.bool(forKey: Preferences.autoEmptyTrashed) { emptyOldTrashed() }
+        // Forgotten files read Downloads and the Desktop: only with Full Disk Access, so no prompts.
+        if defaults.bool(forKey: Preferences.forgottenReminders), fullDiskAccess == true, !isScanning {
+            let context = ScanContext(engine: BulkScanner(), runningApps: RunningApps.bundleIDs(),
+                                      fullDiskAccess: true, excluded: exclusions)
+            Task.detached(priority: .utility) {
+                if let item = await ResourceBudget.heavy({ ForgottenReminder.candidate(context: context) }) {
+                    ForgottenReminder.ask(about: item)
+                }
+            }
+        }
         guard defaults.bool(forKey: Preferences.autoClean), !cleaning, !isScanning else { return }
         if let last = defaults.object(forKey: Preferences.lastAutoClean) as? Date,
            Date().timeIntervalSince(last) < 7 * 86400 { return }

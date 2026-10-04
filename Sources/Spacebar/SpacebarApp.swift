@@ -121,9 +121,11 @@ enum Preferences {
     static let autoEmptyTrashed = "autoEmptyTrashed"
     static let lastAutoClean = "lastAutoClean"
     static let onboardingPage = "onboardingPage"
+    static let forgottenReminders = "forgottenReminders"
 
     static func register() {
-        UserDefaults.standard.register(defaults: [showMenuBar: true, lowDiskAlerts: true, lowDiskThresholdGB: 10])
+        UserDefaults.standard.register(defaults: [showMenuBar: true, lowDiskAlerts: true, lowDiskThresholdGB: 10,
+                                                  forgottenReminders: true])
     }
 }
 
@@ -158,11 +160,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         IOPolicy.configureForScanning()
         handleLinks()
         UNUserNotificationCenter.current().delegate = self
+        ForgottenReminder.registerActions()
     }
 
     /// Clicking the low-disk notification brings Spacebar forward.
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                             withCompletionHandler completionHandler: @escaping () -> Void) {
+        let content = response.notification.request.content
+        if content.categoryIdentifier == ForgottenReminder.category {
+            ForgottenReminder.handle(action: response.actionIdentifier, userInfo: content.userInfo)
+            completionHandler()
+            return
+        }
         completionHandler()
         Task { @MainActor in
             NSApp.activate(ignoringOtherApps: true)
@@ -320,6 +329,7 @@ enum DebugSnapshot {
                     NSApp.activate(ignoringOtherApps: true)
                     NSApp.windows.first(where: \.isVisible)?.makeKeyAndOrderFront(nil)
                 case "historytest": historySelfTest(phase: parts[1])
+                case "remindertest": reminderSelfTest()
                 case "newrule": NotificationCenter.default.post(name: newRuleNotification, object: Int(parts[1]))
                 case "closewin": NSApp.windows.filter { $0.canBecomeMain }.forEach { $0.close() }
                 case "windows":
@@ -348,6 +358,36 @@ enum DebugSnapshot {
         // so the mouse-up must already be queued when the mouse-down is delivered.
         NSApp.postEvent(up, atStart: false)
         window.sendEvent(down)
+    }
+
+    /// Forgotten-file reminder: which real file it would ask about (read-only), then Keep and
+    /// Move to Trash on a fixture of our own in Downloads, put back and removed afterwards.
+    private static func reminderSelfTest() {
+        func say(_ s: String) { FileHandle.standardError.write(Data("[remindertest] \(s)\n".utf8)) }
+        let context = ScanContext(engine: BulkScanner(), runningApps: RunningApps.bundleIDs(), fullDiskAccess: true)
+        Task.detached {
+            let real = ForgottenReminder.candidate(context: context, ignoringSchedule: true)
+            say("would ask about: \(real.map { "\($0.url.path) \(ByteFormat.string($0.size)) last used \($0.lastUsed.map(String.init(describing:)) ?? "?")" } ?? "nothing")")
+            let fm = FileManager.default
+            let fixture = fm.homeDirectoryForCurrentUser.appendingPathComponent("Downloads/spacebar-selftest-\(UUID().uuidString.prefix(6)).bin")
+            fm.createFile(atPath: fixture.path, contents: Data(repeating: 3, count: 16384))
+            try? fm.setAttributes([.modificationDate: Date().addingTimeInterval(-90 * 86400)], ofItemAtPath: fixture.path)
+            ForgottenReminder.handle(action: ForgottenReminder.keepAction, userInfo: ["path": fixture.path, "bytes": Int64(16384)])
+            let kept = UserDefaults.standard.stringArray(forKey: "forgottenReminderKept") ?? []
+            say("keep remembered: \(kept.contains(fixture.path))")
+            UserDefaults.standard.set(kept.filter { $0 != fixture.path }, forKey: "forgottenReminderKept")
+            ForgottenReminder.moveToTrash(fixture, bytes: 16384)
+            say("after Move to Trash: at original=\(fm.fileExists(atPath: fixture.path))")
+            guard let record = CleaningHistory.load().first(where: { $0.items.contains { $0.original == fixture.path } }) else {
+                say("FAIL: no history record"); return
+            }
+            say("history source=\(record.source.rawValue) restorable=\(record.restorable.count)")
+            let back = Cleaner.putBack(record.restorable, dryRun: false)
+            say("put back=\(back.restoredItems.count) at original=\(fm.fileExists(atPath: fixture.path))")
+            try? fm.removeItem(at: fixture)
+            CleaningHistory.remove(record.id)
+            say("cleaned up: fixture-gone=\(!fm.fileExists(atPath: fixture.path))")
+        }
     }
 
     static let newRuleNotification = Notification.Name("Spacebar.debugNewRule")

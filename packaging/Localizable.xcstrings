@@ -269,6 +269,26 @@
         }
       }
     },
+    "%@ in %@, last opened %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ in %2$@, last opened %3$@."
+          }
+        }
+      }
+    },
+    "%@ in %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ in %2$@."
+          }
+        }
+      }
+    },
     "%@ is running. Quit it before uninstalling." : {
       "localizations" : {
         "de" : {
@@ -2585,6 +2605,12 @@
           }
         }
       }
+    },
+    "Ask about big files left in Downloads or on the Desktop" : {
+
+    },
+    "At most once a week: a file over 500 MB you haven't opened in 2 months, with Keep and Move to Trash buttons. Nothing is removed unless you click Move to Trash." : {
+
     },
     "Attachments from %@" : {
       "extractionState" : "stale",
@@ -5014,6 +5040,9 @@
         }
       }
     },
+    "Forgotten file reminder" : {
+
+    },
     "Free" : {
       "localizations" : {
         "de" : {
@@ -5633,6 +5662,9 @@
           }
         }
       }
+    },
+    "Keep" : {
+
     },
     "Keep This Copy Instead" : {
       "localizations" : {
@@ -10751,6 +10783,9 @@
           }
         }
       }
+    },
+    "Still need %@?" : {
+
     },
     "Stopped containers" : {
       "extractionState" : "stale",

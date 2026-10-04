@@ -108,6 +108,7 @@ struct HistoryView: View {
         case .uninstall: return String(localized: "Uninstall")
         case .commandLine: return String(localized: "Command line")
         case .shortcuts: return String(localized: "Shortcuts")
+        case .reminder: return String(localized: "Forgotten file reminder")
         }
     }
 
