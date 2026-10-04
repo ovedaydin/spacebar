@@ -13,6 +13,7 @@ struct ContentView: View {
     @EnvironmentObject private var explorer: ExplorerModel
     @State private var route: Route? = ContentView.initialRoute
     @AppStorage(Preferences.onboardingDone) private var onboardingDone = false
+    @Environment(\.openWindow) private var openWindow
 
     /// SPACEBAR_ROUTE=explorer|<category id> opens a specific page (development aid).
     private static var initialRoute: Route {
@@ -172,10 +173,22 @@ struct ContentView: View {
             model.setSelected(model.selectedItems(id).isEmpty, items: items)
         }
         .onAppear {
+            // Kept for Finder requests that arrive after this window is closed.
+            let openWindow = openWindow
+            FinderIntegration.openMainWindow = { openWindow(id: "main") }
+            if let folder = FinderIntegration.pending {
+                FinderIntegration.pending = nil
+                explorer.show(folder)
+                route = .explorer
+            }
             // Cached results are on screen already; measure again in the background.
             if onboardingDone && (model.showingCachedResults || DebugSnapshot.environment("SPACEBAR_AUTOSCAN") != nil) {
                 model.scanAll()
             }
+        }
+        .onReceive(FinderIntegration.requests) { folder in
+            explorer.show(folder)
+            route = .explorer
         }
         .sheet(item: Binding(get: { model.uninstalling.map(UninstallTarget.init) },
                              set: { if $0 == nil { model.uninstalling = nil } })) { target in

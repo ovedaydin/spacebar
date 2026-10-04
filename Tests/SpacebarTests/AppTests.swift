@@ -86,3 +86,25 @@ final class CleanerTests: XCTestCase {
         XCTAssertEqual(kept.map { $0.0.url.path }, ["/a/pip", "/a/pipx"])
     }
 }
+
+final class FinderIntegrationTests: XCTestCase {
+    func testLinksOnlyShowExistingFolders() throws {
+        let base = FileManager.default.temporaryDirectory.appendingPathComponent("sb-links-\(UUID().uuidString)")
+        let folder = base.appendingPathComponent("My Folder & ü #1")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: base) }
+        let file = folder.appendingPathComponent("a.txt")
+        try Data("x".utf8).write(to: file)
+
+        // Round trip, including spaces and characters that need escaping.
+        let link = try XCTUnwrap(FinderIntegration.showURL(for: folder))
+        XCTAssertEqual(FinderIntegration.folder(from: link)?.path, folder.path)
+        // A file shows the folder it's in.
+        XCTAssertEqual(FinderIntegration.folder(from: try XCTUnwrap(FinderIntegration.showURL(for: file)))?.path, folder.path)
+
+        for rejected in ["spacebar://clean?path=/tmp", "spacebar://show?path=relative/path", "spacebar://show",
+                         "spacebar://show?path=/no/such/folder/\(UUID().uuidString)", "https://show?path=/tmp"] {
+            XCTAssertNil(FinderIntegration.folder(from: try XCTUnwrap(URL(string: rejected))), rejected)
+        }
+    }
+}

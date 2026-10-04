@@ -60,15 +60,7 @@ struct SpacebarApp: App {
         MenuBarExtra(isInserted: $showMenuBar) {
             MenuBarPanel().environmentObject(model)
         } label: {
-            // Icon only by default: on Macs with a notch, wide items are the first to be hidden.
-            if menuBarShowsSpace, let space = model.space {
-                HStack(spacing: 4) {
-                    Image(nsImage: MenuBarIcon.image)
-                    Text(ByteFormat.string(space.available))
-                }
-            } else {
-                Image(nsImage: MenuBarIcon.image)
-            }
+            MenuBarLabel(space: menuBarShowsSpace ? model.space : nil)
         }
         .menuBarExtraStyle(.window)
 
@@ -127,10 +119,36 @@ enum Preferences {
     }
 }
 
+/// The menu bar item. It also lends its `openWindow` to Finder requests, since it's
+/// around even when the main window is closed.
+private struct MenuBarLabel: View {
+    let space: VolumeSpace?
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        // Icon only by default: on Macs with a notch, wide items are the first to be hidden.
+        Group {
+            if let space {
+                HStack(spacing: 4) {
+                    Image(nsImage: MenuBarIcon.image)
+                    Text(ByteFormat.string(space.available))
+                }
+            } else {
+                Image(nsImage: MenuBarIcon.image)
+            }
+        }
+        .onAppear { FinderIntegration.openMainWindow = { openWindow(id: "main") } }
+    }
+}
+
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCenterDelegate {
+    private let services = ServiceProvider()
+
     func applicationWillFinishLaunching(_ notification: Notification) {
         Preferences.register()
         IOPolicy.configureForScanning()
+        handleLinks()
         UNUserNotificationCenter.current().delegate = self
     }
 
@@ -146,7 +164,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         // Lets `swift run Spacebar` show a normal app window too.
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+        handleLinks()   // again, in case SwiftUI installed its own handler meanwhile
+        // With its window closed Spacebar still lives in the menu bar. Without this, macOS treats a
+        // windowless app as quit: links and Finder requests then fail ("Connection is invalid").
+        ProcessInfo.processInfo.automaticTerminationSupportEnabled = false
+        NSApp.servicesProvider = services
+        NSUpdateDynamicServices()
         DebugSnapshot.scheduleIfRequested()
+    }
+
+    /// spacebar://show?path=… links, including the Finder service's. Handled here rather than
+    /// with onOpenURL: SwiftUI only delivers those to new windows, not to the one already open.
+    private func handleLinks() {
+        NSAppleEventManager.shared().setEventHandler(self, andSelector: #selector(handleLink(_:reply:)),
+                                                     forEventClass: AEEventClass(kInternetEventClass),
+                                                     andEventID: AEEventID(kAEGetURL))
+    }
+
+    @objc private func handleLink(_ event: NSAppleEventDescriptor, reply: NSAppleEventDescriptor) {
+        guard let string = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
+              let url = URL(string: string) else { return }
+        debugLog("open url \(string)")
+        guard let folder = FinderIntegration.folder(from: url) else { return }
+        FinderIntegration.request(folder)
     }
 
     /// With the menu bar item on, Spacebar keeps running after its window closes.
@@ -269,6 +309,10 @@ enum DebugSnapshot {
                 case "activate":
                     NSApp.activate(ignoringOtherApps: true)
                     NSApp.windows.first(where: \.isVisible)?.makeKeyAndOrderFront(nil)
+                case "closewin": NSApp.windows.filter { $0.canBecomeMain }.forEach { $0.close() }
+                case "windows":
+                    let titles = NSApp.windows.filter { $0.canBecomeMain && $0.isVisible }.map(\.title)
+                    FileHandle.standardError.write(Data("[windows] \(parts[1]) \(titles)\n".utf8))
                 case "quit": NSApp.terminate(nil)
                 default: break
                 }
@@ -475,7 +519,7 @@ enum DebugSnapshot {
         let chosen = panel ? candidates.first { String(describing: type(of: $0)).contains("MenuBarExtra") }
             : status ? candidates.first { String(describing: type(of: $0)).contains("StatusBar") }
             : sheet ? candidates.compactMap(\.attachedSheet).first
-            : candidates.first
+            : candidates.first(where: \.canBecomeMain) ?? candidates.first
         FileHandle.standardError.write(Data("[windows] \(candidates.map { "\(type(of: $0)) level=\($0.level.rawValue)" })\n".utf8))
         guard let window = chosen,
               let image = CGWindowListCreateImage(.null, .optionIncludingWindow, CGWindowID(window.windowNumber),
