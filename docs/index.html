@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spacebar: free disk space analyzer and cleaner for Mac</title>
+<meta name="description" content="See what's using your Mac's disk and safely clean caches, logs, build data and leftovers. Free and open source.">
+<meta property="og:title" content="Spacebar for Mac">
+<meta property="og:description" content="See what's using your disk and safely free up space. Free and open source.">
+<meta property="og:image" content="screenshots/overview.png">
+<link rel="icon" href="icon.png">
+<style>
+  :root {
+    --bg: #fbfbfd; --surface: #ffffff; --text: #1d1d1f; --muted: #5f5f66; --line: #e3e3e8;
+    --accent: #2a78d6; --accent-ink: #ffffff; --code: #f2f2f6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111113; --surface: #1c1c1f; --text: #f2f2f4; --muted: #a1a1aa; --line: #2c2c31;
+            --accent: #3987e5; --accent-ink: #ffffff; --code: #232328; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif; }
+  a { color: var(--accent); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  header { text-align: center; padding: 72px 0 40px; }
+  header img.icon { width: 112px; height: 112px; }
+  h1 { font-size: clamp(36px, 6vw, 56px); line-height: 1.05; margin: 18px 0 12px; letter-spacing: -0.02em; }
+  .lede { font-size: clamp(18px, 2.4vw, 22px); color: var(--muted); max-width: 640px; margin: 0 auto 28px; }
+  .install { display: inline-flex; align-items: center; gap: 10px; background: var(--code); border: 1px solid var(--line);
+             border-radius: 12px; padding: 10px 10px 10px 16px; max-width: 100%; }
+  .install code { font: 15px ui-monospace, "SF Mono", Menlo, monospace; overflow-x: auto; white-space: nowrap; }
+  button.copy { border: 0; border-radius: 8px; background: var(--accent); color: var(--accent-ink); padding: 6px 12px;
+                font: inherit; font-size: 14px; cursor: pointer; flex: none; }
+  .alt { color: var(--muted); font-size: 15px; margin-top: 14px; }
+  .shot { display: block; width: 100%; max-width: 920px; margin: 40px auto 0; border-radius: 12px;
+          border: 1px solid var(--line); box-shadow: 0 20px 60px rgba(0,0,0,.12); }
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: clamp(26px, 3.6vw, 34px); margin: 0 0 8px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 28px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; }
+  .card h3 { margin: 0 0 6px; font-size: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15.5px; }
+  .pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start; }
+  .pair img { width: 100%; border-radius: 10px; border: 1px solid var(--line); }
+  .pair figcaption { color: var(--muted); font-size: 14px; margin-top: 8px; }
+  figure { margin: 0; }
+  ul.checks { padding-left: 1.2em; margin: 0; }
+  ul.checks li { margin: 6px 0; }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; overflow-x: auto;
+        font: 14.5px/1.6 ui-monospace, "SF Mono", Menlo, monospace; }
+  footer { padding: 40px 0 60px; color: var(--muted); font-size: 15px; text-align: center; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <img class="icon" src="icon.png" alt="Spacebar icon">
+  <h1>Spacebar</h1>
+  <p class="lede">See what's using your Mac's disk, and safely free up space. Free, open source, and private: no accounts, no tracking, nothing leaves your Mac.</p>
+  <div class="install">
+    <code id="brew">brew install --cask ovedaydin/tap/spacebar</code>
+    <button class="copy" data-copy="brew">Copy</button>
+  </div>
+  <p class="alt">or <a href="https://github.com/ovedaydin/spacebar/releases/latest">download the DMG</a> · macOS 13 or later · Apple silicon and Intel</p>
+  <img class="shot" src="screenshots/overview.png" alt="Spacebar's Overview: a disk usage bar by category, what grew, and cleanup categories">
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>Know where the space went</h2>
+    <p class="sub">Measured, not estimated, and explained in plain words.</p>
+    <div class="grid">
+      <div class="card"><h3>Disk breakdown</h3><p>macOS, Apps, Documents, Developer, App Data, iCloud, Mail and more. Click any slice to explore it.</p></div>
+      <div class="card"><h3>System Data, explained</h3><p>Swap, temporary files, logs, a waiting macOS update, snapshots: each part says whether it's safe to remove.</p></div>
+      <div class="card"><h3>Storage per app</h3><p>What every app really costs: the app plus its data, caches and settings, with Clear Cache and Uninstall.</p></div>
+      <div class="card"><h3>What grew, and a forecast</h3><p>Folders that grew this week, and "at this rate, your disk is full in about 5 weeks".</p></div>
+      <div class="card"><h3>Space Explorer</h3><p>Any folder as a sorted list or a treemap, with search, Quick Look and keyboard navigation.</p></div>
+      <div class="card"><h3>Live and instant</h3><p>Sizes update as files change, and launch catches up on what changed while Spacebar was closed.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Clean up without worrying</h2>
+    <p class="sub">You review everything first, and almost everything can be put back.</p>
+    <div class="pair">
+      <figure><img src="screenshots/space-explorer.png" alt="Space Explorer showing folders by size"><figcaption>Space Explorer</figcaption></figure>
+      <figure><img src="screenshots/old-simulators.png" alt="A cleanup category listing old simulators with sizes"><figcaption>A cleanup category: review, then clean</figcaption></figure>
+    </div>
+    <div class="grid" style="margin-top:20px">
+      <div class="card"><h3>Smart suggestions</h3><p>Caches nobody used in a month, app leftovers, duplicates, forgotten downloads, old simulators, project build folders.</p></div>
+      <div class="card"><h3>History with Put Back</h3><p>Every clean is listed and can be put back while its items are in the Trash.</p></div>
+      <div class="card"><h3>Your own rules</h3><p>"DMGs in Downloads older than 30 days", "node_modules untouched for 3 months". Matches go to the Trash.</p></div>
+      <div class="card"><h3>Keep in the cloud only</h3><p>Free the local copy of big iCloud Drive, Dropbox, Google Drive and OneDrive files you don't open.</p></div>
+      <div class="card"><h3>Uninstaller</h3><p>Drop an app on the window to remove it with everything it left in your Library.</p></div>
+      <div class="card"><h3>Gentle by design</h3><p>Uses at most half your Mac while scanning, at background priority, so it never gets in the way.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>For the terminal and Shortcuts</h2>
+    <p class="sub">The same rules and safety checks, from anywhere.</p>
+<pre>spacebar status                    # free space on the startup disk
+spacebar scan                      # sizes and suggestions for every category
+spacebar clean --safe --dry-run    # what a safe clean would remove
+spacebar show ~/Downloads          # open a folder in Space Explorer</pre>
+    <p class="sub" style="margin-top:16px">Shortcuts actions: <strong>Free Up Space</strong>, <strong>Get Available Space</strong> and <strong>Show Folder in Spacebar</strong>. In Finder, right-click a folder and choose <strong>Show in Spacebar</strong>.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Safe and private</h2>
+    <ul class="checks">
+      <li>Nothing is removed until you review it. "Review" categories are never preselected, and Dry Run shows what would happen.</li>
+      <li>Apps that are running are skipped, most Apple caches are left alone, and every removal is logged.</li>
+      <li>No network access except checking for updates. No telemetry, no accounts.</li>
+      <li>Open source under the MIT license. <a href="https://github.com/ovedaydin/spacebar">Read the code on GitHub</a>.</li>
+    </ul>
+    <p class="sub" style="margin-top:20px">In English, Turkish, Spanish and German, with VoiceOver labels and keyboard navigation.</p>
+  </div>
+</section>
+
+<footer class="wrap">
+  <a href="https://github.com/ovedaydin/spacebar">GitHub</a> · <a href="https://github.com/ovedaydin/spacebar/releases">Releases</a> · <a href="https://github.com/ovedaydin/spacebar/blob/main/SECURITY.md">Security</a> · MIT License
+</footer>
+
+<script>
+  document.querySelectorAll("button.copy").forEach(function (button) {
+    button.addEventListener("click", function () {
+      var text = document.getElementById(button.dataset.copy).textContent;
+      try {
+        navigator.clipboard.writeText(text).then(function () {
+          button.textContent = "Copied";
+          setTimeout(function () { button.textContent = "Copy"; }, 1500);
+        });
+      } catch (e) { /* clipboard unavailable: the command is still selectable */ }
+    });
+  });
+</script>
+</body>
+</html>
