@@ -168,7 +168,7 @@ enum CommandLineTool {
             }
         }
 
-        let report = Headless.clean(plan, dryRun: dryRun)
+        let report = Headless.clean(plan, dryRun: dryRun, source: .commandLine)
         if json {
             printJSON(["dryRun": report.dryRun, "freedBytes": report.deletedBytes, "trashedBytes": report.trashedBytes,
                        "planned": plan.pairs.map { ["category": $0.category.id, "name": $0.item.name,

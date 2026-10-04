@@ -5,6 +5,7 @@
 
     },
     "%@ %@ runtime" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -313,6 +314,7 @@
       }
     },
     "%@ isn't installed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -423,6 +425,7 @@
       }
     },
     "%@ · %@ not packed, %lld pack files · git gc runs in Terminal" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "variations" : {
@@ -487,6 +490,7 @@
       }
     },
     "%@ · project changed %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -515,6 +519,7 @@
       }
     },
     "%@ · runtime no longer installed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -833,6 +838,7 @@
       }
     },
     "%lld attachment folders" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "variations" : {
@@ -909,6 +915,7 @@
       }
     },
     "%lld files received in %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "variations" : {
@@ -1147,6 +1154,7 @@
       }
     },
     "%lld local snapshots" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "variations" : {
@@ -1223,6 +1231,7 @@
       }
     },
     "%lld messages' attachments" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "variations" : {
@@ -1402,7 +1411,11 @@
         }
       }
     },
+    "%lld photos moved to Recently Deleted in Photos" : {
+
+    },
     "%lld s apart" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "variations" : {
@@ -1665,6 +1678,7 @@
       }
     },
     "%lld total, %lld in use" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1715,6 +1729,7 @@
       }
     },
     "/Users/Shared, which every account can use. Games and some apps keep large content here." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1890,10 +1905,8 @@
         }
       }
     },
-    "A downloaded update. Installing it removes the download." : {
-
-    },
     "A drive used by macOS" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1916,6 +1929,7 @@
       }
     },
     "A folder macOS manages on this drive" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1960,6 +1974,7 @@
       }
     },
     "A standard folder of your Mac" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -1982,6 +1997,7 @@
       }
     },
     "A system folder macOS and apps rely on" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2004,6 +2020,7 @@
       }
     },
     "Account type unknown, so it's kept" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2114,6 +2131,7 @@
       }
     },
     "Already unzipped into “%@”" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2158,6 +2176,7 @@
       }
     },
     "An app's data container. Removing it erases that app's data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2180,6 +2199,7 @@
       }
     },
     "Android %@ image (%@)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2208,6 +2228,7 @@
       }
     },
     "Android build-tools %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2230,6 +2251,7 @@
       }
     },
     "Android emulator · used %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2252,6 +2274,7 @@
       }
     },
     "Android system images no emulator uses, old Android build-tools and emulators, extra Xcode copies, older JetBrains IDE data, downloaded AI models, old Homebrew versions, and git repositories worth compacting. The Xcode you're using and the Homebrew versions in use are never offered. git gc runs in Terminal, not inside Spacebar." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2274,6 +2297,7 @@
       }
     },
     "App Caches" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2296,6 +2320,7 @@
       }
     },
     "App Data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2318,6 +2343,7 @@
       }
     },
     "App Leftovers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2340,6 +2366,7 @@
       }
     },
     "App archives from Product › Archive. They contain the debug symbols needed to read crash reports for shipped builds, so keep the ones you still support." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2362,6 +2389,7 @@
       }
     },
     "App data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2384,6 +2412,7 @@
       }
     },
     "App settings" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2451,6 +2480,7 @@
       }
     },
     "Apps in /Applications and ~/Applications." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2516,9 +2546,6 @@
         }
       }
     },
-    "Apps' temporary files and caches outside your home folder. Restarting your Mac clears many of them." : {
-
-    },
     "Archives & disk images" : {
       "localizations" : {
         "de" : {
@@ -2542,6 +2569,7 @@
       }
     },
     "Attachments from %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2607,6 +2635,9 @@
         }
       }
     },
+    "Automatic cleaning" : {
+
+    },
     "Available space in the menu bar, and an alert before your disk fills up." : {
       "localizations" : {
         "de" : {
@@ -2652,6 +2683,7 @@
       }
     },
     "Build cache" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2674,6 +2706,7 @@
       }
     },
     "Bursts and repeated shots: photos taken within a minute of each other that look nearly the same, found with on-device image analysis. In each group the favorite, or else the highest-resolution shot, is kept. Library photos go to Recently Deleted in Photos (30 days); image files go to the Trash. Photos stored only in iCloud aren't downloaded or analyzed." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2696,6 +2729,7 @@
       }
     },
     "Cached attachments older than a year · %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2718,6 +2752,7 @@
       }
     },
     "Cached attachments · %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2741,6 +2776,7 @@
     },
     "Caches" : {
       "comment" : "Kind of app data in ~/Library, shown when uninstalling an app",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -2783,9 +2819,6 @@
           }
         }
       }
-    },
-    "Caches apps keep for all users in /Library/Caches. Apps rebuild them when needed." : {
-
     },
     "Caches nobody has used for a month, logs, and build data are preselected. Your files, apps and anything else are listed for you to review, never preselected." : {
       "localizations" : {
@@ -2855,9 +2888,6 @@
           }
         }
       }
-    },
-    "Can't be measured" : {
-
     },
     "Can't be removed: %@" : {
       "localizations" : {
@@ -3357,6 +3387,7 @@
       }
     },
     "Cloud storage synced with another service" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3378,7 +3409,11 @@
         }
       }
     },
+    "Command line" : {
+
+    },
     "Containers that aren't running, and their files" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3401,6 +3436,7 @@
       }
     },
     "Contains the developer tools you're using (%@)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3446,6 +3482,7 @@
     },
     "Cookies" : {
       "comment" : "Kind of app data in ~/Library, shown when uninstalling an app",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3555,13 +3592,8 @@
         }
       }
     },
-    "Data apps keep for all users in /Library/Application Support." : {
-
-    },
-    "Data apps keep for all users in /Library/Application Support. Largest: %@." : {
-
-    },
     "Data left behind by apps that are no longer installed. Suggested: folders whose bundle ID matches no installed app, if they're web data or window state, or haven't changed in 90 days. Folders matched only by name (they can hold documents or saved games, or belong to an app on another drive) and recently changed ones are left for you to review. Everything goes to the Trash." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3584,6 +3616,7 @@
       }
     },
     "Data shared between apps" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3671,6 +3704,9 @@
         }
       }
     },
+    "Deleted" : {
+
+    },
     "Deleted %@ that Spacebar moved to the Trash a week ago." : {
       "localizations" : {
         "de" : {
@@ -3716,6 +3752,7 @@
       }
     },
     "Dependencies and build output inside your projects (node_modules, target, build, Pods, .venv…). They're recreated by the project's install or build command. Projects untouched for 90 days are suggested." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3738,6 +3775,7 @@
       }
     },
     "DerivedData, build products, simulator caches, and old device support files. The newest two device support versions per platform are kept." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3804,6 +3842,7 @@
       }
     },
     "Desktop" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3849,6 +3888,7 @@
     },
     "Developer" : {
       "comment" : "Storage breakdown slice name",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3871,6 +3911,7 @@
       }
     },
     "Developer Caches" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3893,6 +3934,7 @@
       }
     },
     "Developer Tools" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3915,6 +3957,7 @@
       }
     },
     "Diagnostic logs and crash reports written by apps and macOS." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3959,6 +4002,7 @@
       }
     },
     "Docker" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3981,6 +4025,7 @@
       }
     },
     "Docker disk image" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4025,6 +4070,7 @@
       }
     },
     "Docker's disk image uses %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4070,6 +4116,7 @@
       }
     },
     "Documents, Desktop, Downloads and your other folders." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4095,6 +4142,7 @@
 
     },
     "Downloaded \"Install macOS\" apps. You can download them again from Apple." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4117,6 +4165,7 @@
       }
     },
     "Downloaded system assets" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4139,6 +4188,7 @@
       }
     },
     "Downloads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4381,6 +4431,7 @@
       }
     },
     "Duplicate Files" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4445,6 +4496,9 @@
           }
         }
       }
+    },
+    "Emptied from the Trash" : {
+
     },
     "Empty Trash" : {
       "localizations" : {
@@ -4534,7 +4588,11 @@
         }
       }
     },
+    "Everything Spacebar removes shows up here, so you can put it back while it's in the Trash." : {
+
+    },
     "Everything else: system-wide app support in /Library, temporary files and logs, Spotlight's index, snapshots, and folders Spacebar can't read without Full Disk Access." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4714,6 +4772,7 @@
       }
     },
     "Files over 1 MB with identical content in your home folder (outside Library). For each set, one copy is kept: the one outside Downloads with the shortest path. Right-click a copy to keep it instead. Copies that already share disk space (APFS clones) are left out, because deleting them frees nothing." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4736,6 +4795,7 @@
       }
     },
     "Files over 500 MB in your home folder (outside Library). Review each one carefully." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -4889,16 +4949,8 @@
         }
       }
     },
-    "Folders of apps you've uninstalled can go." : {
-
-    },
-    "Fonts, plug-ins, preferences and other files in /Library." : {
-
-    },
-    "Fonts, voices, language and AI models macOS downloads as needed." : {
-
-    },
     "Forgotten Files" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5004,6 +5056,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Son zamanlarda kullanılmayan önbellek ve günlüklerden %@ yer açıldı."
+          }
+        }
+      }
+    },
+    "Freed %@ · %lld items" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Freed %1$@ · %2$lld items"
+          }
+        }
+      }
+    },
+    "Freed %@, moved %@ to the Trash · %lld items" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Freed %1$@, moved %2$@ to the Trash · %3$lld items"
           }
         }
       }
@@ -5212,6 +5284,9 @@
         }
       }
     },
+    "Hide items" : {
+
+    },
     "Hide this item from cleanup lists. Undo in Settings › Exclusions." : {
       "localizations" : {
         "de" : {
@@ -5234,7 +5309,7 @@
         }
       }
     },
-    "Holds your Mac's memory while it sleeps. macOS manages its size." : {
+    "History" : {
 
     },
     "Home" : {
@@ -5282,6 +5357,7 @@
       }
     },
     "Images no container uses; downloaded again when needed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5331,6 +5407,9 @@
         }
       }
     },
+    "In the Trash" : {
+
+    },
     "In use" : {
       "localizations" : {
         "de" : {
@@ -5376,6 +5455,7 @@
       }
     },
     "Installer for %@, which is installed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5398,6 +5478,7 @@
       }
     },
     "Items already in your Trash. Emptying it is permanent." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5420,6 +5501,7 @@
       }
     },
     "Items in your Trash." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5552,6 +5634,7 @@
       }
     },
     "Keep in iCloud Only" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5574,6 +5657,7 @@
       }
     },
     "LM Studio model by %@ · downloaded %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5602,6 +5686,7 @@
       }
     },
     "Large Files" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5624,6 +5709,7 @@
       }
     },
     "Large iCloud Drive files that are also stored on this Mac. Removing the local copy frees the space right away; the file stays in iCloud and downloads again when you open it. Nothing is deleted. Files you haven't opened in 90 days are suggested; files with changes not yet uploaded are left alone." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5690,6 +5776,7 @@
       }
     },
     "Launch agent" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5756,6 +5843,7 @@
       }
     },
     "Local Time Machine snapshots on your startup disk. macOS keeps them for 24 hours and removes them by itself when it needs space; you can remove them now. Their exact size isn't reported, so the figure is macOS's purgeable space, which also includes some caches. Snapshots macOS makes for updates (com.apple.os.update) can't be removed." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5778,6 +5866,7 @@
       }
     },
     "Local copies Mail keeps that the server can restore: attachments you opened, and cached attachments of IMAP, Exchange, Gmail and iCloud accounts (Mail downloads them again when you open a message). Your messages are never touched, and nothing is removed for POP or \"On My Mac\" mailboxes, whose mail exists only on this Mac. Quit Mail first." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5800,6 +5889,7 @@
       }
     },
     "Local device backups made by Finder. Delete only backups you no longer need." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5845,6 +5935,7 @@
     },
     "Logs" : {
       "comment" : "Kind of app data in ~/Library, shown when uninstalling an app",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5867,6 +5958,7 @@
       }
     },
     "Logs & Crash Reports" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5888,10 +5980,8 @@
         }
       }
     },
-    "Logs and diagnostics" : {
-
-    },
     "Looks like a security key or certificate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5936,6 +6026,7 @@
       }
     },
     "Mail" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5958,6 +6049,7 @@
       }
     },
     "Mail & Messages" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -5980,6 +6072,7 @@
       }
     },
     "Mail and Messages, including attachments." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6164,9 +6257,6 @@
         }
       }
     },
-    "Memory moved to disk when apps need more than your Mac has. It shrinks as apps free memory, and after a restart." : {
-
-    },
     "Menu bar" : {
       "localizations" : {
         "de" : {
@@ -6190,6 +6280,7 @@
       }
     },
     "Messages Attachments" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6473,6 +6564,16 @@
         }
       }
     },
+    "Moved %@ to the Trash · %lld items" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Moved %1$@ to the Trash · %2$lld items"
+          }
+        }
+      }
+    },
     "Moved %@ to the Trash, so that space isn't free yet. Delete Now permanently deletes just these items; nothing else in your Trash is touched." : {
       "localizations" : {
         "de" : {
@@ -6647,6 +6748,9 @@
         }
       }
     },
+    "Moves them from the Trash to where they were" : {
+
+    },
     "Needs Full Disk Access" : {
       "localizations" : {
         "de" : {
@@ -6692,6 +6796,7 @@
       }
     },
     "Newer build-tools %@ installed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6713,7 +6818,11 @@
         }
       }
     },
+    "No cleans yet" : {
+
+    },
     "No emulator uses it · downloaded again by Android Studio when needed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6846,6 +6955,7 @@
       }
     },
     "No recent use recorded" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6868,6 +6978,7 @@
       }
     },
     "Not Messages attachments" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6890,6 +7001,7 @@
       }
     },
     "Not a Homebrew version folder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6912,6 +7024,7 @@
       }
     },
     "Not a Mail account folder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6934,6 +7047,7 @@
       }
     },
     "Not a downloaded model" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6956,6 +7070,7 @@
       }
     },
     "Not a git repository" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6978,6 +7093,7 @@
       }
     },
     "Not a simulator device folder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7000,6 +7116,7 @@
       }
     },
     "Not an Android emulator" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7022,6 +7139,7 @@
       }
     },
     "Not an app data folder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7044,6 +7162,7 @@
       }
     },
     "Not an app in an Applications folder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7088,6 +7207,7 @@
       }
     },
     "Not in iCloud Drive" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7154,6 +7274,7 @@
       }
     },
     "Not the Xcode in use · %@ · opened %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7182,6 +7303,7 @@
       }
     },
     "Not this app's data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7424,6 +7546,7 @@
       }
     },
     "Old Homebrew version · %@ is in use" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7446,6 +7569,7 @@
       }
     },
     "Old Simulators" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7468,6 +7592,7 @@
       }
     },
     "Older version: newer %@ data exists" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7490,6 +7615,7 @@
       }
     },
     "Oldest %@ · up to %@ purgeable" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7518,6 +7644,7 @@
       }
     },
     "Only Docker Desktop's signed docker command is used" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7785,6 +7912,7 @@
       }
     },
     "Opened attachment" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7916,10 +8044,8 @@
         }
       }
     },
-    "Other system-wide app files" : {
-
-    },
     "Outside your home folder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7964,6 +8090,7 @@
       }
     },
     "Package-manager download caches (npm, Yarn, pnpm, Bun, Cargo, Gradle, SwiftPM, uv, and more). They are re-downloaded when needed. Model weights and dependency repositories are never touched." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -7986,6 +8113,7 @@
       }
     },
     "Part of macOS" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8053,6 +8181,7 @@
     },
     "Photo" : {
       "comment" : "Fallback name of a photo with no file name",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8075,6 +8204,7 @@
       }
     },
     "Photos, Music & Movies" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8119,6 +8249,7 @@
       }
     },
     "Photos, videos and files received in Messages more than a year ago, grouped by year. They go to the Trash, so Put Back works. If Messages in iCloud is on, they stay in iCloud; otherwise this is the only copy, so review them. Quit Messages first." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8141,6 +8272,7 @@
       }
     },
     "Pictures (including the Photos library), Music and Movies." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8207,6 +8339,7 @@
       }
     },
     "Project Build Files" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8229,6 +8362,7 @@
       }
     },
     "Protected data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8315,6 +8449,9 @@
           }
         }
       }
+    },
+    "Put Back %lld Items" : {
+
     },
     "Put back" : {
       "localizations" : {
@@ -8427,6 +8564,7 @@
       }
     },
     "Rebuilt automatically when you build" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8493,6 +8631,7 @@
       }
     },
     "Remove apps from the Unused Apps list or with the trash button on the app itself" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8654,6 +8793,7 @@
     },
     "Running" : {
       "comment" : "A simulator that is running",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8676,6 +8816,7 @@
       }
     },
     "Runtime · last used %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8720,6 +8861,7 @@
       }
     },
     "Sandbox container" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8742,6 +8884,7 @@
       }
     },
     "Saved windows" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -8919,6 +9062,7 @@
     },
     "Scripts" : {
       "comment" : "Kind of app data in ~/Library, shown when uninstalling an app",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -9140,6 +9284,7 @@
     },
     "Settings" : {
       "comment" : "Kind of app data in ~/Library, shown when uninstalling an app",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -9162,6 +9307,7 @@
       }
     },
     "Settings for your shell or developer tools" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -9182,9 +9328,6 @@
           }
         }
       }
-    },
-    "Settings, keychains and databases macOS needs to run." : {
-
     },
     "Settings…" : {
       "localizations" : {
@@ -9209,6 +9352,7 @@
       }
     },
     "Shared Folder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -9231,6 +9375,7 @@
       }
     },
     "Shared container" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -9273,6 +9418,9 @@
           }
         }
       }
+    },
+    "Shortcuts" : {
+
     },
     "Show Folder in Spacebar" : {
       "localizations" : {
@@ -9343,6 +9491,9 @@
     "Show in Space Explorer" : {
 
     },
+    "Show items" : {
+
+    },
     "Show this in cleanup lists again" : {
       "localizations" : {
         "de" : {
@@ -9394,6 +9545,7 @@
       }
     },
     "Similar Photos" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -9438,6 +9590,7 @@
       }
     },
     "Similar to %@ · %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -9772,6 +9925,7 @@
       }
     },
     "Simulator" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -9916,9 +10070,6 @@
           }
         }
       }
-    },
-    "Sleep image" : {
-
     },
     "Snapshots (%lld made by macOS updates, removed by macOS), indexes and unreadable folders" : {
       "extractionState" : "stale",
@@ -10179,6 +10330,7 @@
       }
     },
     "Space inside Docker: build cache, unused images, stopped containers and unused volumes, removed with Docker's own prune commands. Build cache is suggested. Volumes are never suggested because they can hold databases. Docker returns freed space to macOS shortly afterwards." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -10442,10 +10594,8 @@
         }
       }
     },
-    "Spotlight's index, the file system's change log, and other folders only macOS can read. APFS snapshots also count here." : {
-
-    },
     "Start Docker to see what can be pruned" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -10518,6 +10668,7 @@
       }
     },
     "Stopped containers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -10540,6 +10691,7 @@
       }
     },
     "Stored only on this Mac (%@)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -10605,9 +10757,6 @@
         }
       }
     },
-    "Swap" : {
-
-    },
     "System & hidden" : {
       "localizations" : {
         "de" : {
@@ -10631,6 +10780,7 @@
       }
     },
     "System Data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -10675,18 +10825,6 @@
         }
       }
     },
-    "System caches" : {
-
-    },
-    "System databases and settings" : {
-
-    },
-    "System logs and crash reports. macOS deletes old ones on its own." : {
-
-    },
-    "System-wide app support" : {
-
-    },
     "System-wide app support (/Library)" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10710,10 +10848,8 @@
         }
       }
     },
-    "Temporary files" : {
-
-    },
     "Temporary files apps rebuild automatically. Most Apple system caches are left alone because some of them hold state." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -10781,6 +10917,7 @@
       }
     },
     "That's Spacebar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -10847,6 +10984,7 @@
       }
     },
     "The drive itself" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -10869,6 +11007,7 @@
       }
     },
     "The folder all accounts share" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -10890,10 +11029,8 @@
         }
       }
     },
-    "The read-only system, recovery and the files for installing updates." : {
-
-    },
     "The version Homebrew is using" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -10982,6 +11119,7 @@
       }
     },
     "Things in Downloads and on the Desktop you haven't opened in a long time. \"Opened\" comes from Spotlight, which records opens through Finder and apps (files dragged straight into an app may not show). Suggested: installers for apps you already have, archives already unzipped next to themselves, and installers or archives with no open recorded in 6 months. Photos, videos, music and documents are never suggested, and neither is anything on the Desktop." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11002,9 +11140,6 @@
           }
         }
       }
-    },
-    "This Mac has %lld Time Machine local snapshots, which Spacebar can remove." : {
-
     },
     "This can't be undone." : {
       "localizations" : {
@@ -11051,6 +11186,7 @@
       }
     },
     "This docker command isn't signed by Docker, so Spacebar won't run it" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11095,6 +11231,7 @@
       }
     },
     "Time Machine Snapshots" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11117,6 +11254,7 @@
       }
     },
     "Time Machine backups. Manage them in Time Machine" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11203,6 +11341,9 @@
           }
         }
       }
+    },
+    "Uninstall" : {
+
     },
     "Uninstall %@" : {
       "localizations" : {
@@ -11293,6 +11434,7 @@
       }
     },
     "Unknown account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11315,6 +11457,7 @@
       }
     },
     "Unused Apps" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11337,6 +11480,7 @@
       }
     },
     "Unused images" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11359,6 +11503,7 @@
       }
     },
     "Unused volumes" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11381,6 +11526,7 @@
       }
     },
     "Unusual path" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11513,6 +11659,7 @@
       }
     },
     "Used by an emulator" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11535,6 +11682,7 @@
       }
     },
     "Used by an emulator: remove the emulator first" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11623,6 +11771,7 @@
       }
     },
     "Volumes no container uses. They can hold databases and other data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11645,6 +11794,7 @@
       }
     },
     "Web data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11689,6 +11839,7 @@
       }
     },
     "What apps keep in ~/Library: settings, caches, databases, containers." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -11988,6 +12139,7 @@
       }
     },
     "Xcode Archives" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12010,6 +12162,7 @@
       }
     },
     "Xcode Build Data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12032,6 +12185,7 @@
       }
     },
     "Xcode cache" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12054,6 +12208,7 @@
       }
     },
     "Xcode data and simulators, Homebrew, and tool folders like .npm, .gradle and .cache in your home folder." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12098,6 +12253,7 @@
       }
     },
     "Your apps, least recently used first. \"Last used\" combines Spotlight's record with traces apps leave when they run (settings, caches, saved windows). Apps from Apple and apps that are running can't be removed here." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12186,6 +12342,7 @@
       }
     },
     "Your home folder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12230,6 +12387,7 @@
       }
     },
     "Your mailboxes" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12252,6 +12410,7 @@
       }
     },
     "Your messages" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12274,6 +12433,7 @@
       }
     },
     "Your passwords and keys" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12296,6 +12456,7 @@
       }
     },
     "Your security keys" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12318,6 +12479,7 @@
       }
     },
     "added %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12341,6 +12503,7 @@
     },
     "caches" : {
       "comment" : "JetBrains IDE data kind, e.g. PyCharm 2023.1 caches",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12363,6 +12526,7 @@
       }
     },
     "changed recently, so review it" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12385,6 +12549,7 @@
       }
     },
     "downloaded %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12407,6 +12572,7 @@
       }
     },
     "iCloud" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12429,6 +12595,7 @@
       }
     },
     "iCloud Drive" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12451,6 +12618,7 @@
       }
     },
     "iCloud Drive and cloud-storage files downloaded to this Mac." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12473,6 +12641,7 @@
       }
     },
     "iCloud Drive: deleting here deletes it on all your devices" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12495,6 +12664,7 @@
       }
     },
     "iOS, watchOS and other simulator devices and runtimes. Devices whose runtime is no longer installed can't be used at all and are suggested. Others are listed if unused for 90 days. Removal goes through `xcrun simctl`, the same as Xcode." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12517,6 +12687,7 @@
       }
     },
     "iPhone & iPad Backups" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12539,6 +12710,7 @@
       }
     },
     "last booted %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12561,6 +12733,7 @@
       }
     },
     "last opened %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12584,6 +12757,7 @@
     },
     "local" : {
       "comment" : "Mail account type when unknown",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12607,6 +12781,7 @@
     },
     "logs" : {
       "comment" : "JetBrains IDE data kind, e.g. PyCharm 2023.1 logs",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12629,6 +12804,7 @@
       }
     },
     "macOS" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12651,6 +12827,7 @@
       }
     },
     "macOS Installers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12716,10 +12893,8 @@
         }
       }
     },
-    "macOS itself" : {
-
-    },
     "macOS itself, its startup, recovery, update and swap volumes, and assets it downloads (voices, simulator runtimes, models). Managed by macOS." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12740,9 +12915,6 @@
           }
         }
       }
-    },
-    "macOS removes the %lld snapshots it made for updates on its own." : {
-
     },
     "macOS update downloaded, waiting to install" : {
       "extractionState" : "stale",
@@ -12767,10 +12939,8 @@
         }
       }
     },
-    "macOS update waiting to install" : {
-
-    },
     "matched by name only, so review it" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12794,6 +12964,7 @@
     },
     "never" : {
       "comment" : "No date recorded, as in: last opened never",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12816,6 +12987,7 @@
       }
     },
     "never booted" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12860,6 +13032,7 @@
       }
     },
     "no installed app has this ID" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12882,6 +13055,7 @@
       }
     },
     "no open recorded" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12948,6 +13122,7 @@
       }
     },
     "opened %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -12970,6 +13145,7 @@
       }
     },
     "same second" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -13015,6 +13191,7 @@
     },
     "settings" : {
       "comment" : "JetBrains IDE data kind, e.g. PyCharm 2023.1 settings",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -13060,6 +13237,7 @@
     },
     "unknown" : {
       "comment" : "Unknown date, as in: used unknown",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -13080,6 +13258,9 @@
           }
         }
       }
+    },
+    "·" : {
+
     },
     "· %lld of %lld items, %@" : {
       "localizations" : {

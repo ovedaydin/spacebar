@@ -53,8 +53,9 @@ enum Headless {
     }
 
     /// Cleans `plan`. Items moved to the Trash are remembered for "empty after 7 days".
-    static func clean(_ plan: Plan, dryRun: Bool) -> Cleaner.Report {
-        let report = Cleaner.run(plan.pairs.map { Cleaner.Request(item: $0.item, mode: $0.category.mode) }, dryRun: dryRun)
+    static func clean(_ plan: Plan, dryRun: Bool, source: CleaningRecord.Source) -> Cleaner.Report {
+        let report = Cleaner.run(plan.pairs.map { Cleaner.Request(item: $0.item, mode: $0.category.mode) }, dryRun: dryRun,
+                                 history: source)
         if !report.dryRun { TrashLedger.record(report.trashedItems) }
         NotificationCenter.default.post(name: cleanedNotification, object: nil)
         return report

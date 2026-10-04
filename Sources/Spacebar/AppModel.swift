@@ -122,6 +122,12 @@ final class AppModel: ObservableObject {
                 self?.applyStorageChanges() // changes queued while in the background
             }
             .store(in: &observers)
+        // The history file is shared with the `spacebar` command, so also re-read it on activation.
+        NotificationCenter.default.publisher(for: CleaningHistory.changed)
+            .merge(with: NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification))
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.reloadCleaningHistory() }
+            .store(in: &observers)
         // A Shortcuts clean ran in this process: show fresh results.
         NotificationCenter.default.publisher(for: Headless.cleanedNotification)
             .receive(on: DispatchQueue.main)
@@ -249,6 +255,10 @@ final class AppModel: ObservableObject {
 
     /// What the last clean moved to the Trash: can still be put back or deleted for good.
     @Published private(set) var lastTrashed: [Cleaner.TrashedItem] = []
+    /// Every clean, newest first (see CleaningHistory).
+    @Published private(set) var cleaningHistory: [CleaningRecord] = CleaningHistory.load()
+
+    func reloadCleaningHistory() { cleaningHistory = CleaningHistory.load() }
     var lastTrashedBytes: Int64 { lastTrashed.reduce(0) { $0 + $1.bytes } }
 
     /// Permanently deletes what the last clean moved to the Trash, and nothing else in the Trash.
@@ -282,7 +292,7 @@ final class AppModel: ObservableObject {
         cleaning = true
         let dryRun = dryRun
         Task.detached(priority: .userInitiated) {
-            let report = Cleaner.run(requests, dryRun: dryRun)
+            let report = Cleaner.run(requests, dryRun: dryRun, history: .uninstall)
             await MainActor.run {
                 self.cleaning = false
                 self.applyRemovals(report)
@@ -298,8 +308,10 @@ final class AppModel: ObservableObject {
     func rememberTrashed(_ items: [Cleaner.TrashedItem]) { lastTrashed = items }
 
     /// Undo: moves what the last clean trashed back to where it was.
-    func putBackLastClean() {
-        let items = lastTrashed
+    func putBackLastClean() { putBack(lastTrashed) }
+
+    /// Moves `items` out of the Trash to where they were (from the last clean or the cleaning history).
+    func putBack(_ items: [Cleaner.TrashedItem]) {
         guard !items.isEmpty, !cleaning else { return }
         cleaning = true
         let dryRun = dryRun
@@ -411,7 +423,7 @@ final class AppModel: ObservableObject {
                     requests.append(Cleaner.Request(item: item, mode: category.mode))
                 }
             }
-            let report = Cleaner.run(requests, dryRun: dryRun)
+            let report = Cleaner.run(requests, dryRun: dryRun, history: .automatic)
             await MainActor.run {
                 self.applyRemovals(report)
                 let freed = report.deletedBytes
@@ -682,7 +694,7 @@ final class AppModel: ObservableObject {
         let requests = pairs.map { Cleaner.Request(item: $0.0, mode: $0.1.mode) }
         let dryRun = dryRun
         Task.detached(priority: .userInitiated) {
-            let report = Cleaner.run(requests, dryRun: dryRun)
+            let report = Cleaner.run(requests, dryRun: dryRun, history: .app)
             await MainActor.run {
                 let removed = Set(report.removed)
                 for id in self.results.keys {

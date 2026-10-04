@@ -319,6 +319,7 @@ enum DebugSnapshot {
                 case "activate":
                     NSApp.activate(ignoringOtherApps: true)
                     NSApp.windows.first(where: \.isVisible)?.makeKeyAndOrderFront(nil)
+                case "historytest": historySelfTest(phase: parts[1])
                 case "closewin": NSApp.windows.filter { $0.canBecomeMain }.forEach { $0.close() }
                 case "windows":
                     let titles = NSApp.windows.filter { $0.canBecomeMain && $0.isVisible }.map(\.title)
@@ -346,6 +347,36 @@ enum DebugSnapshot {
         // so the mouse-up must already be queued when the mouse-down is delivered.
         NSApp.postEvent(up, atStart: false)
         window.sendEvent(down)
+    }
+
+    private static var historyFixture: URL?
+
+    /// Cleaning history on a fixture of our own: "clean" trashes it with history on, "putback"
+    /// restores it from its history record, then removes the fixture and the record.
+    private static func historySelfTest(phase: String) {
+        func say(_ s: String) { FileHandle.standardError.write(Data("[historytest] \(s)\n".utf8)) }
+        let fm = FileManager.default
+        if phase == "clean" {
+            let fixture = fm.homeDirectoryForCurrentUser
+                .appendingPathComponent("Library/Caches/spacebar-selftest-\(UUID().uuidString.prefix(8)).txt")
+            fm.createFile(atPath: fixture.path, contents: Data(repeating: 7, count: 8192))
+            historyFixture = fixture
+            let item = CleanItem(url: fixture, name: fixture.lastPathComponent, size: 8192, date: nil, detail: nil, owner: nil)
+            let report = Cleaner.run([Cleaner.Request(item: item, mode: .trash)], dryRun: false, history: .app)
+            say("trashed=\(report.trashedItems.count) exists-at-original=\(fm.fileExists(atPath: fixture.path))")
+            return
+        }
+        guard let fixture = historyFixture,
+              let record = CleaningHistory.load().first(where: { $0.items.contains { $0.original == fixture.path } }) else {
+            say("FAIL: no history record for the fixture"); return
+        }
+        let back = record.restorable
+        say("record source=\(record.source.rawValue) items=\(record.items.count) restorable=\(back.count)")
+        let report = Cleaner.putBack(back, dryRun: false)
+        say("restored=\(report.restoredItems.count) back-at-original=\(fm.fileExists(atPath: fixture.path)) restorable-after=\(record.restorable.count)")
+        try? fm.removeItem(at: fixture)
+        CleaningHistory.remove(record.id)
+        say("cleaned up: fixture-gone=\(!fm.fileExists(atPath: fixture.path)) record-gone=\(!CleaningHistory.load().contains { $0.id == record.id })")
     }
 
     /// Path rules and a real Trash → Put Back on a test drive mounted at /Volumes/<name>.

@@ -356,7 +356,7 @@ struct ExplorerView: View {
         let dryRun = model.dryRun
         selection = []
         Task.detached {
-            let report = Cleaner.run(requests, dryRun: dryRun)
+            let report = Cleaner.run(requests, dryRun: dryRun, history: .explorer)
             await MainActor.run {
                 if !report.removed.isEmpty { explorer.didRemove(report.removed) }
                 model.applyRemovals(report)

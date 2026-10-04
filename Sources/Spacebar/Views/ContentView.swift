@@ -5,6 +5,7 @@ import SwiftUI
 enum Route: Hashable {
     case overview
     case explorer
+    case history
     case category(String)
 }
 
@@ -20,6 +21,7 @@ struct ContentView: View {
         switch DebugSnapshot.environment("SPACEBAR_ROUTE") {
         case nil, "overview": return .overview
         case "explorer": return .explorer
+        case "history": return .history
         case let id?: return .category(id)
         }
     }
@@ -30,6 +32,7 @@ struct ContentView: View {
                 Section {
                     Label("Overview", systemImage: "internaldrive").tag(Route.overview)
                     Label("Space Explorer", systemImage: "chart.bar.doc.horizontal").tag(Route.explorer)
+                    Label("History", systemImage: "clock.arrow.circlepath").tag(Route.history)
                 }
                 Section("Cleanup") {
                     ForEach(model.categories.filter { $0.group == .cleanup }) { category in
@@ -47,6 +50,7 @@ struct ContentView: View {
             switch route ?? .overview {
             case .overview: OverviewView(route: $route)
             case .explorer: ExplorerView()
+            case .history: HistoryView()
             case .category(let id): CategoryView(category: model.category(id)!)
             }
         }
@@ -68,7 +72,7 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.routeNotification)) { note in
             guard let id = note.object as? String else { return }
-            route = id == "overview" ? .overview : id == "explorer" ? .explorer : .category(id)
+            route = id == "overview" ? .overview : id == "explorer" ? .explorer : id == "history" ? .history : .category(id)
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.dumpNotification)) { note in
             let window = NSApp.windows.first(where: \.isVisible)

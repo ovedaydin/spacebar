@@ -22,7 +22,7 @@ struct FreeUpSpaceIntent: AppIntent {
         let result = await Task.detached(priority: .userInitiated) { () -> (freed: Int64, trashed: Int64, dryRun: Bool) in
             let settings = Headless.Settings.current()
             let plan = Headless.plan(Headless.scan(Headless.safeCategories, settings: settings), settings: settings)
-            let report = Headless.clean(plan, dryRun: requested || settings.dryRun)
+            let report = Headless.clean(plan, dryRun: requested || settings.dryRun, source: .shortcuts)
             return (report.deletedBytes, report.trashedBytes, report.dryRun)
         }.value
         let freed = ByteFormat.string(result.freed)

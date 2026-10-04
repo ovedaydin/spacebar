@@ -41,8 +41,10 @@ enum Cleaner {
     static let logURL = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent("Library/Logs/Spacebar/operations.log")
 
-    static func run(_ requests: [Request], dryRun: Bool) -> Report {
+    /// `history`: where the clean came from, to keep it in the cleaning history (nil: don't record).
+    static func run(_ requests: [Request], dryRun: Bool, history: CleaningRecord.Source? = nil) -> Report {
         var report = Report(dryRun: dryRun)
+        var recorded: [CleaningRecord.Item] = []
         let running = RunningApps.bundleIDs()
         let trash = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".Trash").path + "/"
         var log: [String] = []
@@ -93,6 +95,8 @@ enum Cleaner {
                 if action.freesNow { report.deletedBytes += item.size } else { report.trashedBytes += item.size }
                 report.removed.append(url)
                 report.removedItems.append((url.path, item.size, !action.freesNow))
+                recorded.append(.init(name: item.name, original: url.path,
+                                      trashed: action.freesNow ? nil : landed.first?.landed.path, bytes: item.size))
                 log.append(entry(action.label, item))
             } catch {
                 report.skipped.append((item.name, error.localizedDescription))
@@ -119,6 +123,11 @@ enum Cleaner {
             }
         }
         appendToLog(log)
+        if let history, !dryRun, !recorded.isEmpty || report.photosCount > 0 {
+            CleaningHistory.append(CleaningRecord(date: Date(), source: history, freedBytes: report.deletedBytes,
+                                                  trashedBytes: report.trashedBytes, photos: report.photosCount,
+                                                  items: recorded))
+        }
         return report
     }
 
