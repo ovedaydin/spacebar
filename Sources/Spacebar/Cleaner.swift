@@ -152,7 +152,7 @@ enum Cleaner {
             case .simulatorRuntime(let id): self = .simctl(["runtime", "delete", id])
             case .application: self = .recycleApp
             case .mailAttachments: self = .trashMailAttachments
-            case .appLeftover, .photoAsset, .appData: self = .trash
+            case .appLeftover, .photoAsset, .appData, .browserProfile: self = .trash
             case .iCloudEvict: self = .evict
             case .androidEmulator(let ini): self = .trashEmulator(ini: ini)
             case .homebrewKeg: self = .delete

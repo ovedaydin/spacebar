@@ -39,6 +39,8 @@ public enum ItemKind: Hashable, Sendable, Codable {
     case appData(bundleID: String, appName: String)
     /// A downloaded iCloud Drive file: its local copy is removed, it stays in iCloud.
     case iCloudEvict
+    /// A whole Chromium browser profile folder (moved to the Trash).
+    case browserProfile
     /// An Android emulator: its .avd folder plus the .ini file that registers it.
     case androidEmulator(ini: String)
     /// An old Homebrew version in the Cellar that is no longer linked.
@@ -183,7 +185,7 @@ public struct CleanCategory: Identifiable, Sendable {
     public enum SortOrder: Sendable { case largestFirst, oldestFirst }
     public var group: Group { id.hasPrefix("rule-") ? .rules : Self.findSpaceIDs.contains(id) ? .findSpace : .cleanup }
     public var sortOrder: SortOrder { id == "apps" ? .oldestFirst : .largestFirst }
-    static let findSpaceIDs: Set<String> = ["forgotten", "icloud", "devtools", "messages", "duplicates", "apps", "leftovers", "simulators", "docker",
+    static let findSpaceIDs: Set<String> = ["browsers", "forgotten", "icloud", "devtools", "messages", "duplicates", "apps", "leftovers", "simulators", "docker",
                                             "snapshots", "projects", "mail", "photos"]
     /// For a user's rule: the folder it looks in (see `isAffected`).
     var watchedFolder: String? = nil
@@ -297,7 +299,7 @@ public extension CleanCategory {
     static let all: [CleanCategory] = [
         appCaches, logs, xcode, developerCaches, trash,
         xcodeArchives, iosBackups, installers, largeFiles,
-        forgottenFiles, iCloudDownloads, unusedApps, simulators, developerTools, docker, snapshots, appLeftovers, mail, messages,
+        forgottenFiles, iCloudDownloads, unusedApps, browsers, simulators, developerTools, docker, snapshots, appLeftovers, mail, messages,
         duplicates, similarPhotos,
         projectBuildFiles,
     ]

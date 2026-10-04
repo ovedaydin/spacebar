@@ -114,6 +114,8 @@ public enum PathRules {
                   AppFootprint.belongs(relative[relative.count - 1], folder: folder, bundleID: bundleID, appName: appName)
             else { return String(localized: "Not this app's data") }
             return nil
+        case .browserProfile:
+            return inHome && BrowserData.isProfileFolder(lower) ? nil : String(localized: "Not a browser profile")
         case .iCloudEvict:
             // Only files inside iCloud Drive (Mobile Documents) or a cloud drive (CloudStorage:
             // Dropbox, Google Drive, OneDrive…); nothing is deleted.

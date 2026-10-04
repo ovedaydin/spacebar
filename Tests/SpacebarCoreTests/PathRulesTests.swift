@@ -91,3 +91,39 @@ final class AppCacheRulesTests: XCTestCase {
         }
     }
 }
+
+final class BrowserRulesTests: XCTestCase {
+    private let home = FileManager.default.homeDirectoryForCurrentUser
+
+    func testBrowserCachesAreClearable() {
+        for path in ["Library/Caches/Google/Chrome/Default", "Library/Application Support/Google/Chrome/Default/GPUCache",
+                     "Library/Application Support/Google/Chrome/Profile 3/Service Worker/CacheStorage",
+                     "Library/Application Support/Google/GoogleUpdater/crx_cache"] {
+            XCTAssertNil(PathRules.reasonNotDeletable(home.appendingPathComponent(path), kind: .file), path)
+        }
+    }
+
+    func testOnlyRealProfileFoldersCanBeRemovedAsProfiles() {
+        let support = "Library/Application Support/"
+        XCTAssertNil(PathRules.reasonNotDeletable(home.appendingPathComponent(support + "Google/Chrome/Profile 6"), kind: .browserProfile))
+        XCTAssertNil(PathRules.reasonNotDeletable(home.appendingPathComponent(support + "Arc/User Data/Default"), kind: .browserProfile))
+        for path in [support + "Google/Chrome", support + "Google/Chrome/Profile 6/Bookmarks", support + "Google/Profile 6",
+                     support + "Unknown/Profile 1", "Documents/Profile 1"] {
+            XCTAssertNotNil(PathRules.reasonNotDeletable(home.appendingPathComponent(path), kind: .browserProfile), path)
+        }
+    }
+
+    func testReadsProfileNamesAndLastActivityFromLocalState() throws {
+        let data = FileManager.default.temporaryDirectory.appendingPathComponent("chrome-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: data.appendingPathComponent("Profile 2"), withIntermediateDirectories: true)
+        let old = Date().addingTimeInterval(-400 * 86400).timeIntervalSince1970
+        let state: [String: Any] = ["profile": ["last_used": "Default",
+                                                "info_cache": ["Profile 2": ["name": "Old", "active_time": old]]]]
+        try JSONSerialization.data(withJSONObject: state).write(to: data.appendingPathComponent("Local State"))
+        defer { try? FileManager.default.removeItem(at: data) }
+        let parsed = BrowserData.localState(data)
+        XCTAssertEqual(parsed.names["Profile 2"], "Old")
+        XCTAssertEqual(parsed.lastUsed, "Default")
+        XCTAssertEqual(parsed.lastActive["Profile 2"]?.timeIntervalSince1970 ?? 0, old, accuracy: 1)
+    }
+}
