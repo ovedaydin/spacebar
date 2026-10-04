@@ -53,6 +53,17 @@ public enum PathRules {
         switch kind {
         case .simulatorRuntime, .dockerPrune, .timeMachineSnapshots, .photoAsset:
             return nil // removed by simctl, docker, tmutil or Photos, not by file operations
+        case .homebrewKeg:
+            // /opt/homebrew/Cellar/<formula>/<version> (or /usr/local/Cellar on Intel), never the linked one.
+            let parts = url.standardizedFileURL.pathComponents
+            let cellar = parts.starts(with: ["/", "opt", "homebrew", "Cellar"]) ? 4
+                : parts.starts(with: ["/", "usr", "local", "Cellar"]) ? 4 : nil
+            guard let cellar, parts.count == cellar + 2, !parts.contains("..") else { return "Not a Homebrew version folder" }
+            let prefix = "/" + parts[1..<(cellar - 1)].joined(separator: "/")
+            let linked = URL(fileURLWithPath: "\(prefix)/opt/\(parts[cellar])").resolvingSymlinksInPath().lastPathComponent
+            return linked == parts[cellar + 1] ? "The version Homebrew is using" : nil
+        case .gitCompact:
+            return url.lastPathComponent == ".git" ? nil : "Not a git repository"
         default:
             break
         }
@@ -103,13 +114,22 @@ public enum PathRules {
             // Only files inside iCloud Drive (Mobile Documents); nothing is deleted.
             return inHome && lower.count >= 3 && lower.starts(with: ["library", "mobile documents"])
                 ? nil : "Not in iCloud Drive"
+        case .aiModel:
+            guard inHome, (lower.starts(with: [".lmstudio", "models"]) || lower.starts(with: [".cache", "lm-studio", "models"])),
+                  lower.count == (lower[0] == ".lmstudio" ? 4 : 5) else { return "Not a downloaded model" }
+            return nil
+        case .androidEmulator(let ini):
+            guard inHome, lower.count == 3, lower[0] == ".android", lower[1] == "avd", resolved.pathExtension == "avd",
+                  URL(fileURLWithPath: ini).deletingLastPathComponent().standardizedFileURL.path == resolved.deletingLastPathComponent().path
+            else { return "Not an Android emulator" }
+            return nil
         case .simulatorDevice:
             return inHome && lower.count == 5 && lower.starts(with: ["library", "developer", "coresimulator", "devices"])
                 ? nil : "Not a simulator device folder"
         case .mailAttachments:
             return inHome && lower.count == 4 && lower.starts(with: ["library", "mail"]) && lower[2].hasPrefix("v")
                 ? nil : "Not a Mail account folder"
-        case .simulatorRuntime, .file, .dockerPrune, .timeMachineSnapshots, .photoAsset:
+        case .simulatorRuntime, .file, .dockerPrune, .timeMachineSnapshots, .photoAsset, .homebrewKeg, .gitCompact:
             break
         }
 

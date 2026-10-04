@@ -132,6 +132,8 @@ enum Cleaner {
         case docker([String])
         case deleteSnapshots
         case evict
+        case trashEmulator(ini: String)
+        case gitGCInTerminal
 
         init(item: CleanItem, requested: RemovalMode, trashPrefix: String) {
             switch item.kind {
@@ -141,6 +143,10 @@ enum Cleaner {
             case .mailAttachments: self = .trashMailAttachments
             case .appLeftover, .photoAsset, .appData: self = .trash
             case .iCloudEvict: self = .evict
+            case .androidEmulator(let ini): self = .trashEmulator(ini: ini)
+            case .homebrewKeg: self = .delete
+            case .aiModel: self = .trash
+            case .gitCompact: self = .gitGCInTerminal
             case .dockerPrune(let arguments): self = .docker(arguments)
             case .timeMachineSnapshots: self = .deleteSnapshots
             case .file:
@@ -151,7 +157,8 @@ enum Cleaner {
 
         var freesNow: Bool {
             switch self {
-            case .delete, .simctl, .docker, .deleteSnapshots, .evict: return true
+            case .delete, .simctl, .docker, .deleteSnapshots, .evict, .gitGCInTerminal: return true
+            case .trashEmulator: return false
             case .trash, .recycleApp, .trashMailAttachments: return false
             }
         }
@@ -166,6 +173,8 @@ enum Cleaner {
             case .docker(let args): return "DOCKER-" + args.prefix(2).joined(separator: "-").uppercased()
             case .deleteSnapshots: return "TMUTIL-DELETE-LOCAL-SNAPSHOTS"
             case .evict: return "ICLOUD-REMOVE-DOWNLOAD"
+            case .trashEmulator: return "TRASH-ANDROID-EMULATOR"
+            case .gitGCInTerminal: return "GIT-GC-IN-TERMINAL"
             }
         }
 
@@ -195,6 +204,15 @@ enum Cleaner {
             case .evict:
                 // Removes only the local copy; the file stays in iCloud Drive.
                 try FileManager.default.evictUbiquitousItem(at: url)
+                return []
+            case .trashEmulator(let ini):
+                let folder = (url, try Cleaner.trash(url))
+                let registration = FileManager.default.fileExists(atPath: ini)
+                    ? [(URL(fileURLWithPath: ini), try Cleaner.trash(URL(fileURLWithPath: ini)))] : []
+                return [folder] + registration
+            case .gitGCInTerminal:
+                // Runs in Terminal, outside Spacebar's Full Disk Access: a repository's own config can run commands.
+                try Cleaner.runInTerminal(directory: url.deletingLastPathComponent(), command: "git gc")
                 return []
             }
         }
@@ -313,6 +331,20 @@ enum Cleaner {
         var error: NSDictionary?
         NSAppleScript(source: "tell application \"Finder\" to empty trash")?.executeAndReturnError(&error)
         return error.map { ($0[NSAppleScript.errorMessage] as? String) ?? "Finder couldn't empty the Trash" }
+    }
+
+    /// Opens Terminal in `directory` and runs `command` there.
+    static func runInTerminal(directory: URL, command: String) throws {
+        let path = directory.path.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"")
+        let script = """
+        tell application "Terminal"
+            activate
+            do script "cd " & quoted form of "\(path)" & " && \(command)"
+        end tell
+        """
+        var error: NSDictionary?
+        NSAppleScript(source: script)?.executeAndReturnError(&error)
+        if let error { throw failure((error[NSAppleScript.errorMessage] as? String) ?? "Couldn't open Terminal") }
     }
 
     static func failure(_ message: String) -> NSError {

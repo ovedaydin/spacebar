@@ -39,6 +39,14 @@ public enum ItemKind: Hashable, Sendable, Codable {
     case appData(bundleID: String, appName: String)
     /// A downloaded iCloud Drive file: its local copy is removed, it stays in iCloud.
     case iCloudEvict
+    /// An Android emulator: its .avd folder plus the .ini file that registers it.
+    case androidEmulator(ini: String)
+    /// An old Homebrew version in the Cellar that is no longer linked.
+    case homebrewKeg
+    /// A downloaded AI model folder (LM Studio).
+    case aiModel
+    /// A git repository to compact: `git gc` runs in Terminal, outside Spacebar's permissions.
+    case gitCompact
 }
 
 public struct CleanItem: Identifiable, Hashable, Sendable, Codable {
@@ -171,7 +179,7 @@ public struct CleanCategory: Identifiable, Sendable {
     public enum SortOrder: Sendable { case largestFirst, oldestFirst }
     public var group: Group { Self.findSpaceIDs.contains(id) ? .findSpace : .cleanup }
     public var sortOrder: SortOrder { id == "apps" ? .oldestFirst : .largestFirst }
-    static let findSpaceIDs: Set<String> = ["forgotten", "icloud", "duplicates", "apps", "leftovers", "simulators", "docker",
+    static let findSpaceIDs: Set<String> = ["forgotten", "icloud", "devtools", "duplicates", "apps", "leftovers", "simulators", "docker",
                                             "snapshots", "projects", "mail", "photos"]
     let collect: @Sendable (ScanContext) -> [Candidate]
 
@@ -241,7 +249,7 @@ public extension CleanCategory {
     static let all: [CleanCategory] = [
         appCaches, logs, xcode, developerCaches, trash,
         xcodeArchives, iosBackups, installers, largeFiles,
-        forgottenFiles, iCloudDownloads, unusedApps, simulators, docker, snapshots, appLeftovers, mail, duplicates, similarPhotos,
+        forgottenFiles, iCloudDownloads, unusedApps, simulators, developerTools, docker, snapshots, appLeftovers, mail, duplicates, similarPhotos,
         projectBuildFiles,
     ]
 

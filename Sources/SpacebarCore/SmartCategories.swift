@@ -313,6 +313,14 @@ public extension CleanCategory {
         return result
     }
 
+    static let developerTools = CleanCategory(
+        id: "devtools", name: "Developer Tools", icon: "wrench.and.screwdriver",
+        summary: "Android system images no emulator uses, old Android build-tools and emulators, extra Xcode copies, older JetBrains IDE data, downloaded AI models, old Homebrew versions, and git repositories worth compacting. The Xcode you're using and the Homebrew versions in use are never offered. git gc runs in Terminal, not inside Spacebar.",
+        safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: false, owners: []
+    ) { context in
+        DeveloperTools.candidates(home: context.home, cancel: context.cancel)
+    }
+
     static let forgottenFiles = CleanCategory(
         id: "forgotten", name: "Forgotten Files", icon: "tray.full",
         summary: "Things in Downloads and on the Desktop you haven't opened in a long time. \"Opened\" comes from Spotlight, which records opens through Finder and apps (files dragged straight into an app may not show). Suggested: installers for apps you already have, archives already unzipped next to themselves, and installers or archives with no open recorded in 6 months. Photos, videos, music and documents are never suggested, and neither is anything on the Desktop.",
