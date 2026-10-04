@@ -399,13 +399,23 @@ public extension CleanCategory {
 
     static let duplicates = CleanCategory(
         id: "duplicates", name: String(localized: "Duplicate Files"), icon: "doc.on.doc",
-        summary: String(localized: "Files over 1 MB with identical content in your home folder (outside Library). For each set, one copy is kept: the one outside Downloads with the shortest path. Right-click a copy to keep it instead. Copies that already share disk space (APFS clones) are left out, because deleting them frees nothing."),
+        summary: String(localized: "Whole folders and files over 1 MB with identical content in your home folder (outside Library). For each set, one copy is kept: the one outside Downloads with the shortest path (and without \"copy\" in its name). Right-click a copy to keep it instead. Copies that already share disk space (APFS clones) are left out, because deleting them frees nothing."),
         safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: true, owners: []
     ) { context in
         let home = context.home.path
         func short(_ url: URL) -> String { url.path.replacingOccurrences(of: home, with: "~") }
-        return DuplicateFinder.find(home: context.home, minSize: 1 << 20, cancel: context.cancel).flatMap { group in
-            group.copies.compactMap { copy -> Candidate? in
+        // Whole duplicate folders first; files inside them aren't listed again one by one.
+        let folderGroups = DuplicateFolders.find(home: context.home, cancel: context.cancel)
+        let covered = folderGroups.flatMap { [$0.keep.path] + $0.copies.map(\.url.path) }
+        let folders = folderGroups.flatMap { group in
+            group.copies.map { copy in
+                Candidate(url: copy.url, date: modified(copy.url),
+                          detail: String(localized: "Folder · same contents as \(short(group.keep))"), knownSize: copy.freed,
+                          duplicateOf: group.keep)
+            }
+        }
+        return folders + DuplicateFinder.find(home: context.home, minSize: 1 << 20, cancel: context.cancel).flatMap { group in
+            group.copies.filter { copy in !covered.contains { copy.url.path.hasPrefix($0 + "/") } }.compactMap { copy -> Candidate? in
                 let freed = DuplicateFinder.reclaimableBytes(copy.url.path, allocated: copy.size)
                 guard freed >= 64 * 1024 else { return nil } // a clone: deleting frees nothing
                 let folder = short(copy.url.deletingLastPathComponent())

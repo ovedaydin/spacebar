@@ -234,8 +234,8 @@ public enum PhotosLibrary {
 
 public extension CleanCategory {
     static let similarPhotos = CleanCategory(
-        id: "photos", name: String(localized: "Similar Photos"), icon: "photo.on.rectangle.angled",
-        summary: String(localized: "Bursts and repeated shots: photos taken within a minute of each other that look nearly the same, found with on-device image analysis. In each group the favorite, or else the highest-resolution shot, is kept. Library photos go to Recently Deleted in Photos (30 days); image files go to the Trash. Photos stored only in iCloud aren't downloaded or analyzed."),
+        id: "photos", name: String(localized: "Similar Photos & Videos"), icon: "photo.on.rectangle.angled",
+        summary: String(localized: "Bursts and repeated shots: photos taken within a minute of each other that look nearly the same, and videos saved twice (the same clip exported again or at another resolution), found with on-device image analysis. In each group the favorite, or else the highest-resolution one, is kept. Library photos go to Recently Deleted in Photos (30 days); files go to the Trash. Photos stored only in iCloud aren't downloaded or analyzed."),
         safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: true, owners: []
     ) { context in
         var result: [Candidate] = []
@@ -258,6 +258,16 @@ public extension CleanCategory {
         let folders = ["Pictures", "Desktop", "Downloads"].map(context.path)
         add(SimilarImages.fileGroups(in: folders, cancel: context.cancel),
             url: { URL(fileURLWithPath: $0.id) }, kind: { _ in .file })
+        // The same clip saved twice.
+        let videoFolders = ["Movies", "Desktop", "Downloads", "Documents", "Pictures"].map(context.path)
+        for group in SimilarVideos.groups(in: videoFolders, cancel: context.cancel) {
+            for copy in group.copies {
+                result.append(Candidate(url: copy.url, name: copy.url.lastPathComponent,
+                                        date: (try? copy.url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate,
+                                        detail: String(localized: "Same video as \(group.keep.url.lastPathComponent)"),
+                                        knownSize: copy.bytes, duplicateOf: group.keep.url))
+            }
+        }
         return result
     }
 }

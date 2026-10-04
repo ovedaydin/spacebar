@@ -487,3 +487,56 @@ final class ShippedGuideTests: XCTestCase {
         }
     }
 }
+
+final class DuplicateFolderTests: XCTestCase {
+    func testFindsTopmostCopyAndIgnoresDifferentFolders() throws {
+        let home = FileManager.default.temporaryDirectory.appendingPathComponent("dupfolders-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: home) }
+        func write(_ path: String, _ bytes: Int, seed: UInt8) throws {
+            let url = home.appendingPathComponent(path)
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data((0..<bytes).map { UInt8(($0 + Int(seed)) % 251) }).write(to: url)
+        }
+        // A project and a real (non-clone) copy of it, with a subfolder.
+        for root in ["Documents/Project", "Documents/Project copy"] {
+            try write("\(root)/video.mov", 600_000, seed: 1)
+            try write("\(root)/assets/a.bin", 300_000, seed: 2)
+        }
+        // Same names and sizes, different contents: not a duplicate.
+        try write("Desktop/Lookalike/video.mov", 600_000, seed: 9)
+        try write("Desktop/Lookalike/assets/a.bin", 300_000, seed: 2)
+
+        let groups = DuplicateFolders.find(home: home, minSize: 500_000)
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups.first?.keep.lastPathComponent, "Project")
+        XCTAssertEqual(groups.first?.copies.map(\.url.lastPathComponent), ["Project copy"], "the subfolders aren't reported again")
+    }
+}
+
+final class SimilarVideoTests: XCTestCase {
+    /// A macOS sample clip, its 640×480 re-encode (same video), and a different clip.
+    func testReEncodedClipIsSimilarAndDifferentClipIsNot() throws {
+        let fm = FileManager.default
+        let clip = "/System/Library/ExtensionKit/Extensions/MouseExtension.appex/Contents/Resources/Mouse.mov"
+        let other = "/System/Library/CoreServices/Setup Assistant.app/Contents/Resources/trackpad_placeholder.mov"
+        try XCTSkipUnless(fm.fileExists(atPath: clip) && fm.fileExists(atPath: other) && fm.fileExists(atPath: "/usr/bin/avconvert"),
+                          "sample clips not on this macOS")
+        let folder = fm.temporaryDirectory.appendingPathComponent("videos-\(UUID().uuidString)")
+        try fm.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: folder) }
+        try fm.copyItem(atPath: clip, toPath: folder.appendingPathComponent("clip.mov").path)
+        try fm.copyItem(atPath: other, toPath: folder.appendingPathComponent("other.mov").path)
+        let convert = Process()
+        convert.executableURL = URL(fileURLWithPath: "/usr/bin/avconvert")
+        convert.arguments = ["-s", folder.appendingPathComponent("clip.mov").path, "-o", folder.appendingPathComponent("clip-small.mp4").path,
+                             "-p", "Preset640x480"]
+        try convert.run()
+        convert.waitUntilExit()
+        try XCTSkipUnless(fm.fileExists(atPath: folder.appendingPathComponent("clip-small.mp4").path), "avconvert couldn't re-encode")
+
+        let groups = SimilarVideos.groups(in: [folder], minimumBytes: 1)
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups.first?.keep.url.lastPathComponent, "clip.mov", "the higher resolution is kept")
+        XCTAssertEqual(groups.first?.copies.map(\.url.lastPathComponent), ["clip-small.mp4"])
+    }
+}
