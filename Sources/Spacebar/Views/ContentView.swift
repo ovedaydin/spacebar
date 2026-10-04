@@ -7,6 +7,7 @@ enum Route: Hashable {
     case explorer
     case history
     case apps
+    case media
     case category(String)
 }
 
@@ -24,6 +25,7 @@ struct ContentView: View {
         case "explorer": return .explorer
         case "history": return .history
         case "apps": return .apps
+        case "media": return .media
         case let id?: return .category(id)
         }
     }
@@ -35,6 +37,7 @@ struct ContentView: View {
                     Label("Overview", systemImage: "internaldrive").tag(Route.overview)
                     Label("Space Explorer", systemImage: "chart.bar.doc.horizontal").tag(Route.explorer)
                     Label("App Storage", systemImage: "square.stack.3d.up").tag(Route.apps)
+                    Label("Media Review", systemImage: "photo.stack").tag(Route.media)
                     Label("History", systemImage: "clock.arrow.circlepath").tag(Route.history)
                 }
                 Section("Cleanup") {
@@ -69,6 +72,7 @@ struct ContentView: View {
             case .explorer: ExplorerView()
             case .history: HistoryView()
             case .apps: AppStorageView()
+            case .media: MediaReviewView()
             case .category(let id): CategoryView(category: model.category(id)!)
             }
         }
@@ -90,7 +94,7 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.routeNotification)) { note in
             guard let id = note.object as? String else { return }
-            route = id == "overview" ? .overview : id == "explorer" ? .explorer : id == "history" ? .history : id == "apps" ? .apps : .category(id)
+            route = id == "overview" ? .overview : id == "explorer" ? .explorer : id == "history" ? .history : id == "apps" ? .apps : id == "media" ? .media : .category(id)
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.dumpNotification)) { note in
             let window = NSApp.windows.first(where: \.isVisible)

@@ -67,7 +67,7 @@ struct CategoryView: View {
     }
 
     /// Only where people delete their own files: large, forgotten, duplicates and rules.
-    private func checkBackups(_ items: [CleanItem]) async {
+    @MainActor private func checkBackups(_ items: [CleanItem]) async {
         guard ["large", "forgotten", "duplicates"].contains(category.id) || category.group == .rules else { return }
         let files = items.filter { $0.kind == .file && $0.url.isFileURL }.map(\.url)
         let result = await Task.detached(priority: .utility) { () -> (Date?, Set<URL>) in

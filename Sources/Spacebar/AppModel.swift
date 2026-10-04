@@ -405,9 +405,12 @@ final class AppModel: ObservableObject {
         // Someone opened the page and is waiting: not queued behind background scans (it still
         // shares their pool of scanner threads, so the Mac stays responsive).
         let started = Date()
+        // Results fill in as they come only the first time; a refresh keeps the last full list
+        // until the new one is complete.
+        let showPartial = appUsage.isEmpty
         Task.detached(priority: .userInitiated) {
             let result = AppUsageAnalyzer.measure(engine: BulkScanner(), knownSizes: known) { partial in
-                Task { @MainActor in self.appUsage = partial }
+                if showPartial { Task { @MainActor in self.appUsage = partial } }
             }
             await MainActor.run {
                 self.appUsage = result
@@ -416,6 +419,27 @@ final class AppModel: ObservableObject {
                 self.storageTrace("apps: measured \(result.count) in \(String(format: "%.1f", Date().timeIntervalSince(started))) s, \(known.count) bundle sizes reused")
                 self.measuringApps = false
                 ScanCache.save(ScanCache.Apps(date: Date(), apps: result))
+            }
+        }
+    }
+
+    /// Moves what was marked in Media Review to the Trash (library items to Recently Deleted in Photos).
+    func trashMedia(_ items: [MediaReview.Item]) {
+        guard !cleaning, !items.isEmpty else { return }
+        cleaning = true
+        let requests = items.map { media -> Cleaner.Request in
+            var item = CleanItem(url: media.url, name: media.name, size: media.bytes, date: media.date, detail: media.place, owner: nil)
+            if let identifier = media.photoIdentifier { item.kind = .photoAsset(identifier: identifier) }
+            return Cleaner.Request(item: item, mode: .trash)
+        }
+        let dryRun = dryRun
+        Task.detached(priority: .userInitiated) {
+            let report = Cleaner.run(requests, dryRun: dryRun, history: .app)
+            await MainActor.run {
+                self.cleaning = false
+                self.applyRemovals(report)
+                if !report.trashedItems.isEmpty { self.lastTrashed = report.trashedItems }
+                self.report = report
             }
         }
     }

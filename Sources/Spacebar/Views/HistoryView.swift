@@ -29,7 +29,7 @@ struct HistoryView: View {
         }
     }
 
-    private func refresh() async {
+    @MainActor private func refresh() async {
         let records = model.cleaningHistory
         restorable = await Task.detached(priority: .utility) {
             Dictionary(uniqueKeysWithValues: records.map { ($0.id, $0.restorable) })

@@ -631,6 +631,16 @@
         }
       }
     },
+    "%@ · %@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@%3$@"
+          }
+        }
+      }
+    },
     "%@ · project changed %@" : {
       "localizations" : {
         "de" : {
@@ -1463,6 +1473,16 @@
         }
       }
     },
+    "%lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld"
+          }
+        }
+      }
+    },
     "%lld of %lld selected" : {
       "localizations" : {
         "de" : {
@@ -1929,6 +1949,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "toplam %lld, %lld kullanımda"
+          }
+        }
+      }
+    },
+    "%lld videos and photos, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld videos and photos, %2$@"
           }
         }
       }
@@ -4637,6 +4667,9 @@
         }
       }
     },
+    "Delete key" : {
+
+    },
     "Delete “%@”?" : {
       "localizations" : {
         "de" : {
@@ -5924,6 +5957,9 @@
         }
       }
     },
+    "Files go to the Trash and library videos to Recently Deleted in Photos, so you can still get them back. They're also listed in History." : {
+
+    },
     "Files it found aren't touched." : {
       "localizations" : {
         "de" : {
@@ -5989,6 +6025,9 @@
           }
         }
       }
+    },
+    "Find Again" : {
+
     },
     "Find Space" : {
       "localizations" : {
@@ -6077,6 +6116,12 @@
           }
         }
       }
+    },
+    "Finding your largest videos and photos…" : {
+
+    },
+    "Finish" : {
+
     },
     "Folder" : {
       "localizations" : {
@@ -7008,6 +7053,9 @@
           }
         }
       }
+    },
+    "Include videos in the Photos library" : {
+
     },
     "Includes nothing purgeable. macOS can also free %@ of purgeable space on its own." : {
       "localizations" : {
@@ -8110,6 +8158,9 @@
         }
       }
     },
+    "Media Review" : {
+
+    },
     "Memory moved to disk when apps need more than your Mac has. It shrinks as apps free memory, and after a restart." : {
       "localizations" : {
         "de" : {
@@ -8270,6 +8321,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Move %lld items (%@) to the Trash?" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Move %1$lld items (%2$@) to the Trash?"
           }
         }
       }
@@ -9489,6 +9550,9 @@
         }
       }
     },
+    "Nothing marked for the Trash" : {
+
+    },
     "Nothing matches right now." : {
       "localizations" : {
         "de" : {
@@ -10357,6 +10421,9 @@
         }
       }
     },
+    "Photos library" : {
+
+    },
     "Photos, Music & Movies" : {
       "localizations" : {
         "de" : {
@@ -10989,6 +11056,9 @@
         }
       }
     },
+    "Review Again" : {
+
+    },
     "Review Snapshots" : {
       "localizations" : {
         "de" : {
@@ -11032,6 +11102,9 @@
           }
         }
       }
+    },
+    "Right arrow" : {
+
     },
     "Run a scan to see what can be cleaned." : {
       "localizations" : {
@@ -13024,6 +13097,9 @@
         }
       }
     },
+    "Start Review" : {
+
+    },
     "Start Scan" : {
       "localizations" : {
         "de" : {
@@ -13982,6 +14058,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Time Machine yedekleri. Bunları Time Machine'de yönetin"
+          }
+        }
+      }
+    },
+    "To the Trash: %lld · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "To the Trash: %1$lld · %2$@"
           }
         }
       }
@@ -15252,6 +15338,9 @@
           }
         }
       }
+    },
+    "Your largest media in Movies, Pictures, Documents, Downloads and on the Desktop: videos over 50 MB and photos over 15 MB. See each one and decide: Keep or Trash. Nothing is removed until you confirm at the end." : {
+
     },
     "Your last clean moved %@ to the Trash" : {
       "localizations" : {

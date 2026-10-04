@@ -343,6 +343,12 @@ enum DebugSnapshot {
                         scroll.contentView.scroll(to: NSPoint(x: 0, y: Double(parts[1]) ?? 0))
                         scroll.reflectScrolledClipView(scroll.contentView)
                     }
+                case "front":
+                    // Floats the window above others so it draws (covered windows aren't redrawn).
+                    if let window = NSApp.windows.first(where: { $0.isVisible && $0.canBecomeMain }) {
+                        window.level = .floating
+                        window.orderFrontRegardless()
+                    }
                 case "timelinedemo": NotificationCenter.default.post(name: timelineDemoNotification, object: nil)
                 case "cloudlist":
                     // Read-only: what Keep in the Cloud Only finds, per drive. Nothing is evicted.
