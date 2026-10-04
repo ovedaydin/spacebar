@@ -333,7 +333,7 @@ enum DebugSnapshot {
     /// Sends a real mouse down/up into the window. "x,y" in points from the window's top-left.
     private static func click(_ spec: String) {
         let xy = spec.split(separator: ",").compactMap { Double($0) }
-        guard xy.count == 2, let window = NSApp.windows.first(where: \.isVisible) else { return }
+        guard xy.count == 2, let window = NSApp.windows.first(where: { $0.isVisible && $0.canBecomeMain }) else { return }
         let location = NSPoint(x: xy[0], y: window.frame.height - xy[1])
         func event(_ type: NSEvent.EventType) -> NSEvent? {
             NSEvent.mouseEvent(with: type, location: location, modifierFlags: [],

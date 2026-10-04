@@ -6,10 +6,44 @@ public struct StorageSegment: Codable, Sendable, Identifiable, Equatable {
         case macOS, apps, documents, media, developer, appData, iCloud, mail, trash, shared, systemData
     }
 
-    /// A labelled piece of a slice, shown in its tooltip.
+    /// A labelled piece of a slice, shown in its tooltip and in the System Data details.
     public struct Part: Codable, Sendable, Equatable {
         public let name: String
         public let bytes: Int64
+        /// What it is, in a sentence.
+        public var note: String?
+        public var verdict: Verdict?
+        /// What Spacebar can do about it.
+        public var action: Action?
+
+        public init(name: String, bytes: Int64, note: String? = nil, verdict: Verdict? = nil, action: Action? = nil) {
+            self.name = name
+            self.bytes = bytes
+            self.note = note
+            self.verdict = verdict
+            self.action = action
+        }
+
+        /// Whether it's safe to remove.
+        public enum Verdict: String, Codable, Sendable {
+            /// macOS sizes and removes it on its own.
+            case managed
+            /// Mostly cleared when the Mac restarts.
+            case clearedOnRestart
+            /// May hold leftovers worth a look.
+            case review
+            /// Can be removed (see `action`).
+            case removable
+        }
+
+        public enum Action: Codable, Sendable, Equatable {
+            /// Open the folder in Space Explorer.
+            case explore(String)
+            /// Open a Spacebar category by ID.
+            case category(String)
+            /// Open a System Settings pane (an x-apple.systempreferences: URL).
+            case settings(String)
+        }
     }
 
     public var id: Kind { kind }
@@ -197,6 +231,8 @@ public enum StorageAnalyzer {
         let free: Int64
         let macOS: Int64
         let data: Int64
+        /// The VM volume (swap), included in `macOS`.
+        let swap: Int64
     }
 
     /// Reads the APFS container holding the startup disk from `diskutil apfs list -plist`.
@@ -214,7 +250,8 @@ public enum StorageAnalyzer {
             let macOS = volumes.filter { !systemRoles.isDisjoint(with: roles($0)) }.reduce(Int64(0)) { $0 + used($1) }
             return Volumes(total: (container["CapacityCeiling"] as? NSNumber)?.int64Value ?? 0,
                            free: (container["CapacityFree"] as? NSNumber)?.int64Value ?? 0,
-                           macOS: macOS, data: used(dataVolume))
+                           macOS: macOS, data: used(dataVolume),
+                           swap: volumes.filter { roles($0).contains("VM") }.reduce(Int64(0)) { $0 + used($1) })
         }
         return nil
     }
@@ -280,36 +317,100 @@ public enum StorageAnalyzer {
         // macOS-managed downloads on the data volume belong with macOS.
         let assets = engine.measure(URL(fileURLWithPath: "\(data)/System"), cancel: cancel).allocated
         breakdown.segments[0].bytes += assets
-        breakdown.segments[0].parts = [.init(name: String(localized: "System and support volumes"), bytes: volumes.macOS),
-                                       .init(name: String(localized: "Downloaded system assets"), bytes: assets)]
+        breakdown.segments[0].parts = [
+            .init(name: String(localized: "macOS itself"), bytes: volumes.macOS - volumes.swap,
+                  note: String(localized: "The read-only system, recovery and the files for installing updates."), verdict: .managed),
+            .init(name: String(localized: "Swap"), bytes: volumes.swap,
+                  note: String(localized: "Memory moved to disk when apps need more than your Mac has. It shrinks as apps free memory, and after a restart."),
+                  verdict: .clearedOnRestart),
+            .init(name: String(localized: "Downloaded system assets"), bytes: assets,
+                  note: String(localized: "Fonts, voices, language and AI models macOS downloads as needed."), verdict: .managed),
+        ]
         measured += assets
 
-        // System Data is the remainder; itemize what can be measured.
-        let libraryRoots = list(URL(fileURLWithPath: "\(data)/Library"))
-            .filter { $0.lastPathComponent != "Developer" && $0.lastPathComponent != "Updates" }
-        // A downloaded macOS update waiting to install.
-        let updates = engine.measure([URL(fileURLWithPath: "\(data)/Library/Updates"),
-                                      URL(fileURLWithPath: "\(data)/MobileSoftwareUpdate")]
-                                         .filter { fm.fileExists(atPath: $0.path) }, cancel: cancel)
-            .reduce(Int64(0)) { $0 + $1.allocated }
-        let updateSnapshots = (runCommand("/usr/bin/tmutil", ["listlocalsnapshots", "/"]).map { String(decoding: $0, as: UTF8.self) } ?? "")
-            .split(separator: "\n").filter { $0.hasPrefix("com.apple.os.update-") }.count
-        let library = engine.measure(libraryRoots, cancel: cancel).reduce(Int64(0)) { $0 + $1.allocated }
-        let privateFiles = engine.measure(URL(fileURLWithPath: "\(data)/private"), cancel: cancel).allocated
-        let remainder = max(0, volumes.data - measured)
-        var systemData = StorageSegment(kind: .systemData, bytes: remainder, explorePath: "/Library",
-                                        roots: (libraryRoots.map(\.path) + ["\(data)/private"]).map(displayPath))
-        let other = max(0, remainder - library - privateFiles - updates)
-        systemData.parts = [.init(name: String(localized: "System-wide app support (/Library)"), bytes: min(library, remainder)),
-                            .init(name: String(localized: "Temporary files, logs and system databases"), bytes: min(privateFiles, remainder)),
-                            .init(name: String(localized: "macOS update downloaded, waiting to install"), bytes: min(updates, remainder)),
-                            .init(name: updateSnapshots > 0
-                                  ? String(localized: "Snapshots (\(updateSnapshots) made by macOS updates, removed by macOS), indexes and unreadable folders")
-                                  : String(localized: "Snapshots, indexes and unreadable folders"), bytes: other)]
+        // System Data is the remainder; itemize what can be measured without an administrator.
+        let systemData = itemizeSystemData(remainder: max(0, volumes.data - measured), engine: engine, cancel: cancel)
         breakdown.segments.append(systemData)
         breakdown.complete = true
         breakdown.measuredAt = Date()
         progress(breakdown)
         return breakdown
+    }
+
+    /// System Data's parts: the folders outside your home that Spacebar can measure, each with
+    /// what it is and whether it's safe to remove. What's left is what only macOS can read.
+    static func itemizeSystemData(remainder: Int64, engine: BulkScanner, cancel: CancelToken?) -> StorageSegment {
+        let fm = FileManager.default
+        let data = "/System/Volumes/Data"
+        func url(_ path: String) -> URL { URL(fileURLWithPath: "\(data)/\(path)") }
+        func children(_ path: String, except: Set<String>) -> [URL] {
+            ((try? fm.contentsOfDirectory(at: url(path), includingPropertiesForKeys: nil)) ?? [])
+                .filter { !except.contains($0.lastPathComponent) }
+        }
+        func size(_ urls: [URL]) -> Int64 {
+            engine.measure(urls.filter { fm.fileExists(atPath: $0.path) }, cancel: cancel).reduce(0) { $0 + $1.allocated }
+        }
+
+        let sleepImage = size([url("private/var/vm")])
+        let temporary = size([url("private/var/folders"), url("private/var/tmp"), url("private/tmp")])
+        let logs = size([url("private/var/log"), url("private/var/db/diagnostics"), url("private/var/db/uuidtext"), url("Library/Logs")])
+        let systemFiles = size(children("private", except: ["var", "tmp"])
+            + children("private/var", except: ["vm", "folders", "tmp", "log", "db"])
+            + children("private/var/db", except: ["diagnostics", "uuidtext"]))
+        let supportFolders = children("Library/Application Support", except: [])
+            .filter { fm.fileExists(atPath: $0.path) }
+        let supportSizes = engine.measure(supportFolders, cancel: cancel).map(\.allocated)
+        let appSupport = supportSizes.reduce(0, +)
+        let largest = zip(supportFolders, supportSizes).sorted { $0.1 > $1.1 }.prefix(3)
+            .filter { $0.1 > 0 }.map { "\($0.0.lastPathComponent) (\(ByteFormat.string($0.1)))" }
+        let caches = size([url("Library/Caches")])
+        let otherLibrary = size(children("Library", except: ["Developer", "Updates", "Application Support", "Caches", "Logs"]))
+        let update = size([url("Library/Updates"), url("MobileSoftwareUpdate")])
+
+        let snapshots = LocalSnapshots.list().count
+        let updateSnapshots = (runCommand("/usr/bin/tmutil", ["listlocalsnapshots", "/"]).map { String(decoding: $0, as: UTF8.self) } ?? "")
+            .split(separator: "\n").filter { $0.hasPrefix("com.apple.os.update-") }.count
+        let itemized = sleepImage + temporary + logs + systemFiles + appSupport + caches + otherLibrary + update
+        var unreadableNote = String(localized: "Spotlight's index, the file system's change log, and other folders only macOS can read. APFS snapshots also count here.")
+        if snapshots > 0 {
+            unreadableNote += " " + String(localized: "This Mac has \(snapshots) Time Machine local snapshots, which Spacebar can remove.")
+        }
+        if updateSnapshots > 0 {
+            unreadableNote += " " + String(localized: "macOS removes the \(updateSnapshots) snapshots it made for updates on its own.")
+        }
+
+        var parts: [StorageSegment.Part] = [
+            .init(name: String(localized: "System-wide app support"), bytes: appSupport,
+                  note: largest.isEmpty ? String(localized: "Data apps keep for all users in /Library/Application Support.")
+                      : String(localized: "Data apps keep for all users in /Library/Application Support. Largest: \(largest.joined(separator: ", ")).")
+                        + " " + String(localized: "Folders of apps you've uninstalled can go."),
+                  verdict: .review, action: .explore("/Library/Application Support")),
+            .init(name: String(localized: "Temporary files"), bytes: temporary,
+                  note: String(localized: "Apps' temporary files and caches outside your home folder. Restarting your Mac clears many of them."),
+                  verdict: .clearedOnRestart),
+            .init(name: String(localized: "Logs and diagnostics"), bytes: logs,
+                  note: String(localized: "System logs and crash reports. macOS deletes old ones on its own."), verdict: .managed),
+            .init(name: String(localized: "System databases and settings"), bytes: systemFiles,
+                  note: String(localized: "Settings, keychains and databases macOS needs to run."), verdict: .managed),
+            .init(name: String(localized: "Sleep image"), bytes: sleepImage,
+                  note: String(localized: "Holds your Mac's memory while it sleeps. macOS manages its size."), verdict: .managed),
+            .init(name: String(localized: "System caches"), bytes: caches,
+                  note: String(localized: "Caches apps keep for all users in /Library/Caches. Apps rebuild them when needed."),
+                  verdict: .review, action: .explore("/Library/Caches")),
+            .init(name: String(localized: "Other system-wide app files"), bytes: otherLibrary,
+                  note: String(localized: "Fonts, plug-ins, preferences and other files in /Library."), verdict: .review,
+                  action: .explore("/Library")),
+            .init(name: String(localized: "Can't be measured"), bytes: max(0, remainder - itemized), note: unreadableNote,
+                  verdict: snapshots > 0 ? .removable : .managed, action: snapshots > 0 ? .category("snapshots") : nil),
+        ]
+        if update > 0 {
+            parts.insert(.init(name: String(localized: "macOS update waiting to install"), bytes: update,
+                               note: String(localized: "A downloaded update. Installing it removes the download."), verdict: .removable,
+                               action: .settings("x-apple.systempreferences:com.apple.Software-Update-Settings.extension")), at: 0)
+        }
+        var segment = StorageSegment(kind: .systemData, bytes: remainder, explorePath: "/Library",
+                                     roots: ([url("Library").path, url("private").path]).map(displayPath))
+        segment.parts = parts.filter { $0.bytes > 0 }.sorted { $0.bytes > $1.bytes }
+        return segment
     }
 }

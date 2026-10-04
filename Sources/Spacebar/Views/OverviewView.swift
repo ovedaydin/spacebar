@@ -78,7 +78,7 @@ struct OverviewView: View {
                 }, openGroup: { title, roots in
                     explorer.showGroup(title, roots: roots)
                     route = .explorer
-                })
+                }, openCategory: { id in route = .category(id) })
 
                 if !model.snapshots.isEmpty {
                     Banner(icon: "clock.arrow.circlepath", tint: .purple,
@@ -302,8 +302,11 @@ private struct DriveCard: View {
 private struct DiskUsageCard: View {
     @EnvironmentObject private var model: AppModel
     @State private var confirmEmptyTrash = false
+    /// macOS and System Data open a list of what's in them instead of Space Explorer.
+    @State private var details: StorageSegment?
     let open: (URL) -> Void
     let openGroup: (String, [URL]) -> Void
+    let openCategory: (String) -> Void
 
     var body: some View {
         if let space = model.space {
@@ -316,6 +319,21 @@ private struct DiskUsageCard: View {
                 }
                 if let storage = model.storage {
                     breakdown(storage)
+                        .sheet(item: $details) { segment in
+                            SegmentDetailsView(segment: segment, perform: { action in
+                                details = nil
+                                switch action {
+                                case .explore(let path): open(URL(fileURLWithPath: path))
+                                case .category(let id): openCategory(id)
+                                case .settings(let link): if let url = URL(string: link) { NSWorkspace.shared.open(url) }
+                                }
+                            }, exploreAll: {
+                                details = nil
+                                if let roots = segment.roots, !roots.isEmpty {
+                                    openGroup(segment.name, roots.map { URL(fileURLWithPath: $0) })
+                                }
+                            })
+                        }
                 } else {
                     simpleBar(space)
                 }
@@ -362,7 +380,7 @@ private struct DiskUsageCard: View {
                         openSegment(segment)
                     } label: {
                         legendRow(segment.kind.color, segment.name, segment.bytes,
-                                  clickable: segment.explorePath != nil || !(segment.roots ?? []).isEmpty)
+                                  clickable: segment.hasDetails || segment.explorePath != nil || !(segment.roots ?? []).isEmpty)
                     }
                     .buttonStyle(.plain)
                     .help(tooltip(segment))
@@ -417,6 +435,10 @@ private struct DiskUsageCard: View {
 
     /// A slice made of several folders opens them all together, so the total matches the bar.
     private func openSegment(_ segment: StorageSegment) {
+        if segment.hasDetails {
+            details = segment
+            return
+        }
         if let roots = segment.roots, roots.count > 1 {
             openGroup(segment.name, roots.map { URL(fileURLWithPath: $0) })
         } else if let path = segment.roots?.first ?? segment.explorePath {
