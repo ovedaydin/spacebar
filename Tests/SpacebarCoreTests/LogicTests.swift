@@ -262,3 +262,42 @@ final class ToolsTests: XCTestCase {
         XCTAssertTrue(simctl.hasPrefix("/Library/Developer/PrivateFrameworks/"))
     }
 }
+
+final class SpaceForecastTests: XCTestCase {
+    private let start = Date(timeIntervalSince1970: 1_800_000_000)
+
+    func testSteadyGrowthForecastsDaysLeft() throws {
+        var forecast = SpaceForecast()
+        // 100 GB free, losing 2 GB a day, sampled every 6 hours for 10 days.
+        for hour in stride(from: 0, through: 240, by: 6) {
+            forecast.record(available: 100_000_000_000 - Int64(hour) * 2_000_000_000 / 24,
+                            at: start.addingTimeInterval(Double(hour) * 3600))
+        }
+        let result = try XCTUnwrap(forecast.forecast(now: start.addingTimeInterval(240 * 3600)))
+        XCTAssertEqual(result.bytesPerDay, 2_000_000_000, accuracy: 10_000_000)
+        // 80 GB left minus a 2 GB reserve at 2 GB/day.
+        XCTAssertEqual(result.days, 39, accuracy: 0.5)
+    }
+
+    func testOneBigCleanDoesntHideTheTrend() throws {
+        var forecast = SpaceForecast()
+        for hour in stride(from: 0, through: 240, by: 6) {
+            var available = 100_000_000_000 - Int64(hour) * 2_000_000_000 / 24
+            if hour >= 120 { available += 30_000_000_000 } // cleaned 30 GB on day 5
+            forecast.record(available: available, at: start.addingTimeInterval(Double(hour) * 3600))
+        }
+        let result = try XCTUnwrap(forecast.forecast(now: start.addingTimeInterval(240 * 3600)))
+        XCTAssertEqual(result.bytesPerDay, 2_000_000_000, accuracy: 300_000_000)
+    }
+
+    func testNoForecastWhenStableOrTooLittleData() {
+        var forecast = SpaceForecast()
+        for hour in stride(from: 0, through: 240, by: 6) {
+            forecast.record(available: 100_000_000_000 + Int64(hour % 12) * 1_000_000, at: start.addingTimeInterval(Double(hour) * 3600))
+        }
+        XCTAssertNil(forecast.forecast(now: start.addingTimeInterval(240 * 3600)))
+        var short = SpaceForecast()
+        for hour in 0..<20 { short.record(available: 100_000_000_000 - Int64(hour) * 1_000_000_000, at: start.addingTimeInterval(Double(hour) * 3600)) }
+        XCTAssertNil(short.forecast(now: start.addingTimeInterval(20 * 3600)), "needs at least 3 days")
+    }
+}

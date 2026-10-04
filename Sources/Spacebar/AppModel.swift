@@ -41,7 +41,20 @@ final class AppModel: ObservableObject {
     @Published private(set) var results: [String: [CleanItem]] = [:]
     @Published private(set) var scanning: Set<String> = []
     @Published var selection: Set<URL> = []
-    @Published private(set) var space: VolumeSpace? = .home()
+    @Published private(set) var space: VolumeSpace? = .home() {
+        didSet { if let space { recordSpace(space) } }
+    }
+    /// Available space over time, and what it says about when the disk fills up.
+    private var spaceLog: SpaceForecast = ScanCache.loadSpaceLog()
+    @Published private(set) var forecast: SpaceForecast.Result?
+
+    private func recordSpace(_ space: VolumeSpace) {
+        let count = spaceLog.samples.count
+        spaceLog.record(available: space.available)
+        guard spaceLog.samples.count != count else { return }
+        ScanCache.save(spaceLog)
+        forecast = spaceLog.forecast()
+    }
     @Published private(set) var snapshots: [String] = []
     @Published private(set) var fullDiskAccess: Bool? = FullDiskAccess.isGranted()
     @Published private(set) var cleaning = false
@@ -141,6 +154,7 @@ final class AppModel: ObservableObject {
     private var observers: [AnyCancellable] = []
 
     init() {
+        forecast = spaceLog.forecast()
         dryRun = UserDefaults.standard.bool(forKey: "dryRun")
         let savedStaleDays = UserDefaults.standard.integer(forKey: "staleDays")
         staleDays = savedStaleDays > 0 ? savedStaleDays : Suggestion.defaultStaleDays
@@ -406,6 +420,7 @@ final class AppModel: ObservableObject {
     func checkLowDisk() {
         let defaults = UserDefaults.standard
         guard defaults.bool(forKey: Preferences.lowDiskAlerts), let space else { return }
+        warnBeforeFull()
         let threshold = Int64(defaults.integer(forKey: Preferences.lowDiskThresholdGB)) * 1_000_000_000
         guard space.available < threshold else { return }
         if let last = defaults.object(forKey: Preferences.lastLowDiskAlert) as? Date,
@@ -418,6 +433,38 @@ final class AppModel: ObservableObject {
             content.title = String(localized: "Your disk is almost full")
             content.body = String(localized: "\(ByteFormat.string(space.available)) left. Open Spacebar to see what's using space.")
             UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "low-disk", content: content, trigger: nil))
+        }
+    }
+
+    /// "Your disk will be full in about 10 days", at most weekly, when it's two weeks away or less.
+    private func warnBeforeFull() {
+        let defaults = UserDefaults.standard
+        guard let forecast, forecast.days < 14 else { return }
+        if let last = defaults.object(forKey: "lastForecastAlert") as? Date, Date().timeIntervalSince(last) < 7 * 86400 { return }
+        defaults.set(Date(), forKey: "lastForecastAlert")
+        let rate = ByteFormat.string(Int64(forecast.bytesPerDay))
+        var body = String(localized: "It's filling up by about \(rate) a day.")
+        if let top = history.growth()?.items.first {
+            let home = NSHomeDirectory()
+            let path = top.path.hasPrefix(home) ? "~" + top.path.dropFirst(home.count) : top.path
+            body += " " + String(localized: "Biggest growth: \(path) (+\(ByteFormat.string(top.delta))).")
+        }
+        notify(title: Self.forecastTitle(days: forecast.days), body: body)
+    }
+
+    static func forecastTitle(days: Double) -> String {
+        let days = Int(days.rounded())
+        return days <= 1 ? String(localized: "Your disk will be full in about a day")
+            : String(localized: "Your disk will be full in about \(days) days")
+    }
+
+    /// "in about 5 weeks", for the Overview.
+    static func forecastPhrase(days: Double) -> String {
+        switch days {
+        case ..<1.5: return String(localized: "in about a day")
+        case ..<14: return String(localized: "in about \(Int(days.rounded())) days")
+        case ..<60: return String(localized: "in about \(Int((days / 7).rounded())) weeks")
+        default: return String(localized: "in about \(Int((days / 30).rounded())) months")
         }
     }
 

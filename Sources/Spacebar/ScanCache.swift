@@ -83,6 +83,17 @@ enum ScanCache {
         try? JSONEncoder().encode(ledger).write(to: url, options: .atomic)
     }
 
+    static func loadSpaceLog() -> SpaceForecast {
+        guard let data = try? Data(contentsOf: supportDirectory.appendingPathComponent("space-log.json")),
+              let log = try? JSONDecoder().decode(SpaceForecast.self, from: data) else { return SpaceForecast() }
+        return log
+    }
+
+    static func save(_ log: SpaceForecast) {
+        try? FileManager.default.createDirectory(at: supportDirectory, withIntermediateDirectories: true)
+        try? JSONEncoder().encode(log).write(to: supportDirectory.appendingPathComponent("space-log.json"), options: .atomic)
+    }
+
     static func loadHistory() -> StorageHistory? { read("history.json") }
     static func save(_ history: StorageHistory) { write(history, to: "history.json") }
 

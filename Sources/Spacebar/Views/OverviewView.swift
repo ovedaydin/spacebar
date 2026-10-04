@@ -174,6 +174,15 @@ private struct WhatGrewCard: View {
                     Text("since \(growth.since.formatted(.relative(presentation: .named)))")
                         .font(.callout).foregroundStyle(.secondary)
                 }
+                if let forecast = model.forecast, forecast.days < 180 {
+                    Label {
+                        Text("At this rate, your disk is full \(AppModel.forecastPhrase(days: forecast.days)). It's filling up by about \(ByteFormat.string(Int64(forecast.bytesPerDay))) a day.")
+                    } icon: {
+                        Image(systemName: "hourglass")
+                    }
+                    .foregroundStyle(forecast.days < 14 ? .orange : .secondary)
+                    .font(.callout)
+                }
                 if growth.items.isEmpty {
                     Text("Nothing grew by more than 200 MB.").foregroundStyle(.secondary)
                 } else {
