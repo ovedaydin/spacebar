@@ -117,6 +117,9 @@ enum Preferences {
     static let lowDiskThresholdGB = "lowDiskThresholdGB"
     static let lastLowDiskAlert = "lastLowDiskAlert"
     static let onboardingDone = "onboardingDone"
+    static let autoClean = "autoClean"
+    static let autoEmptyTrashed = "autoEmptyTrashed"
+    static let lastAutoClean = "lastAutoClean"
     static let onboardingPage = "onboardingPage"
 
     static func register() {
@@ -238,6 +241,7 @@ enum DebugSnapshot {
                 case "appkey": appKey(parts[1])
                 case "drive": NotificationCenter.default.post(name: segmentNotification, object: "drive:" + parts[1])
                 case "drivetest": driveSelfTest(parts[1])
+                case "autotest": NotificationCenter.default.post(name: segmentNotification, object: "action:autotest")
                 case "uninstall": NotificationCenter.default.post(name: segmentNotification, object: "uninstall:" + parts[1])
                 case "dump": NotificationCenter.default.post(name: dumpNotification, object: parts[1])
                 case "activate":

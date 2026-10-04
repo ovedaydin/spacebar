@@ -151,6 +151,8 @@ struct SettingsView: View {
     @AppStorage(Preferences.menuBarShowsSpace) private var menuBarShowsSpace = false
     @AppStorage(Preferences.lowDiskAlerts) private var lowDiskAlerts = true
     @AppStorage(Preferences.lowDiskThresholdGB) private var threshold = 10
+    @AppStorage(Preferences.autoClean) private var autoClean = false
+    @AppStorage(Preferences.autoEmptyTrashed) private var autoEmptyTrashed = false
 
     var body: some View {
         Form {
@@ -167,6 +169,15 @@ struct SettingsView: View {
                     ForEach([5, 10, 20, 50], id: \.self) { Text("\($0) GB available").tag($0) }
                 }
                 .disabled(!lowDiskAlerts)
+            }
+            Section("Automatic") {
+                Toggle("Clean safe items once a week", isOn: $autoClean)
+                Text("Only suggested caches, logs and build data, with the same rules as a manual clean: exclusions, running apps and Dry Run apply. You get a notification with what was freed.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Toggle("Empty items Spacebar moved to the Trash after 7 days", isOn: $autoEmptyTrashed)
+                Text("Only what Spacebar put in the Trash. Anything else in your Trash is left alone.")
+                    .font(.caption).foregroundStyle(.secondary)
+                Toggle("Open Spacebar at login", isOn: Binding(get: { LoginItem.isEnabled }, set: { LoginItem.set($0) }))
             }
             Section("Cleaning") {
                 Picker("Suggest caches not used in", selection: $model.staleDays) {
@@ -215,6 +226,6 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 480, height: 560)
+        .frame(width: 500, height: 640)
     }
 }

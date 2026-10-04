@@ -55,6 +55,34 @@ enum ScanCache {
 
     static func save(_ storage: StorageBreakdown) { write(storage, to: "storage.json") }
 
+    /// What Spacebar moved to the Trash, and when, for "empty after 7 days".
+    /// Lives in Application Support (not Caches, which cleaners empty).
+    struct TrashLedger: Codable {
+        struct Entry: Codable {
+            let path: String
+            let bytes: Int64
+            let date: Date
+        }
+        var entries: [Entry] = []
+    }
+
+    static var supportDirectory: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "Spacebar", isDirectory: true)
+    }
+
+    static func loadLedger() -> TrashLedger {
+        guard let data = try? Data(contentsOf: supportDirectory.appendingPathComponent("trash-ledger.json")),
+              let ledger = try? JSONDecoder().decode(TrashLedger.self, from: data) else { return TrashLedger() }
+        return ledger
+    }
+
+    static func save(_ ledger: TrashLedger) {
+        let url = supportDirectory.appendingPathComponent("trash-ledger.json")
+        try? FileManager.default.createDirectory(at: supportDirectory, withIntermediateDirectories: true)
+        try? JSONEncoder().encode(ledger).write(to: url, options: .atomic)
+    }
+
     static func loadHistory() -> StorageHistory? { read("history.json") }
     static func save(_ history: StorageHistory) { write(history, to: "history.json") }
 

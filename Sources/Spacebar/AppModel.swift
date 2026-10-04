@@ -126,6 +126,11 @@ final class AppModel: ObservableObject {
                 .sink { [weak self] _ in self?.refreshDrives() }
                 .store(in: &observers)
         }
+        // Weekly clean and "empty after 7 days", if turned on.
+        Timer.publish(every: 3600, on: .main, in: .common).autoconnect()
+            .sink { [weak self] _ in self?.runAutomaticTasks() }
+            .store(in: &observers)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 120) { [weak self] in self?.runAutomaticTasks() }
         // Keep the menu bar figure current and watch for low disk space.
         Timer.publish(every: 60, on: .main, in: .common).autoconnect()
             .sink { [weak self] _ in
@@ -373,8 +378,83 @@ final class AppModel: ObservableObject {
     /// Bytes in the Trash, if known.
     var trashBytes: Int64? { storage?.segments.first { $0.kind == .trash }?.bytes }
 
+    // MARK: Automatic cleaning
+
+    /// Weekly safe clean and "empty after 7 days", if turned on in Settings. Checked hourly.
+    func runAutomaticTasks() {
+        let defaults = UserDefaults.standard
+        if defaults.bool(forKey: Preferences.autoEmptyTrashed) { emptyOldTrashed() }
+        guard defaults.bool(forKey: Preferences.autoClean), !cleaning, !isScanning else { return }
+        if let last = defaults.object(forKey: Preferences.lastAutoClean) as? Date,
+           Date().timeIntervalSince(last) < 7 * 86400 { return }
+        defaults.set(Date(), forKey: Preferences.lastAutoClean)
+
+        let categories = self.categories.filter { $0.group == .cleanup && $0.safety == .safe && $0.id != "trash" }
+        let context = ScanContext(engine: BulkScanner(), runningApps: RunningApps.bundleIDs(),
+                                  fullDiskAccess: fullDiskAccess ?? false, excluded: exclusions)
+        let staleDays = staleDays
+        let dryRun = dryRun
+        Task.detached(priority: .utility) {
+            var requests: [Cleaner.Request] = []
+            for category in categories {
+                for item in category.scan(context) where Suggestion.isSuggested(item, in: category, staleDays: staleDays) {
+                    requests.append(Cleaner.Request(item: item, mode: category.mode))
+                }
+            }
+            let report = Cleaner.run(requests, dryRun: dryRun)
+            await MainActor.run {
+                self.applyRemovals(report)
+                let freed = report.deletedBytes
+                guard freed > 0 else { return }
+                self.notify(title: dryRun ? "Automatic clean (dry run)" : "Spacebar cleaned up",
+                            body: "\(dryRun ? "Would have freed" : "Freed") \(ByteFormat.string(freed)) of caches and logs nobody used recently.")
+                self.scanAll()
+            }
+        }
+    }
+
+    /// Permanently deletes items Spacebar moved to the Trash more than 7 days ago (only those).
+    func emptyOldTrashed() {
+        var ledger = ScanCache.loadLedger()
+        let cutoff = Date().addingTimeInterval(-7 * 86400)
+        let due = ledger.entries.filter { $0.date < cutoff }
+        guard !due.isEmpty, !cleaning else { return }
+        ledger.entries.removeAll { $0.date < cutoff }
+        ScanCache.save(ledger)
+        let items = due.map { (url: URL(fileURLWithPath: $0.path), bytes: $0.bytes) }
+        let dryRun = dryRun
+        Task.detached(priority: .utility) {
+            // deleteFromTrash refuses anything that isn't inside a Trash.
+            let report = Cleaner.deleteFromTrash(items, dryRun: dryRun)
+            await MainActor.run {
+                self.applyRemovals(report)
+                if report.deletedBytes > 0 {
+                    self.notify(title: "Trash emptied", body: "Deleted \(ByteFormat.string(report.deletedBytes)) that Spacebar moved to the Trash a week ago.")
+                }
+            }
+        }
+    }
+
+    private func recordTrashed(_ items: [Cleaner.TrashedItem]) {
+        guard !items.isEmpty else { return }
+        var ledger = ScanCache.loadLedger()
+        ledger.entries += items.map { .init(path: $0.url.path, bytes: $0.bytes, date: Date()) }
+        ScanCache.save(ledger)
+    }
+
+    func notify(title: String, body: String) {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { granted, _ in
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
+        }
+    }
+
     /// Reflects removals right away: free space, and the disk breakdown (size moves to Trash or Free).
     func applyRemovals(_ report: Cleaner.Report) {
+        if !report.dryRun { recordTrashed(report.trashedItems) }
         guard !report.removedItems.isEmpty else { return }
         if var storage {
             for item in report.removedItems {

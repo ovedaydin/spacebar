@@ -113,6 +113,27 @@ struct ContentView: View {
                 return
             }
             if let action = note.object as? String, action.hasPrefix("action:") {
+                if action == "action:autotest" {
+                    // 1) weekly clean (the test sets Dry Run on); 2) empty-after-7-days on a fixture of our own.
+                    model.runAutomaticTasks()
+                    let fixture = FileManager.default.homeDirectoryForCurrentUser
+                        .appendingPathComponent("Library/Caches/spacebar-selftest-\(UUID().uuidString).txt")
+                    FileManager.default.createFile(atPath: fixture.path, contents: Data(repeating: 1, count: 4096))
+                    let item = CleanItem(url: fixture, name: fixture.lastPathComponent, size: 4096, date: nil, detail: nil, owner: nil)
+                    let trashed = Cleaner.run([Cleaner.Request(item: item, mode: .trash)], dryRun: false)
+                    var ledger = ScanCache.loadLedger()
+                    ledger.entries += trashed.trashedItems.map { .init(path: $0.url.path, bytes: $0.bytes, date: Date().addingTimeInterval(-8 * 86400)) }
+                    ScanCache.save(ledger)
+                    let landed = trashed.trashedItems.first?.url.path ?? "-"
+                    let wasDry = model.dryRun
+                    model.dryRun = false
+                    model.emptyOldTrashed()
+                    model.dryRun = wasDry
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        FileHandle.standardError.write(Data("[autotest] fixture in Trash after empty: \(FileManager.default.fileExists(atPath: landed)) · ledger left: \(ScanCache.loadLedger().entries.filter { $0.path == landed }.count)\n".utf8))
+                    }
+                    return
+                }
                 if action == "action:applylive" {
                     model.applyStorageChanges()
                     return
