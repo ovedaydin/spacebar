@@ -51,3 +51,14 @@ final class UninstallTests: XCTestCase {
                                              kind: .appData(bundleID: "com.apple.Notes", appName: "Notes")))
     }
 }
+
+final class ICloudTests: XCTestCase {
+    func testEvictOnlyInsideICloudDrive() {
+        let home = NSHomeDirectory()
+        XCTAssertTrue(PathRules.isDeletable(URL(fileURLWithPath: "\(home)/Library/Mobile Documents/com~apple~CloudDocs/Movies/trip.mov"),
+                                            kind: .iCloudEvict))
+        XCTAssertFalse(PathRules.isDeletable(URL(fileURLWithPath: "\(home)/Documents/trip.mov"), kind: .iCloudEvict))
+        XCTAssertFalse(PathRules.isDeletable(URL(fileURLWithPath: "\(home)/Library/Mobile Documents/com~apple~CloudDocs/x"), kind: .file),
+                       "as a file, iCloud Drive stays protected")
+    }
+}

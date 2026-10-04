@@ -249,6 +249,9 @@ extension Cleaner.Report {
         var lines: [String] = []
         let verb = dryRun ? "Would" : ""
         if deletedBytes > 0 { lines.append("\(verb.isEmpty ? "Freed" : "Would free") \(ByteFormat.string(deletedBytes)).") }
+        if removedItems.isEmpty == false && dryRun == false && removed.allSatisfy({ $0.path.contains("/Library/Mobile Documents/") }) {
+            lines.append("These files are still in iCloud Drive and download again when you open them.")
+        }
         if trashedBytes > 0 {
             lines.append("\(verb.isEmpty ? "Moved" : "Would move") \(ByteFormat.string(trashedBytes)) to the Trash, so that space isn't free yet."
                 + (dryRun ? "" : " Delete Now permanently deletes just these items; nothing else in your Trash is touched."))

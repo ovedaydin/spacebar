@@ -99,6 +99,10 @@ public enum PathRules {
                   AppFootprint.belongs(relative[relative.count - 1], folder: folder, bundleID: bundleID, appName: appName)
             else { return "Not this app's data" }
             return nil
+        case .iCloudEvict:
+            // Only files inside iCloud Drive (Mobile Documents); nothing is deleted.
+            return inHome && lower.count >= 3 && lower.starts(with: ["library", "mobile documents"])
+                ? nil : "Not in iCloud Drive"
         case .simulatorDevice:
             return inHome && lower.count == 5 && lower.starts(with: ["library", "developer", "coresimulator", "devices"])
                 ? nil : "Not a simulator device folder"

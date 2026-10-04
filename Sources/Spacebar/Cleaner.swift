@@ -131,6 +131,7 @@ enum Cleaner {
         case trashMailAttachments
         case docker([String])
         case deleteSnapshots
+        case evict
 
         init(item: CleanItem, requested: RemovalMode, trashPrefix: String) {
             switch item.kind {
@@ -139,6 +140,7 @@ enum Cleaner {
             case .application: self = .recycleApp
             case .mailAttachments: self = .trashMailAttachments
             case .appLeftover, .photoAsset, .appData: self = .trash
+            case .iCloudEvict: self = .evict
             case .dockerPrune(let arguments): self = .docker(arguments)
             case .timeMachineSnapshots: self = .deleteSnapshots
             case .file:
@@ -149,7 +151,7 @@ enum Cleaner {
 
         var freesNow: Bool {
             switch self {
-            case .delete, .simctl, .docker, .deleteSnapshots: return true
+            case .delete, .simctl, .docker, .deleteSnapshots, .evict: return true
             case .trash, .recycleApp, .trashMailAttachments: return false
             }
         }
@@ -163,6 +165,7 @@ enum Cleaner {
             case .trashMailAttachments: return "TRASH-MAIL-ATTACHMENTS"
             case .docker(let args): return "DOCKER-" + args.prefix(2).joined(separator: "-").uppercased()
             case .deleteSnapshots: return "TMUTIL-DELETE-LOCAL-SNAPSHOTS"
+            case .evict: return "ICLOUD-REMOVE-DOWNLOAD"
             }
         }
 
@@ -188,6 +191,10 @@ enum Cleaner {
                 return []
             case .deleteSnapshots:
                 try Cleaner.runTool("/usr/bin/tmutil", ["deletelocalsnapshots", "/"])
+                return []
+            case .evict:
+                // Removes only the local copy; the file stays in iCloud Drive.
+                try FileManager.default.evictUbiquitousItem(at: url)
                 return []
             }
         }

@@ -280,6 +280,39 @@ public enum DuplicateFinder {
 // MARK: - Categories
 
 public extension CleanCategory {
+    static let iCloudDownloads = CleanCategory(
+        id: "icloud", name: "Keep in iCloud Only", icon: "icloud.and.arrow.down",
+        summary: "Large iCloud Drive files that are also stored on this Mac. Removing the local copy frees the space right away; the file stays in iCloud and downloads again when you open it. Nothing is deleted. Files you haven't opened in 90 days are suggested; files with changes not yet uploaded are left alone.",
+        safety: .review, mode: .permanent, needsFullDiskAccess: false, onDemand: true, owners: []
+    ) { context in
+        let root = context.path("Library/Mobile Documents")
+        let keys: [URLResourceKey] = [.isRegularFileKey, .totalFileAllocatedSizeKey, .isUbiquitousItemKey,
+                                      .ubiquitousItemDownloadingStatusKey, .ubiquitousItemIsUploadedKey,
+                                      .ubiquitousItemIsUploadingKey, .contentModificationDateKey]
+        guard let walker = fm.enumerator(at: root, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles, .skipsPackageDescendants],
+                                         errorHandler: { _, _ in true }) else { return [] }
+        let minimum: Int64 = 20 * 1_000_000
+        var result: [Candidate] = []
+        while let url = walker.nextObject() as? URL {
+            if context.cancel?.isCancelled == true { break }
+            guard let values = try? url.resourceValues(forKeys: Set(keys)), values.isRegularFile == true,
+                  values.isUbiquitousItem == true, values.ubiquitousItemDownloadingStatus == .current,
+                  values.ubiquitousItemIsUploaded == true, values.ubiquitousItemIsUploading != true,
+                  let size = values.totalFileAllocatedSize, Int64(size) >= minimum else { continue }
+            let opened = NSMetadataItem(url: url)?.value(forAttribute: "kMDItemLastUsedDate") as? Date
+            let lastActivity = [opened, values.contentModificationDate].compactMap { $0 }.max()
+            let stale = (lastActivity ?? .distantPast) < daysAgo(90)
+            let place = url.deletingLastPathComponent().path
+                .replacingOccurrences(of: root.path + "/com~apple~CloudDocs", with: "iCloud Drive")
+                .replacingOccurrences(of: root.path, with: "iCloud")
+            result.append(Candidate(url: url, date: lastActivity,
+                                    detail: "\(place) · \(opened.map { "opened \(relative($0))" } ?? "no open recorded")",
+                                    knownSize: Int64(size), kind: .iCloudEvict, lastUsed: lastActivity,
+                                    suggested: stale ? true : nil))
+        }
+        return result
+    }
+
     static let forgottenFiles = CleanCategory(
         id: "forgotten", name: "Forgotten Files", icon: "tray.full",
         summary: "Things in Downloads and on the Desktop you haven't opened in a long time. \"Opened\" comes from Spotlight, which records opens through Finder and apps (files dragged straight into an app may not show). Suggested: installers for apps you already have, archives already unzipped next to themselves, and installers or archives with no open recorded in 6 months. Photos, videos, music and documents are never suggested, and neither is anything on the Desktop.",

@@ -37,6 +37,8 @@ public enum ItemKind: Hashable, Sendable, Codable {
     case photoAsset(identifier: String)
     /// Data an app keeps in ~/Library (for uninstalling it): only entries named for that app.
     case appData(bundleID: String, appName: String)
+    /// A downloaded iCloud Drive file: its local copy is removed, it stays in iCloud.
+    case iCloudEvict
 }
 
 public struct CleanItem: Identifiable, Hashable, Sendable, Codable {
@@ -169,7 +171,7 @@ public struct CleanCategory: Identifiable, Sendable {
     public enum SortOrder: Sendable { case largestFirst, oldestFirst }
     public var group: Group { Self.findSpaceIDs.contains(id) ? .findSpace : .cleanup }
     public var sortOrder: SortOrder { id == "apps" ? .oldestFirst : .largestFirst }
-    static let findSpaceIDs: Set<String> = ["forgotten", "duplicates", "apps", "leftovers", "simulators", "docker",
+    static let findSpaceIDs: Set<String> = ["forgotten", "icloud", "duplicates", "apps", "leftovers", "simulators", "docker",
                                             "snapshots", "projects", "mail", "photos"]
     let collect: @Sendable (ScanContext) -> [Candidate]
 
@@ -239,7 +241,7 @@ public extension CleanCategory {
     static let all: [CleanCategory] = [
         appCaches, logs, xcode, developerCaches, trash,
         xcodeArchives, iosBackups, installers, largeFiles,
-        forgottenFiles, unusedApps, simulators, docker, snapshots, appLeftovers, mail, duplicates, similarPhotos,
+        forgottenFiles, iCloudDownloads, unusedApps, simulators, docker, snapshots, appLeftovers, mail, duplicates, similarPhotos,
         projectBuildFiles,
     ]
 
