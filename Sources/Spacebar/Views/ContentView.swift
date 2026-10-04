@@ -9,6 +9,7 @@ enum Route: Hashable {
     case apps
     case media
     case offload
+    case spaceSettings
     case category(String)
 }
 
@@ -44,6 +45,7 @@ struct ContentView: View {
                     Label("Media Review", systemImage: "photo.stack").tag(Route.media)
                     Label("Offload", systemImage: "externaldrive.badge.plus").tag(Route.offload)
                     Label("History", systemImage: "clock.arrow.circlepath").tag(Route.history)
+                    Label("Space-Saving Settings", systemImage: "gearshape.2").tag(Route.spaceSettings)
                 }
                 CategorySection(title: "Cleanup", group: .cleanup, route: route)
                 CategorySection(title: "Find Space", group: .findSpace, route: route)
@@ -71,6 +73,7 @@ struct ContentView: View {
             case .apps: AppStorageView()
             case .media: MediaReviewView()
             case .offload: OffloadView()
+            case .spaceSettings: SpaceSettingsView()
             case .category(let id): CategoryView(category: model.category(id)!)
             }
         }
@@ -93,7 +96,7 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.routeNotification)) { note in
             guard let id = note.object as? String else { return }
             let pages: [String: Route] = ["overview": .overview, "explorer": .explorer, "history": .history,
-                                          "apps": .apps, "media": .media, "offload": .offload]
+                                          "apps": .apps, "media": .media, "offload": .offload, "settings": .spaceSettings]
             route = pages[id] ?? .category(id)
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.dumpNotification)) { note in debugDump(note) }
