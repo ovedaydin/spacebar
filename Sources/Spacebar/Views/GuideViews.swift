@@ -37,12 +37,17 @@ enum GuideNavigation {
 /// "What is this?": a small tag on a row that opens the guide's card.
 struct GuideTag: View {
     let match: FolderGuide.Match
+    /// The folder's own name: when the guide's title just repeats it, only the icon is shown.
+    var name: String? = nil
     @State private var showing = false
 
     var body: some View {
+        let title = match.entry.title(FolderGuide.language)
         Button { showing.toggle() } label: {
             Label {
-                Text(match.entry.title(FolderGuide.language)).lineLimit(1)
+                if title.localizedCaseInsensitiveCompare(name ?? "") != .orderedSame {
+                    Text(title).lineLimit(1)
+                }
             } icon: {
                 Image(systemName: match.entry.safety.icon)
             }

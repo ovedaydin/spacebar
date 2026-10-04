@@ -428,7 +428,7 @@ private struct EntryRow: View {
                     }
                     // Only the known folder itself; everything inside it would repeat the same tag.
                     if let match = FolderGuide.lookup(entry.url.path), !match.inside {
-                        GuideTag(match: match)
+                        GuideTag(match: match, name: entry.name)
                     }
                 }
                 GeometryReader { geo in

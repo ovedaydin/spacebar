@@ -463,3 +463,27 @@ final class FolderGuideTests: XCTestCase {
         XCTAssertEqual(title("/System/Volumes/Data/Users/me/.gradle"), "Gradle")
     }
 }
+
+final class ShippedGuideTests: XCTestCase {
+    func testShippedGuideDecodesAndKnowsTheBasics() {
+        XCTAssertGreaterThan(FolderGuide.entries.count, 200)
+        let home = "/Users/me"
+        func safety(_ path: String) -> FolderGuide.Safety? { FolderGuide.lookup(path, home: home)?.entry.safety }
+        XCTAssertEqual(safety("/Users/me/.npm"), .regenerates)
+        XCTAssertEqual(safety("/Users/me/.ssh"), .keep)
+        XCTAssertEqual(safety("/Users/me/Documents"), .keep)
+        XCTAssertEqual(safety("/Users/me/Library/Developer/Xcode/DerivedData"), .regenerates)
+        XCTAssertEqual(FolderGuide.lookup("/Users/me/.gradle/caches", home: home)?.entry.category, "devcaches")
+        // Every entry is translated, and nothing personal is called removable.
+        for entry in FolderGuide.entries {
+            for language in ["en", "tr", "es", "de"] {
+                XCTAssertFalse(entry.title(language).isEmpty, "\(entry.match) \(language)")
+                XCTAssertFalse(entry.what(language).isEmpty, "\(entry.match) \(language)")
+            }
+        }
+        for personal in ["Documents", "Desktop", "Pictures", "Movies", "Music", ".ssh", "Library/Keychains", "Library/Mail"] {
+            let safety = safety("/Users/me/\(personal)")
+            XCTAssertTrue(safety == .keep || safety == .review, "\(personal): \(String(describing: safety))")
+        }
+    }
+}
