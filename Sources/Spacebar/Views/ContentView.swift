@@ -95,6 +95,10 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.segmentNotification)) { note in
+            if let target = note.object as? String, target.hasPrefix("uninstall:") {
+                model.uninstall(URL(fileURLWithPath: String(target.dropFirst("uninstall:".count))))
+                return
+            }
             if let target = note.object as? String, target.hasPrefix("drive:") {
                 let name = String(target.dropFirst("drive:".count))
                 model.refreshDrives()
@@ -151,6 +155,19 @@ struct ContentView: View {
                 model.scanAll()
             }
         }
+        .sheet(item: Binding(get: { model.uninstalling.map(UninstallTarget.init) },
+                             set: { if $0 == nil { model.uninstalling = nil } })) { target in
+            UninstallView(app: target.app).environmentObject(model)
+        }
+        // Drop an app on the window to uninstall it.
+        .onDrop(of: [.fileURL], isTargeted: nil) { providers in
+            guard let provider = providers.first else { return false }
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                guard let url, url.pathExtension == "app" else { return }
+                Task { @MainActor in model.uninstall(url) }
+            }
+            return true
+        }
         // An overlay, not a modal sheet: AppKit refuses to quit while a sheet is open.
         .overlay {
             if !onboardingDone {
@@ -183,6 +200,11 @@ struct ContentView: View {
             Text(report.message)
         }
     }
+}
+
+private struct UninstallTarget: Identifiable {
+    let app: AppFootprint.App
+    var id: URL { app.url }
 }
 
 private struct SidebarRow: View {

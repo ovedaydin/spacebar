@@ -78,7 +78,8 @@ public enum PathRules {
             let inUserApplications = lower.count == 2 && lower[0] == "applications"
             guard isApp, inApplications || inUserApplications else { return "Not an app in an Applications folder" }
             let bundleID = Bundle(url: resolved)?.bundleIdentifier ?? ""
-            if bundleID.hasPrefix("com.apple.") { return "Part of macOS" }
+            // Xcode is Apple's but not part of macOS: extra copies may go (the active one is protected above).
+            if bundleID.hasPrefix("com.apple.") && bundleID != "com.apple.dt.Xcode" { return "Part of macOS" }
             if bundleID == Bundle.main.bundleIdentifier { return "That's Spacebar" }
             return nil
         case .appLeftover:
@@ -87,6 +88,17 @@ public enum PathRules {
             else { return "Not an app data folder" }
             if lower[2].hasPrefix("com.apple.") { return "Part of macOS" }
             return neverTouchReason(lower)
+        case .appData(let bundleID, let appName):
+            // ~/Library/<place>/<entry> (or Preferences/ByHost/<entry>) named for this app, never Apple's.
+            guard inHome, lower.first == "library", !bundleID.lowercased().hasPrefix("com.apple.") else {
+                return "Not this app's data"
+            }
+            let folder = relative.count == 4 && lower[1] == "preferences" && lower[2] == "byhost"
+                ? "Preferences/ByHost" : relative.count == 3 ? relative[1] : ""
+            guard AppFootprint.places.contains(where: { $0.folder == folder }),
+                  AppFootprint.belongs(relative[relative.count - 1], folder: folder, bundleID: bundleID, appName: appName)
+            else { return "Not this app's data" }
+            return nil
         case .simulatorDevice:
             return inHome && lower.count == 5 && lower.starts(with: ["library", "developer", "coresimulator", "devices"])
                 ? nil : "Not a simulator device folder"

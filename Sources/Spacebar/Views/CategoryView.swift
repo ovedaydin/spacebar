@@ -21,6 +21,10 @@ struct CategoryView: View {
                     ItemRow(item: item, selected: binding(item), showsAge: category.ageBased,
                             suggested: model.isSuggested(item, in: category))
                         .contextMenu {
+                            if item.kind == .application || (category.id == "apps") {
+                                Button("Uninstall \(item.name)…") { model.uninstall(item.url) }
+                                Divider()
+                            }
                             if item.duplicateOf != nil {
                                 Button("Keep This Copy Instead") { model.keepInstead(item) }
                                 Button("Reveal Kept Copy in Finder") {

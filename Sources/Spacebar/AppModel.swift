@@ -244,6 +244,41 @@ final class AppModel: ObservableObject {
         runTrashDeletion { Cleaner.deleteFromTrash(items, dryRun: $0) }
     }
 
+    /// The app being uninstalled (shows the uninstall sheet).
+    @Published var uninstalling: AppFootprint.App?
+
+    /// Opens the uninstall sheet for the app at `url`.
+    func uninstall(_ url: URL) {
+        guard url.pathExtension == "app", let app = AppFootprint.app(at: url) else { return }
+        uninstalling = app
+    }
+
+    /// Lets the user pick an app to uninstall.
+    func chooseAppToUninstall() {
+        let panel = NSOpenPanel()
+        panel.directoryURL = URL(fileURLWithPath: "/Applications")
+        panel.allowedContentTypes = [.application]
+        panel.prompt = "Uninstall…"
+        if panel.runModal() == .OK, let url = panel.url { uninstall(url) }
+    }
+
+    func runUninstall(_ requests: [Cleaner.Request]) {
+        guard !cleaning, !requests.isEmpty else { return }
+        cleaning = true
+        let dryRun = dryRun
+        Task.detached(priority: .userInitiated) {
+            let report = Cleaner.run(requests, dryRun: dryRun)
+            await MainActor.run {
+                self.cleaning = false
+                self.applyRemovals(report)
+                if !report.trashedItems.isEmpty { self.lastTrashed = report.trashedItems }
+                let removed = Set(report.removed)
+                for id in self.results.keys { self.results[id]?.removeAll { removed.contains($0.url) } }
+                self.report = report
+            }
+        }
+    }
+
     /// Space Explorer removals can be put back too.
     func rememberTrashed(_ items: [Cleaner.TrashedItem]) { lastTrashed = items }
 

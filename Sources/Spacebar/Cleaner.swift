@@ -138,7 +138,7 @@ enum Cleaner {
             case .simulatorRuntime(let id): self = .simctl(["runtime", "delete", id])
             case .application: self = .recycleApp
             case .mailAttachments: self = .trashMailAttachments
-            case .appLeftover, .photoAsset: self = .trash
+            case .appLeftover, .photoAsset, .appData: self = .trash
             case .dockerPrune(let arguments): self = .docker(arguments)
             case .timeMachineSnapshots: self = .deleteSnapshots
             case .file:

@@ -42,6 +42,10 @@ struct SpacebarApp: App {
                 Button("Scan") { model.scanAll() }
                     .keyboardShortcut("r")
             }
+            CommandGroup(after: .newItem) {
+                Button("Uninstall App…") { model.chooseAppToUninstall() }
+                    .keyboardShortcut("u", modifiers: [.command, .shift])
+            }
             CommandGroup(after: .undoRedo) {
                 Button("Undo Last Clean (Put Back)") { model.putBackLastClean() }
                     .keyboardShortcut("z", modifiers: [.command, .option])
@@ -234,6 +238,7 @@ enum DebugSnapshot {
                 case "appkey": appKey(parts[1])
                 case "drive": NotificationCenter.default.post(name: segmentNotification, object: "drive:" + parts[1])
                 case "drivetest": driveSelfTest(parts[1])
+                case "uninstall": NotificationCenter.default.post(name: segmentNotification, object: "uninstall:" + parts[1])
                 case "dump": NotificationCenter.default.post(name: dumpNotification, object: parts[1])
                 case "activate":
                     NSApp.activate(ignoringOtherApps: true)

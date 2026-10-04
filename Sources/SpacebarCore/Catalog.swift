@@ -35,6 +35,8 @@ public enum ItemKind: Hashable, Sendable, Codable {
     case timeMachineSnapshots
     /// A photo in the Photos library, moved to Recently Deleted through Photos.
     case photoAsset(identifier: String)
+    /// Data an app keeps in ~/Library (for uninstalling it): only entries named for that app.
+    case appData(bundleID: String, appName: String)
 }
 
 public struct CleanItem: Identifiable, Hashable, Sendable, Codable {
