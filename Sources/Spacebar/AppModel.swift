@@ -293,10 +293,61 @@ final class AppModel: ObservableObject {
         if fullStorage || !catchingUpStorage { refreshStorage() }
         // On-demand scans read Desktop/Documents/Downloads; with Full Disk Access that shows no prompts.
         let includeOnDemand = fullDiskAccess == true
-        for category in categories where !category.onDemand || includeOnDemand || results[category.id] != nil {
-            scan(category)
+        let wanted = categories.filter { !$0.onDemand || includeOnDemand || results[$0.id] != nil }
+        // Changes made after this point are replayed next launch.
+        catalogEventID = FileWatcher.currentEventID
+        if !fullStorage, let since = cachedCatalogEventID, let full = lastFullCatalogScan,
+           Date().timeIntervalSince(full) < Self.fullMeasurementInterval {
+            rescanChanged(wanted, since: since)
+        } else {
+            catalogScanIsFull = true
+            wanted.forEach(scan)
         }
     }
+
+    /// Replays what changed since the last scan and scans only the categories it affects. The others
+    /// keep their saved results (already re-checked by restoreCachedResults).
+    private func rescanChanged(_ wanted: [CleanCategory], since: UInt64) {
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        var changed: Set<String> = []
+        var everything = false
+        var decided = false
+        func decide() {
+            guard !decided else { return }
+            decided = true
+            catalogWatcher?.stop()
+            catalogWatcher = nil
+            let rescan = wanted.filter { everything || results[$0.id] == nil || $0.isAffected(by: Array(changed), home: home) }
+            storageTrace("categories: \(changed.count) changed folders, rescanning \(rescan.count) of \(wanted.count): \(rescan.map(\.id).joined(separator: ", "))")
+            if rescan.isEmpty {
+                lastScan = Date()
+                showingCachedResults = false
+                saveResults()
+            } else {
+                rescan.forEach(scan)
+            }
+        }
+        catalogWatcher = FileWatcher(paths: [home, "/Applications"], latency: 0.5, since: since) { paths, rescanAll in
+            Task { @MainActor in
+                changed.formUnion(paths)
+                everything = everything || rescanAll
+            }
+        } progress: { _, historyDone in
+            if historyDone { Task { @MainActor in decide() } }
+        }
+        catalogWatcher?.start()
+        // If the replay never finishes, scan everything.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 30) {
+            everything = true
+            decide()
+        }
+    }
+
+    private var catalogWatcher: FileWatcher?
+    private var catalogEventID: UInt64?
+    private var catalogScanIsFull = false
+    private var cachedCatalogEventID: UInt64?
+    private var lastFullCatalogScan: Date?
 
     /// What the last clean moved to the Trash: can still be put back or deleted for good.
     @Published private(set) var lastTrashed: [Cleaner.TrashedItem] = []
@@ -318,6 +369,60 @@ final class AppModel: ObservableObject {
     @Published var uninstalling: AppFootprint.App?
 
     /// Opens the uninstall sheet for the app at `url`.
+    // MARK: Storage by app
+
+    /// Each app with everything it keeps, largest first (measured when the page opens).
+    /// Shown right away from the last measurement, then refreshed.
+    @Published private(set) var appUsage: [AppUsage] = ScanCache.loadApps()?.apps ?? []
+    @Published private(set) var measuringApps = false
+    @Published private(set) var appUsageMeasuredAt: Date? = ScanCache.loadApps()?.date
+    /// Measured in this session (the cached list is refreshed once on first open).
+    private var appUsageFresh = false
+
+    func measureApps(force: Bool = false) {
+        guard !measuringApps else { return }
+        if !force, appUsageFresh, let at = appUsageMeasuredAt, Date().timeIntervalSince(at) < 600 { return }
+        measuringApps = true
+        // App bundles the Unused Apps scan already measured.
+        let known = Dictionary(items("apps").map { ($0.url, $0.size) }, uniquingKeysWith: max)
+        // Someone opened the page and is waiting: not queued behind background scans (it still
+        // shares their pool of scanner threads, so the Mac stays responsive).
+        let started = Date()
+        Task.detached(priority: .userInitiated) {
+            let result = AppUsageAnalyzer.measure(engine: BulkScanner(), knownSizes: known) { partial in
+                Task { @MainActor in self.appUsage = partial }
+            }
+            await MainActor.run {
+                self.appUsage = result
+                self.appUsageMeasuredAt = Date()
+                self.appUsageFresh = true
+                self.storageTrace("apps: measured \(result.count) in \(String(format: "%.1f", Date().timeIntervalSince(started))) s, \(known.count) bundle sizes reused")
+                self.measuringApps = false
+                ScanCache.save(ScanCache.Apps(date: Date(), apps: result))
+            }
+        }
+    }
+
+    /// Deletes an app's caches (it rebuilds them). Skipped while the app is running.
+    func clearCache(_ usage: AppUsage) {
+        guard !cleaning, !usage.caches.isEmpty else { return }
+        cleaning = true
+        let requests = usage.caches.map { piece in
+            Cleaner.Request(item: CleanItem(url: piece.url, name: "\(usage.name): \(piece.label)", size: piece.bytes,
+                                            date: nil, detail: nil, owner: usage.bundleID), mode: .permanent)
+        }
+        let dryRun = dryRun
+        Task.detached(priority: .userInitiated) {
+            let report = Cleaner.run(requests, dryRun: dryRun, history: .app)
+            await MainActor.run {
+                self.cleaning = false
+                self.applyRemovals(report)
+                self.report = report
+                self.measureApps(force: true)
+            }
+        }
+    }
+
     func uninstall(_ url: URL) {
         guard url.pathExtension == "app", let app = AppFootprint.app(at: url) else { return }
         uninstalling = app
@@ -767,6 +872,8 @@ final class AppModel: ObservableObject {
             results[id] = items.compactMap { item in
                 guard !Exclusions.matches(item.url, exclusions) else { return nil }
                 guard !item.url.isFileURL || FileManager.default.fileExists(atPath: item.url.path) else { return nil }
+                // The cache file could have been edited: only items the rules allow come back.
+                guard PathRules.isDeletable(item.url, kind: item.kind) else { return nil }
                 var item = item
                 item.inUse = item.owner.map(running.contains) ?? false
                 return item
@@ -774,12 +881,17 @@ final class AppModel: ObservableObject {
         }
         for category in categories { selectSuggested(category) }
         lastScan = cache.date
+        cachedCatalogEventID = cache.eventID
+        lastFullCatalogScan = cache.fullScan
         showingCachedResults = true
     }
 
     private func saveResults() {
         guard let lastScan else { return }
-        ScanCache.save(ScanCache.Catalog(date: lastScan, results: results))
+        if catalogScanIsFull { lastFullCatalogScan = lastScan }
+        catalogScanIsFull = false
+        ScanCache.save(ScanCache.Catalog(date: lastScan, results: results, eventID: catalogEventID,
+                                         fullScan: lastFullCatalogScan))
     }
 
     /// For duplicates and similar photos: keep `item` and offer the copy that was going to be kept instead.

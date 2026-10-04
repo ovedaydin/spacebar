@@ -281,11 +281,20 @@ public enum DuplicateFinder {
 
 public extension CleanCategory {
     static let iCloudDownloads = CleanCategory(
-        id: "icloud", name: String(localized: "Keep in iCloud Only"), icon: "icloud.and.arrow.down",
-        summary: String(localized: "Large iCloud Drive files that are also stored on this Mac. Removing the local copy frees the space right away; the file stays in iCloud and downloads again when you open it. Nothing is deleted. Files you haven't opened in 90 days are suggested; files with changes not yet uploaded are left alone."),
+        id: "icloud", name: String(localized: "Keep in the Cloud Only"), icon: "icloud.and.arrow.down",
+        summary: String(localized: "Large files in iCloud Drive, Dropbox, Google Drive or OneDrive that are also stored on this Mac. Removing the local copy frees the space right away; the file stays in the cloud and downloads again when you open it. Nothing is deleted. Files you haven't opened in 90 days are suggested; files with changes not yet uploaded are left alone."),
         safety: .review, mode: .permanent, needsFullDiskAccess: false, onDemand: true, owners: []
     ) { context in
-        let root = context.path("Library/Mobile Documents")
+        // iCloud Drive, then each cloud drive macOS manages (Dropbox, Google Drive, OneDrive…).
+        let cloudStorage = context.path("Library/CloudStorage")
+        let drives = ((try? fm.contentsOfDirectory(at: cloudStorage, includingPropertiesForKeys: nil)) ?? [])
+            .filter { !$0.lastPathComponent.hasPrefix(".") }
+        return ([context.path("Library/Mobile Documents")] + drives).flatMap { cloudCopies(in: $0, context: context) }
+    }
+
+    /// Large, fully uploaded files with a local copy under `root` (iCloud Drive or a cloud drive).
+    private static func cloudCopies(in root: URL, context: ScanContext) -> [CleanCategory.Candidate] {
+        typealias Candidate = CleanCategory.Candidate
         let keys: [URLResourceKey] = [.isRegularFileKey, .totalFileAllocatedSizeKey, .isUbiquitousItemKey,
                                       .ubiquitousItemDownloadingStatusKey, .ubiquitousItemIsUploadedKey,
                                       .ubiquitousItemIsUploadingKey, .contentModificationDateKey]
@@ -302,9 +311,15 @@ public extension CleanCategory {
             let opened = NSMetadataItem(url: url)?.value(forAttribute: "kMDItemLastUsedDate") as? Date
             let lastActivity = [opened, values.contentModificationDate].compactMap { $0 }.max()
             let stale = (lastActivity ?? .distantPast) < daysAgo(90)
-            let place = url.deletingLastPathComponent().path
-                .replacingOccurrences(of: root.path + "/com~apple~CloudDocs", with: String(localized: "iCloud Drive"))
-                .replacingOccurrences(of: root.path, with: String(localized: "iCloud"))
+            let isICloud = root.lastPathComponent == "Mobile Documents"
+            let place = isICloud
+                ? url.deletingLastPathComponent().path
+                    .replacingOccurrences(of: root.path + "/com~apple~CloudDocs", with: String(localized: "iCloud Drive"))
+                    .replacingOccurrences(of: root.path, with: String(localized: "iCloud"))
+                // "OneDrive-Personal/Reports" → "OneDrive (Personal)/Reports"
+                : url.deletingLastPathComponent().path
+                    .replacingOccurrences(of: root.deletingLastPathComponent().path + "/", with: "")
+                    .replacingOccurrences(of: root.lastPathComponent, with: driveName(root.lastPathComponent))
             let openedNote = opened.map { String(localized: "opened \(relative($0))") } ?? String(localized: "no open recorded")
             result.append(Candidate(url: url, date: lastActivity,
                                     detail: "\(place) · \(openedNote)",
@@ -312,6 +327,13 @@ public extension CleanCategory {
                                     suggested: stale ? true : nil))
         }
         return result
+    }
+
+    /// "OneDrive-Personal" → "OneDrive (Personal)", "GoogleDrive-me@x.com" → "Google Drive (me@x.com)".
+    static func driveName(_ folder: String) -> String {
+        let parts = folder.split(separator: "-", maxSplits: 1).map(String.init)
+        let provider = parts[0] == "GoogleDrive" ? "Google Drive" : parts[0]
+        return parts.count == 2 ? "\(provider) (\(parts[1]))" : provider
     }
 
     static let developerTools = CleanCategory(

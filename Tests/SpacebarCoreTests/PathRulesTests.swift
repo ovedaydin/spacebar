@@ -81,3 +81,13 @@ final class DrivePathRulesTests: XCTestCase {
         XCTAssertNil(reason("/Volumes/Backup Disk/Videos/clip.mov"))
     }
 }
+
+final class AppCacheRulesTests: XCTestCase {
+    func testAppCacheFoldersAreClearable() {
+        let library = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library")
+        for path in ["Caches/Google/Chrome", "Caches/com.tinyspeck.slackmacgap",
+                     "Containers/com.example.app/Data/Library/Caches"] {
+            XCTAssertNil(PathRules.reasonNotDeletable(library.appendingPathComponent(path), kind: .file), path)
+        }
+    }
+}

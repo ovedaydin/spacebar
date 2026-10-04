@@ -185,7 +185,51 @@ public struct CleanCategory: Identifiable, Sendable {
     public var sortOrder: SortOrder { id == "apps" ? .oldestFirst : .largestFirst }
     static let findSpaceIDs: Set<String> = ["forgotten", "icloud", "devtools", "messages", "duplicates", "apps", "leftovers", "simulators", "docker",
                                             "snapshots", "projects", "mail", "photos"]
+    /// For a user's rule: the folder it looks in (see `isAffected`).
+    var watchedFolder: String? = nil
     let collect: @Sendable (ScanContext) -> [Candidate]
+
+    /// Whether changes at `paths` (from FSEvents) can change this category's results, so it must
+    /// be scanned again. Categories that read many places, apps or tools always say yes.
+    public func isAffected(by paths: [String], home: String) -> Bool {
+        func under(_ folder: String) -> (String) -> Bool {
+            let root = folder.hasPrefix("/") ? folder : home + "/" + folder
+            return { $0 == root || $0.hasPrefix(root + "/") }
+        }
+        // Large files, duplicates and projects walk the home folder but skip Library, the Trash
+        // and hidden folders, where most changes happen.
+        // They also skip hidden folders anywhere (projects keep a few build ones, like .venv).
+        let projectHidden: Set<String> = [".gradle", ".build", ".venv", ".next", ".dart_tool"]
+        func visibleHome(allowing hidden: Set<String>) -> (String) -> Bool {
+            { path in
+                guard path.hasPrefix(home + "/") else { return false }
+                let parts = path.dropFirst(home.count + 1).split(separator: "/").map(String.init)
+                guard let first = parts.first, first != "Library" else { return false }
+                return !parts.contains { $0.hasPrefix(".") && !hidden.contains($0) }
+            }
+        }
+        let tests: [(String) -> Bool]
+        switch id {
+        case "logs": tests = [under("Library/Logs")]
+        case "xcode": tests = [under("Library/Developer/Xcode")]
+        case "trash": tests = [under(".Trash")]
+        case "archives": tests = [under("Library/Developer/Xcode/Archives")]
+        case "backups": tests = [under("Library/Application Support/MobileSync")]
+        case "installers": tests = [under("/Applications")]
+        case "large", "duplicates": tests = [visibleHome(allowing: [])]
+        case "projects": tests = [visibleHome(allowing: projectHidden)]
+        case "forgotten": tests = [under("Downloads"), under("Desktop"), under("/Applications")]
+        case "icloud": tests = [under("Library/Mobile Documents"), under("Library/CloudStorage")]
+        case "simulators": tests = [under("Library/Developer/CoreSimulator")]
+        case "mail": tests = [under("Library/Mail")]
+        case "messages": tests = [under("Library/Messages")]
+        case "photos": tests = [under("Pictures"), under("Desktop"), under("Downloads")]
+        default:
+            guard let watchedFolder else { return true }
+            tests = [under(watchedFolder)]
+        }
+        return paths.contains { path in tests.contains { $0(path) } }
+    }
 
     struct Candidate {
         let url: URL

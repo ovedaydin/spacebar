@@ -301,3 +301,31 @@ final class SpaceForecastTests: XCTestCase {
         XCTAssertNil(short.forecast(now: start.addingTimeInterval(20 * 3600)), "needs at least 3 days")
     }
 }
+
+final class IncrementalScanTests: XCTestCase {
+    private let home = "/Users/test"
+    private func category(_ id: String) -> CleanCategory { CleanCategory.all.first { $0.id == id }! }
+
+    func testOnlyRelevantChangesTriggerARescan() {
+        let cacheChurn = ["/Users/test/Library/Caches/com.example", "/Users/test/.npm/_cacache"]
+        XCTAssertFalse(category("large").isAffected(by: cacheChurn, home: home))
+        XCTAssertFalse(category("forgotten").isAffected(by: cacheChurn, home: home))
+        XCTAssertFalse(category("logs").isAffected(by: cacheChurn, home: home))
+        XCTAssertTrue(category("caches").isAffected(by: cacheChurn, home: home), "categories without a map always rescan")
+
+        XCTAssertTrue(category("large").isAffected(by: ["/Users/test/Documents/Video"], home: home))
+        XCTAssertTrue(category("forgotten").isAffected(by: ["/Users/test/Downloads"], home: home))
+        XCTAssertTrue(category("forgotten").isAffected(by: ["/Applications/Some.app"], home: home))
+        XCTAssertFalse(category("logs").isAffected(by: ["/Users/test/Library/LogsArchive"], home: home), "prefix must be a folder")
+        // Hidden folders (build output, git) are skipped by these scans, so their churn doesn't count.
+        XCTAssertFalse(category("large").isAffected(by: ["/Users/test/Documents/app/.build/debug"], home: home))
+        XCTAssertFalse(category("duplicates").isAffected(by: ["/Users/test/Documents/app/.git/objects"], home: home))
+        XCTAssertTrue(category("projects").isAffected(by: ["/Users/test/Documents/app/.venv/lib"], home: home))
+    }
+
+    func testRulesWatchTheirFolder() {
+        let rule = CleanupRule(name: "t", folder: "/Users/test/Downloads", patterns: ["*.dmg"], olderThanDays: 30)
+        XCTAssertTrue(CleanCategory.rule(rule).isAffected(by: ["/Users/test/Downloads/sub"], home: home))
+        XCTAssertFalse(CleanCategory.rule(rule).isAffected(by: ["/Users/test/Desktop"], home: home))
+    }
+}

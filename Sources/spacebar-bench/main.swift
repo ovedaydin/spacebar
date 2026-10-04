@@ -16,6 +16,7 @@ struct Options {
     var list: [String] = []
     var storage = false
     var algos = false
+    var apps = false
 }
 
 func parse() -> Options {
@@ -37,6 +38,7 @@ func parse() -> Options {
         case "--list": options.list.append(value()); options.catalog = true
         case "--storage": options.storage = true
         case "--algos": options.algos = true
+        case "--apps": options.apps = true
         case "-h", "--help":
             print("""
             spacebar-bench: read-only scanner benchmark
@@ -56,7 +58,7 @@ func parse() -> Options {
             exit(2)
         }
     }
-    if options.paths.isEmpty && !options.catalog && !options.storage && !options.algos {
+    if options.paths.isEmpty && !options.catalog && !options.storage && !options.algos && !options.apps {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         options.paths = ["\(home)/Library/Caches", "\(home)/Library/Developer"]
             .filter { FileManager.default.fileExists(atPath: $0) }
@@ -185,6 +187,16 @@ if options.algos {
         }
         print("  " + pad("du -skx (reference)", 42) + lpad(seconds(duTime), 9) + lpad(String(format: "%.2f×", baseline / duTime), 11)
               + lpad(ByteFormat.string(reference), 11))
+    }
+}
+
+if options.apps {
+    let started = Date()
+    let usages = AppUsageAnalyzer.measure(engine: bulk)
+    print("\n▸ Storage by app (\(String(format: "%.1f", Date().timeIntervalSince(started)))s, \(usages.count) apps)")
+    for usage in usages.prefix(15) {
+        print("  " + pad(usage.name, 28) + lpad(ByteFormat.string(usage.total), 11) + "  app " + lpad(ByteFormat.string(usage.appBytes), 10)
+              + "  data " + lpad(ByteFormat.string(usage.dataBytes), 10) + "  cache " + lpad(ByteFormat.string(usage.cacheBytes), 10))
     }
 }
 

@@ -115,9 +115,11 @@ public enum PathRules {
             else { return String(localized: "Not this app's data") }
             return nil
         case .iCloudEvict:
-            // Only files inside iCloud Drive (Mobile Documents); nothing is deleted.
-            return inHome && lower.count >= 3 && lower.starts(with: ["library", "mobile documents"])
-                ? nil : String(localized: "Not in iCloud Drive")
+            // Only files inside iCloud Drive (Mobile Documents) or a cloud drive (CloudStorage:
+            // Dropbox, Google Drive, OneDrive…); nothing is deleted.
+            let iCloud = lower.count >= 3 && lower.starts(with: ["library", "mobile documents"])
+            let cloudDrive = lower.count >= 4 && lower.starts(with: ["library", "cloudstorage"])
+            return inHome && (iCloud || cloudDrive) ? nil : String(localized: "Not in iCloud Drive or a cloud drive")
         case .aiModel:
             guard inHome, (lower.starts(with: [".lmstudio", "models"]) || lower.starts(with: [".cache", "lm-studio", "models"])),
                   lower.count == (lower[0] == ".lmstudio" ? 4 : 5) else { return String(localized: "Not a downloaded model") }
@@ -174,7 +176,10 @@ public enum PathRules {
         if lower.count == 1 && homeConfigFiles.contains(name) { return String(localized: "Settings for your shell or developer tools") }
         if lower.count == 1 && protectedTopLevel.contains(lower[0]) { return String(localized: "A standard folder of your Mac") }
         if lower.first == "library" && lower.count <= 2 { return String(localized: "A system folder macOS and apps rely on") }
-        if lower.count <= 6 && lower.starts(with: ["library", "containers"]) {
+        // A container's own caches folder is fine to clear (the app rebuilds it); the rest of the
+        // container is the app's data.
+        let containerCaches = lower.count >= 6 && lower[3] == "data" && lower[4] == "library" && lower[5] == "caches"
+        if lower.count <= 6 && lower.starts(with: ["library", "containers"]) && !containerCaches {
             return String(localized: "An app's data container. Removing it erases that app's data")
         }
         return neverTouchReason(lower)

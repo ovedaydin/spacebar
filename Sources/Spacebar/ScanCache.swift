@@ -13,6 +13,10 @@ enum ScanCache {
         var version = ScanCache.version
         var date: Date
         var results: [String: [CleanItem]]
+        /// FSEvents position when the scan started: changes after it are replayed at launch.
+        var eventID: UInt64? = nil
+        /// When every category was last scanned (not just the changed ones).
+        var fullScan: Date? = nil
     }
 
     struct Explorer: Codable {
@@ -93,6 +97,10 @@ enum ScanCache {
         try? FileManager.default.createDirectory(at: supportDirectory, withIntermediateDirectories: true)
         try? JSONEncoder().encode(log).write(to: supportDirectory.appendingPathComponent("space-log.json"), options: .atomic)
     }
+
+    struct Apps: Codable { var date: Date; var apps: [AppUsage] }
+    static func loadApps() -> Apps? { read("apps.json") }
+    static func save(_ apps: Apps) { write(apps, to: "apps.json") }
 
     static func loadHistory() -> StorageHistory? { read("history.json") }
     static func save(_ history: StorageHistory) { write(history, to: "history.json") }

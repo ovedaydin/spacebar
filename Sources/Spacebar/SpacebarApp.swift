@@ -330,6 +330,17 @@ enum DebugSnapshot {
                     NSApp.windows.first(where: \.isVisible)?.makeKeyAndOrderFront(nil)
                 case "historytest": historySelfTest(phase: parts[1])
                 case "remindertest": reminderSelfTest()
+                case "cloudlist":
+                    // Read-only: what Keep in the Cloud Only finds, per drive. Nothing is evicted.
+                    Task.detached {
+                        let context = ScanContext(engine: BulkScanner(), runningApps: [], fullDiskAccess: true)
+                        let items = CleanCategory.all.first { $0.id == "icloud" }?.scan(context) ?? []
+                        let drives = (try? FileManager.default.contentsOfDirectory(atPath: NSHomeDirectory() + "/Library/CloudStorage")) ?? []
+                        FileHandle.standardError.write(Data("[cloudlist] drives=\(drives) items=\(items.count) suggested=\(items.filter { $0.suggested == true }.count)\n".utf8))
+                        for item in items.prefix(5) {
+                            FileHandle.standardError.write(Data("[cloudlist] \(ByteFormat.string(item.size)) \(item.detail ?? "")\n".utf8))
+                        }
+                    }
                 case "newrule": NotificationCenter.default.post(name: newRuleNotification, object: Int(parts[1]))
                 case "closewin": NSApp.windows.filter { $0.canBecomeMain }.forEach { $0.close() }
                 case "windows":

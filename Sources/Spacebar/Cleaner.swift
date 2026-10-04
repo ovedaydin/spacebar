@@ -217,7 +217,12 @@ enum Cleaner {
                 try Cleaner.runTool("/usr/bin/tmutil", ["deletelocalsnapshots", "/"])
                 return []
             case .evict:
-                // Removes only the local copy; the file stays in iCloud Drive.
+                // Removes only the local copy; the file stays in the cloud. Checked again now:
+                // a file with changes not yet uploaded keeps its local copy.
+                let values = try url.resourceValues(forKeys: [.ubiquitousItemIsUploadedKey, .ubiquitousItemIsUploadingKey])
+                guard values.ubiquitousItemIsUploaded == true, values.ubiquitousItemIsUploading != true else {
+                    throw Cleaner.failure(String(localized: "It has changes that aren't uploaded yet"))
+                }
                 try FileManager.default.evictUbiquitousItem(at: url)
                 return []
             case .trashEmulator(let ini):

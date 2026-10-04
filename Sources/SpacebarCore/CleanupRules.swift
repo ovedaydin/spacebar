@@ -113,6 +113,7 @@ extension CleanCategory {
             id: rule.categoryID, name: rule.name, icon: "wand.and.stars",
             summary: String(localized: "Your rule: \(pattern) in \(rule.folder), unchanged for \(rule.olderThanDays) days. Matches go to the Trash."),
             safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: false, owners: [],
+            watchedFolder: rule.folderURL.path,
             collect: { context in CleanupRules.find(rule, engine: context.engine, cancel: context.cancel) })
     }
 }
