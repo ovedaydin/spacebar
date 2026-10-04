@@ -53,6 +53,10 @@ struct SpacebarApp: App {
             CommandGroup(after: .newItem) {
                 Button("Uninstall App…") { model.chooseAppToUninstall() }
                     .keyboardShortcut("u", modifiers: [.command, .shift])
+                Divider()
+                Button("Export Disk Report as PDF…") { DiskReport.export(model: model, pdf: true) }
+                    .keyboardShortcut("e", modifiers: [.command])
+                Button("Export Disk Report as HTML…") { DiskReport.export(model: model, pdf: false) }
             }
             CommandGroup(after: .undoRedo) {
                 Button("Undo Last Clean (Put Back)") { model.putBackLastClean() }
@@ -363,6 +367,7 @@ enum DebugSnapshot {
                     let left = (try? FileManager.default.subpathsOfDirectory(atPath: volume.path)) ?? []
                     FileHandle.standardError.write(Data("[drivecleantest] freed=\(freed) left=\(left.sorted())\n".utf8))
                 case "rescue": NotificationCenter.default.post(name: AppModel.rescueRequested, object: nil)
+                case "report": NotificationCenter.default.post(name: reportNotification, object: parts[1])
                 case "freeup": NotificationCenter.default.post(name: freeUpNotification, object: nil)
                 case "timelinedemo": NotificationCenter.default.post(name: timelineDemoNotification, object: nil)
                 case "cloudlist":
@@ -436,6 +441,7 @@ enum DebugSnapshot {
         }
     }
 
+    static let reportNotification = Notification.Name("Spacebar.debugReport")
     static let freeUpNotification = Notification.Name("Spacebar.debugFreeUp")
     static let offloadTestNotification = Notification.Name("Spacebar.debugOffloadTest")
     static let timelineDemoNotification = Notification.Name("Spacebar.debugTimelineDemo")

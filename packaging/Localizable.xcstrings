@@ -3261,6 +3261,9 @@
         }
       }
     },
+    "App" : {
+
+    },
     "App %@ · Data %@ · Caches %@" : {
       "localizations" : {
         "de" : {
@@ -3638,6 +3641,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Haftada en fazla bir kez: 2 aydır açmadığınız 500 MB'tan büyük bir dosya, Sakla ve Çöp Sepeti'ne Taşı düğmeleriyle birlikte. Çöp Sepeti'ne Taşı'yı tıklamadığınız sürece hiçbir şey silinmez."
+          }
+        }
+      }
+    },
+    "At this rate, the disk is full %@ (about %@ a day)." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "At this rate, the disk is full %1$@ (about %2$@ a day)."
           }
         }
       }
@@ -4339,6 +4352,9 @@
           }
         }
       }
+    },
+    "Category" : {
+
     },
     "Check Again" : {
       "localizations" : {
@@ -5926,6 +5942,12 @@
         }
       }
     },
+    "Disk Report" : {
+
+    },
+    "Disk report" : {
+
+    },
     "Disk usage" : {
       "localizations" : {
         "de" : {
@@ -6897,6 +6919,12 @@
           }
         }
       }
+    },
+    "Export Disk Report as HTML…" : {
+
+    },
+    "Export Disk Report as PDF…" : {
+
     },
     "Files go to the Trash and library videos to Recently Deleted in Photos, so you can still get them back. They're also listed in History." : {
       "localizations" : {
@@ -8859,6 +8887,12 @@
         }
       }
     },
+    "Largest apps" : {
+
+    },
+    "Largest folders" : {
+
+    },
     "Last scanned %@" : {
       "localizations" : {
         "de" : {
@@ -9255,6 +9289,9 @@
           }
         }
       }
+    },
+    "Made with Spacebar" : {
+
     },
     "Mail" : {
       "localizations" : {
@@ -14364,6 +14401,9 @@
         }
       }
     },
+    "Show only top-level folder names" : {
+
+    },
     "Show this in cleanup lists again" : {
       "localizations" : {
         "de" : {
@@ -15667,6 +15707,9 @@
         }
       }
     },
+    "Startup disk" : {
+
+    },
     "Step %lld of %lld" : {
       "localizations" : {
         "de" : {
@@ -16856,6 +16899,9 @@
         }
       }
     },
+    "Total" : {
+
+    },
     "Trash" : {
       "localizations" : {
         "de" : {
@@ -17613,6 +17659,9 @@
           }
         }
       }
+    },
+    "What Spacebar can free" : {
+
     },
     "What apps keep in ~/Library: settings, caches, databases, containers." : {
       "localizations" : {
@@ -18617,6 +18666,9 @@
           }
         }
       }
+    },
+    "available of" : {
+
     },
     "caches" : {
       "comment" : "JetBrains IDE data kind, e.g. PyCharm 2023.1 caches",

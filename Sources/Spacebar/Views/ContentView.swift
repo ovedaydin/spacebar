@@ -128,6 +128,13 @@ struct ContentView: View {
                 model.scanAll(fullStorage: false)
             }
         }
+        // Debug hook: write the report (HTML and PDF) without the save panel.
+        .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.reportNotification)) { note in
+            guard let base = note.object as? String else { return }
+            let html = DiskReport.html(model: model, privatePaths: true)
+            try? Data(html.utf8).write(to: URL(fileURLWithPath: base + ".html"))
+            PDFRenderer.shared.render(html, to: URL(fileURLWithPath: base + ".pdf"))
+        }
         .onReceive(NotificationCenter.default.publisher(for: GuideNavigation.openCategory)) { note in
             if let id = note.object as? String, model.category(id) != nil { route = .category(id) }
         }
