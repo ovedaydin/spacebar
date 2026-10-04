@@ -239,6 +239,9 @@ struct ExplorerView: View {
                 .buttonStyle(.borderless)
                 .fontWeight(index == explorer.trail.count - 1 ? .semibold : .regular)
             }
+            if explorer.group == nil, let match = FolderGuide.lookup(explorer.current.path) {
+                GuideTag(match: match).padding(.leading, 6)
+            }
             Spacer()
             if let progress = explorer.progress {
                 ProgressView().controlSize(.small)
@@ -422,6 +425,10 @@ private struct EntryRow: View {
                     if let totals, totals.unreadable > 0 {
                         Image(systemName: "lock").font(.caption).foregroundStyle(.secondary)
                             .help("Some items couldn't be read. Grant Full Disk Access for a complete total.")
+                    }
+                    // Only the known folder itself; everything inside it would repeat the same tag.
+                    if let match = FolderGuide.lookup(entry.url.path), !match.inside {
+                        GuideTag(match: match)
                     }
                 }
                 GeometryReader { geo in

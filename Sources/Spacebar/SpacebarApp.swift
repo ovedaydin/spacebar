@@ -357,6 +357,7 @@ enum DebugSnapshot {
                     let freed = DriveCleanup.remove(found, on: volume)
                     let left = (try? FileManager.default.subpathsOfDirectory(atPath: volume.path)) ?? []
                     FileHandle.standardError.write(Data("[drivecleantest] freed=\(freed) left=\(left.sorted())\n".utf8))
+                case "freeup": NotificationCenter.default.post(name: freeUpNotification, object: nil)
                 case "timelinedemo": NotificationCenter.default.post(name: timelineDemoNotification, object: nil)
                 case "cloudlist":
                     // Read-only: what Keep in the Cloud Only finds, per drive. Nothing is evicted.
@@ -429,6 +430,7 @@ enum DebugSnapshot {
         }
     }
 
+    static let freeUpNotification = Notification.Name("Spacebar.debugFreeUp")
     static let offloadTestNotification = Notification.Name("Spacebar.debugOffloadTest")
     static let timelineDemoNotification = Notification.Name("Spacebar.debugTimelineDemo")
     static let newRuleNotification = Notification.Name("Spacebar.debugNewRule")

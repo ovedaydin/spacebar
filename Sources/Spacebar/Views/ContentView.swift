@@ -131,6 +131,9 @@ struct ContentView: View {
                 model.scanAll(fullStorage: false)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: GuideNavigation.openCategory)) { note in
+            if let id = note.object as? String, model.category(id) != nil { route = .category(id) }
+        }
         .onReceive(FinderIntegration.requests) { folder in
             explorer.show(folder)
             route = .explorer

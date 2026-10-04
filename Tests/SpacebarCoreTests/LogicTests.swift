@@ -442,3 +442,24 @@ final class NewestChangeTests: XCTestCase {
         XCTAssertNil(newest["/Users/me/Pictures"], "untouched folders have no change")
     }
 }
+
+final class FolderGuideTests: XCTestCase {
+    private func entry(_ match: [String], _ title: String, _ safety: FolderGuide.Safety = .regenerates) -> FolderGuide.Entry {
+        FolderGuide.Entry(match: match, title: ["en": title], what: ["en": title], by: "x", safety: safety, category: nil)
+    }
+
+    func testMostSpecificEntryAndNearestParent() {
+        let entries = [entry(["~/Library/Caches"], "Caches"), entry(["~/Library/Caches/*"], "An app's cache"),
+                       entry(["~/Library/Caches/Homebrew"], "Homebrew"), entry(["*/node_modules"], "Packages"),
+                       entry(["~/.gradle"], "Gradle")]
+        let home = "/Users/me"
+        func title(_ path: String) -> String? { FolderGuide.lookup(path, home: home, entries: entries).map { $0.entry.title["en"]! } }
+        XCTAssertEqual(title("/Users/me/Library/Caches"), "Caches")
+        XCTAssertEqual(title("/Users/me/Library/Caches/Homebrew"), "Homebrew", "exact beats wildcard")
+        XCTAssertEqual(title("/Users/me/Library/Caches/com.example"), "An app's cache")
+        XCTAssertEqual(title("/Users/me/Documents/app/node_modules"), "Packages")
+        XCTAssertEqual(FolderGuide.lookup("/Users/me/.gradle/caches/8.1", home: home, entries: entries)?.inside, true)
+        XCTAssertNil(title("/Users/me/Documents/Taxes"))
+        XCTAssertEqual(title("/System/Volumes/Data/Users/me/.gradle"), "Gradle")
+    }
+}

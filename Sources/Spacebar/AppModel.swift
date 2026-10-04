@@ -423,6 +423,45 @@ final class AppModel: ObservableObject {
         }
     }
 
+    // MARK: Free up space
+
+    func freeUpPlan(target: Int64) -> FreeUpPlan {
+        FreeUpPlan.make(target: target, categories: categories) { category in
+            items(category.id).filter { isSuggested($0, in: category) }
+        }
+    }
+
+    /// Runs a plan. With `deleteTrashedNow`, what the plan moved to the Trash is deleted right away
+    /// (only those items), so the space is free now.
+    func run(_ plan: FreeUpPlan, deleteTrashedNow: Bool) {
+        guard !cleaning, !showingCachedResults else { return }
+        let pairs = Self.withoutOverlaps(plan.steps.flatMap { step in step.items.map { ($0, step.category) } })
+        guard !pairs.isEmpty else { return }
+        cleaning = true
+        let requests = pairs.map { Cleaner.Request(item: $0.0, mode: $0.1.mode) }
+        let dryRun = dryRun
+        Task.detached(priority: .userInitiated) {
+            var report = Cleaner.run(requests, dryRun: dryRun, history: .app)
+            if deleteTrashedNow, !dryRun, !report.trashedItems.isEmpty {
+                let deleted = Cleaner.deleteFromTrash(report.trashedItems.map { (url: $0.url, bytes: $0.bytes) }, dryRun: false)
+                report.deletedBytes += deleted.deletedBytes
+                report.trashedBytes = max(0, report.trashedBytes - deleted.deletedBytes)
+                report.trashedItems = []
+            }
+            let finished = report
+            await MainActor.run {
+                let removed = Set(finished.removed)
+                for id in self.results.keys { self.results[id]?.removeAll { removed.contains($0.url) } }
+                self.selection.subtract(removed)
+                self.saveResults()
+                self.cleaning = false
+                self.applyRemovals(finished)
+                if !finished.trashedItems.isEmpty { self.lastTrashed = finished.trashedItems }
+                self.report = finished
+            }
+        }
+    }
+
     // MARK: Offload
 
     @Published private(set) var offloads: [Offload.Record] = OffloadStore.load()

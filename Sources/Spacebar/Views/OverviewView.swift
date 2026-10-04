@@ -6,6 +6,7 @@ struct OverviewView: View {
     @EnvironmentObject private var explorer: ExplorerModel
     @Binding var route: Route?
     @State private var pending: PendingClean?
+    @State private var freeingUp = false
 
     var body: some View {
         ScrollView {
@@ -133,6 +134,11 @@ struct OverviewView: View {
                 }
                 Spacer()
                 if model.isScanning { ProgressView().controlSize(.small).padding(.trailing, 8) }
+                Button("Free Up Space…") { freeingUp = true }
+                    .controlSize(.large)
+                    .help("Pick how much to free; Spacebar plans it from the safest items first")
+                    .sheet(isPresented: $freeingUp) { FreeUpView().environmentObject(model) }
+                    .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.freeUpNotification)) { _ in freeingUp = true }
                 Button {
                     debugLog("Overview: Clean button pressed → showing confirmation")
                     pending = PendingClean(pairs: model.allSelected)
