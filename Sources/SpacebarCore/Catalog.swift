@@ -296,13 +296,13 @@ private func exists(_ url: URL) -> Bool { fm.fileExists(atPath: url.path) }
 // MARK: - Catalog
 
 public extension CleanCategory {
-    static let all: [CleanCategory] = [
-        appCaches, logs, xcode, developerCaches, trash,
-        xcodeArchives, iosBackups, installers, largeFiles,
-        forgottenFiles, iCloudDownloads, unusedApps, browsers, simulators, developerTools, docker, snapshots, appLeftovers, mail, messages,
-        duplicates, similarPhotos,
-        projectBuildFiles,
-    ]
+    // Two short lists rather than one long literal: quicker for the compiler to type-check.
+    private static let cleanupList: [CleanCategory] = [appCaches, logs, xcode, developerCaches, trash,
+                                                       xcodeArchives, iosBackups, installers, largeFiles]
+    private static let findSpaceList: [CleanCategory] = [forgottenFiles, iCloudDownloads, unusedApps, browsers, simulators,
+                                                         developerTools, docker, snapshots, appLeftovers, mail, messages,
+                                                         duplicates, similarPhotos, projectBuildFiles]
+    static let all: [CleanCategory] = cleanupList + findSpaceList
 
     static let appCaches = CleanCategory(
         id: "caches", name: String(localized: "App Caches"), icon: "archivebox",

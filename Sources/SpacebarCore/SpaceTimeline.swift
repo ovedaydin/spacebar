@@ -58,9 +58,10 @@ public struct SpaceTimeline: Sendable {
               let after = history.entries.first(where: { $0.date >= to }) ?? history.entries.last,
               after.date > before.date else { return [] }
         let paths = Set(before.folders.keys).union(after.folders.keys)
-        return paths.map { StorageHistory.Growth(path: $0, before: before.folders[$0], after: after.folders[$0] ?? 0) }
-            .filter { abs($0.delta) >= 500_000_000 }
-            .sorted { abs($0.delta) > abs($1.delta) }
-            .prefix(limit).map { $0 }
+        let all: [StorageHistory.Growth] = paths.map { path in
+            StorageHistory.Growth(path: path, before: before.folders[path], after: after.folders[path] ?? 0)
+        }
+        let big: [StorageHistory.Growth] = all.filter { abs($0.delta) >= 500_000_000 }
+        return Array(big.sorted { abs($0.delta) > abs($1.delta) }.prefix(limit))
     }
 }

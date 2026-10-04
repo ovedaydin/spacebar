@@ -20,8 +20,9 @@ struct UninstallView: View {
     }
 
     private var total: Int64 {
-        (selected.contains(app.url) ? sizes[app.url] ?? 0 : 0)
-            + parts.filter { selected.contains($0.url) }.reduce(0) { $0 + (sizes[$1.url] ?? 0) }
+        let appBytes: Int64 = selected.contains(app.url) ? (sizes[app.url] ?? 0) : 0
+        let partBytes: Int64 = parts.filter { selected.contains($0.url) }.reduce(0) { $0 + (sizes[$1.url] ?? 0) }
+        return appBytes + partBytes
     }
 
     var body: some View {

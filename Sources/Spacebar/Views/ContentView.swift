@@ -98,15 +98,19 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.routeNotification)) { note in
             guard let id = note.object as? String else { return }
-            route = id == "overview" ? .overview : id == "explorer" ? .explorer : id == "history" ? .history : id == "apps" ? .apps : id == "media" ? .media : id == "offload" ? .offload : .category(id)
+            let pages: [String: Route] = ["overview": .overview, "explorer": .explorer, "history": .history,
+                                          "apps": .apps, "media": .media, "offload": .offload]
+            route = pages[id] ?? .category(id)
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.dumpNotification)) { note in
             let window = NSApp.windows.first(where: \.isVisible)
             if let report = model.report {
-                let skipped = report.skipped.map { "\($0.name): \($0.reason)" }.joined(separator: " | ")
-                FileHandle.standardError.write(Data(("[report] dryRun=\(report.dryRun) deleted=\(report.deletedBytes) "
-                    + "trashed=\(report.trashedBytes) removed=\(report.removed.count) skipped=\(report.skipped.count) [\(skipped)]\n"
-                    + "[report-title] \(report.title)\n[report-message] \(report.message.replacingOccurrences(of: "\n", with: " / "))\n").utf8))
+                let skipped: String = report.skipped.map { "\($0.name): \($0.reason)" }.joined(separator: " | ")
+                let counts: String = "deleted=\(report.deletedBytes) trashed=\(report.trashedBytes) removed=\(report.removed.count)"
+                let summary: String = "[report] dryRun=\(report.dryRun) \(counts) skipped=\(report.skipped.count) [\(skipped)]\n"
+                let message: String = report.message.replacingOccurrences(of: "\n", with: " / ")
+                let text: String = summary + "[report-title] \(report.title)\n[report-message] \(message)\n"
+                FileHandle.standardError.write(Data(text.utf8))
             }
             if let storage = model.storage {
                 FileHandle.standardError.write(Data("[storage] appData=\(storage.segments.first { $0.kind == .appData }?.bytes ?? -1) free=\(storage.free) live=\(model.liveUpdatedAt.map { "\($0)" } ?? "-") explorerLive=\(explorer.liveUpdatedAt.map { "\($0)" } ?? "-")\n".utf8))
