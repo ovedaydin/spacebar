@@ -3077,6 +3077,9 @@
         }
       }
     },
+    "At this rate, the disk is full %@." : {
+
+    },
     "At this rate, your disk is full %@. It's filling up by about %@ a day." : {
       "localizations" : {
         "de" : {
@@ -3289,6 +3292,9 @@
           }
         }
       }
+    },
+    "Browser Data" : {
+
     },
     "Build cache" : {
       "localizations" : {
@@ -3510,6 +3516,9 @@
           }
         }
       }
+    },
+    "Caches of Safari, Chrome, Edge, Brave, Arc and Firefox, per profile, and leftovers of their updaters. Browsers rebuild these; cookies, history, passwords, bookmarks and site data are never touched. Quit a browser to clean its caches. Profiles nobody has opened in 6 months are listed too, but never preselected: removing one removes its bookmarks and passwords (it goes to the Trash)." : {
+
     },
     "Caches, logs and build data apps rebuild, plus forgotten downloads, unused apps, old simulators and leftovers." : {
       "localizations" : {
@@ -5186,6 +5195,9 @@
         }
       }
     },
+    "Downloaded updates, already installed" : {
+
+    },
     "Downloads" : {
       "localizations" : {
         "de" : {
@@ -6646,6 +6658,9 @@
         }
       }
     },
+    "Graphics and code cache" : {
+
+    },
     "Grew by %@ since %@" : {
       "localizations" : {
         "de" : {
@@ -6829,6 +6844,9 @@
       }
     },
     "Hover for details" : {
+
+    },
+    "How much your disk grew or shrank, what grew most, and how much Spacebar can free." : {
 
     },
     "If you just turned Spacebar on in Privacy & Security › Full Disk Access, macOS applies it after Spacebar restarts. Click Quit & Reopen. If it's still not active afterwards, remove Spacebar from the list with the – button and add it again with +." : {
@@ -9088,6 +9106,9 @@
         }
       }
     },
+    "Not a browser profile" : {
+
+    },
     "Not a downloaded model" : {
       "localizations" : {
         "de" : {
@@ -9599,6 +9620,9 @@
           }
         }
       }
+    },
+    "Offline site data (service workers)" : {
+
     },
     "Old Homebrew version · %@ is in use" : {
       "localizations" : {
@@ -10464,6 +10488,9 @@
           }
         }
       }
+    },
+    "Profile last used %@ · its bookmarks, passwords and history go too" : {
+
     },
     "Project Build Files" : {
       "localizations" : {
@@ -11669,6 +11696,9 @@
         }
       }
     },
+    "Shared cache" : {
+
+    },
     "Shared container" : {
       "localizations" : {
         "de" : {
@@ -12726,6 +12756,9 @@
           }
         }
       }
+    },
+    "Spacebar can free %@ of safe items." : {
+
     },
     "Spacebar can only show folders." : {
       "localizations" : {
@@ -13890,6 +13923,25 @@
         }
       }
     },
+    "This week your disk stayed about the same." : {
+
+    },
+    "This week: %@ freed." : {
+
+    },
+    "This week: +%@ used, mostly %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This week: +%1$@ used, mostly %2$@."
+          }
+        }
+      }
+    },
+    "This week: +%@ used." : {
+
+    },
     "Time Machine Snapshots" : {
       "localizations" : {
         "de" : {
@@ -14493,6 +14545,9 @@
         }
       }
     },
+    "Web cache" : {
+
+    },
     "Web data" : {
       "localizations" : {
         "de" : {
@@ -14514,6 +14569,9 @@
           }
         }
       }
+    },
+    "Weekly summary on Monday mornings" : {
+
     },
     "Welcome to Spacebar" : {
       "localizations" : {
@@ -15380,6 +15438,9 @@
           }
         }
       }
+    },
+    "Your week in disk space" : {
+
     },
     "added %@" : {
       "localizations" : {

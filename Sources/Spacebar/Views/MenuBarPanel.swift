@@ -177,6 +177,7 @@ struct SettingsView: View {
     @AppStorage(Preferences.autoClean) private var autoClean = false
     @AppStorage(Preferences.autoEmptyTrashed) private var autoEmptyTrashed = false
     @AppStorage(Preferences.forgottenReminders) private var forgottenReminders = true
+    @AppStorage(Preferences.weeklySummary) private var weeklySummary = false
 
     var body: some View {
         Form {
@@ -193,6 +194,9 @@ struct SettingsView: View {
                     ForEach([5, 10, 20, 50], id: \.self) { Text("\($0) GB available").tag($0) }
                 }
                 .disabled(!lowDiskAlerts)
+                Toggle("Weekly summary on Monday mornings", isOn: $weeklySummary)
+                Text("How much your disk grew or shrank, what grew most, and how much Spacebar can free.")
+                    .font(.caption).foregroundStyle(.secondary)
                 Toggle("Ask about big files left in Downloads or on the Desktop", isOn: $forgottenReminders)
                 Text("At most once a week: a file over 500 MB you haven't opened in 2 months, with Keep and Move to Trash buttons. Nothing is removed unless you click Move to Trash.")
                     .font(.caption).foregroundStyle(.secondary)

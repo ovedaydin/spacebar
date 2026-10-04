@@ -214,6 +214,7 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.timelineDemoNotification)) { _ in
             model.debugDemoTimeline()
+            FileHandle.standardError.write(Data("[summary] \(model.weeklySummaryText() ?? "(none)")\n".utf8))
         }
         // Debug hook: open the rule editor on a preset.
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.newRuleNotification)) { note in

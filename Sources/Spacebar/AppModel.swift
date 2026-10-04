@@ -558,6 +558,49 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Monday morning, if turned on: how the week went and what can be freed.
+    func sendWeeklySummary(now: Date = Date(), force: Bool = false) {
+        let defaults = UserDefaults.standard
+        guard force || defaults.bool(forKey: Preferences.weeklySummary) else { return }
+        let calendar = Calendar.current
+        if !force {
+            guard calendar.component(.weekday, from: now) == 2, calendar.component(.hour, from: now) >= 9 else { return }
+            if let last = defaults.object(forKey: "lastWeeklySummary") as? Date, now.timeIntervalSince(last) < 6 * 86400 { return }
+        }
+        guard let body = weeklySummaryText(now: now) else { return }
+        defaults.set(now, forKey: "lastWeeklySummary")
+        notify(title: String(localized: "Your week in disk space"), body: body)
+    }
+
+    /// "This week: +4,2 GB, mostly ~/Library/Developer. Spacebar can free 2,1 GB of safe items."
+    func weeklySummaryText(now: Date = Date()) -> String? {
+        let weekAgo = now.addingTimeInterval(-7 * 86400)
+        guard let latest = spaceLog.samples.last,
+              let then = spaceLog.samples.last(where: { $0.date <= weekAgo.addingTimeInterval(12 * 3600) }),
+              latest.date.timeIntervalSince(then.date) >= 5 * 86400 else { return nil }
+        let change = then.available - latest.available   // positive: more used
+        var sentences: [String] = []
+        let amount = ByteFormat.string(abs(change))
+        if abs(change) < 200_000_000 {
+            sentences.append(String(localized: "This week your disk stayed about the same."))
+        } else if let top = history.growth()?.items.first, change > 0 {
+            let home = NSHomeDirectory()
+            let path = top.path.hasPrefix(home) ? "~" + top.path.dropFirst(home.count) : top.path
+            sentences.append(String(localized: "This week: +\(amount) used, mostly \(path)."))
+        } else {
+            sentences.append(change > 0 ? String(localized: "This week: +\(amount) used.")
+                                        : String(localized: "This week: \(amount) freed."))
+        }
+        let freeable = quickCleanItems.reduce(Int64(0)) { $0 + $1.0.size }
+        if freeable >= 100_000_000 {
+            sentences.append(String(localized: "Spacebar can free \(ByteFormat.string(freeable)) of safe items."))
+        }
+        if let forecast, forecast.days < 60 {
+            sentences.append(String(localized: "At this rate, the disk is full \(Self.forecastPhrase(days: forecast.days))."))
+        }
+        return sentences.joined(separator: " ")
+    }
+
     /// "Your disk will be full in about 10 days", at most weekly, when it's two weeks away or less.
     private func warnBeforeFull() {
         let defaults = UserDefaults.standard
@@ -606,6 +649,7 @@ final class AppModel: ObservableObject {
     func runAutomaticTasks() {
         let defaults = UserDefaults.standard
         if defaults.bool(forKey: Preferences.autoEmptyTrashed) { emptyOldTrashed() }
+        sendWeeklySummary()
         // Forgotten files read Downloads and the Desktop: only with Full Disk Access, so no prompts.
         if defaults.bool(forKey: Preferences.forgottenReminders), fullDiskAccess == true, !isScanning {
             let context = ScanContext(engine: BulkScanner(), runningApps: RunningApps.bundleIDs(),

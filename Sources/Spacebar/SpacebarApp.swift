@@ -122,6 +122,7 @@ enum Preferences {
     static let lastAutoClean = "lastAutoClean"
     static let onboardingPage = "onboardingPage"
     static let forgottenReminders = "forgottenReminders"
+    static let weeklySummary = "weeklySummary"
 
     static func register() {
         UserDefaults.standard.register(defaults: [showMenuBar: true, lowDiskAlerts: true, lowDiskThresholdGB: 10,
