@@ -2175,6 +2175,9 @@
         }
       }
     },
+    "%lld with nothing found" : {
+
+    },
     "*.dmg, *.zip" : {
       "localizations" : {
         "de" : {
@@ -3743,7 +3746,11 @@
         }
       }
     },
+    "Bursts and repeated shots: photos taken within a minute of each other that look nearly the same, and videos saved twice (the same clip exported again or at another resolution), found with on-device image analysis. In each group the favorite, or else the highest-resolution one, is kept. Library photos go to Recently Deleted in Photos (30 days); files go to the Trash. Photos stored only in iCloud aren't downloaded or analyzed." : {
+
+    },
     "Bursts and repeated shots: photos taken within a minute of each other that look nearly the same, found with on-device image analysis. In each group the favorite, or else the highest-resolution shot, is kept. Library photos go to Recently Deleted in Photos (30 days); image files go to the Trash. Photos stored only in iCloud aren't downloaded or analyzed." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6649,6 +6656,7 @@
       }
     },
     "Files over 1 MB with identical content in your home folder (outside Library). For each set, one copy is kept: the one outside Downloads with the shortest path. Right-click a copy to keep it instead. Copies that already share disk space (APFS clones) are left out, because deleting them frees nothing." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -6867,6 +6875,9 @@
           }
         }
       }
+    },
+    "Folder · same contents as %@" : {
+
     },
     "Folders" : {
       "localizations" : {
@@ -7681,6 +7692,9 @@
           }
         }
       }
+    },
+    "Hide empty" : {
+
     },
     "Hide items" : {
       "localizations" : {
@@ -12823,6 +12837,9 @@
     "Safe: rebuilt automatically" : {
 
     },
+    "Same video as %@" : {
+
+    },
     "Sandbox container" : {
       "localizations" : {
         "de" : {
@@ -13690,6 +13707,7 @@
       }
     },
     "Similar Photos" : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -13710,6 +13728,9 @@
           }
         }
       }
+    },
+    "Similar Photos & Videos" : {
+
     },
     "Similar to %@" : {
       "localizations" : {
@@ -16027,6 +16048,9 @@
         }
       }
     },
+    "Tools" : {
+
+    },
     "Trash" : {
       "localizations" : {
         "de" : {
@@ -16897,6 +16921,9 @@
           }
         }
       }
+    },
+    "Whole folders and files over 1 MB with identical content in your home folder (outside Library). For each set, one copy is kept: the one outside Downloads with the shortest path (and without \"copy\" in its name). Right-click a copy to keep it instead. Copies that already share disk space (APFS clones) are left out, because deleting them frees nothing." : {
+
     },
     "Without Full Disk Access, the Trash can't be measured, so what's in it is counted in System Data." : {
       "localizations" : {

@@ -39,20 +39,14 @@ struct ContentView: View {
                     Label("Overview", systemImage: "internaldrive").tag(Route.overview)
                     Label("Space Explorer", systemImage: "chart.bar.doc.horizontal").tag(Route.explorer)
                     Label("App Storage", systemImage: "square.stack.3d.up").tag(Route.apps)
+                }
+                Section("Tools") {
                     Label("Media Review", systemImage: "photo.stack").tag(Route.media)
                     Label("Offload", systemImage: "externaldrive.badge.plus").tag(Route.offload)
                     Label("History", systemImage: "clock.arrow.circlepath").tag(Route.history)
                 }
-                Section("Cleanup") {
-                    ForEach(model.categories.filter { $0.group == .cleanup }) { category in
-                        SidebarRow(category: category).tag(Route.category(category.id))
-                    }
-                }
-                Section("Find Space") {
-                    ForEach(model.categories.filter { $0.group == .findSpace }) { category in
-                        SidebarRow(category: category).tag(Route.category(category.id))
-                    }
-                }
+                CategorySection(title: "Cleanup", group: .cleanup, route: route)
+                CategorySection(title: "Find Space", group: .findSpace, route: route)
                 Section("Your Rules") {
                     ForEach(model.categories.filter { $0.group == .rules }) { category in
                         SidebarRow(category: category).tag(Route.category(category.id))
@@ -341,7 +335,7 @@ private struct UninstallTarget: Identifiable {
     var id: URL { app.url }
 }
 
-private struct SidebarRow: View {
+struct SidebarRow: View {
     let category: CleanCategory
 
     var body: some View {
