@@ -21,3 +21,21 @@ jobs:
         run: swift test
       - name: Benchmark smoke test (read-only)
         run: swift run -c release spacebar-bench --path "$GITHUB_WORKSPACE" --runs 1
+
+  # Opens each main page of a debug build and fails if one comes out blank (a view that stops
+  # the window from drawing). Snapshots are kept as an artifact to look at.
+  ui:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: UI smoke test
+        run: ./scripts/ui-smoke.sh "$RUNNER_TEMP/ui-smoke"
+      - name: Keep snapshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ui-snapshots
+          path: ${{ runner.temp }}/ui-smoke/*.png
+          retention-days: 14
