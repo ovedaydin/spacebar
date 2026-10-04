@@ -8,7 +8,11 @@
 - **Space Explorer.** Drill into any folder as a sorted list or a treemap, on any drive. Search, filter by type, Quick Look (space bar), keyboard navigation and multi-select. Subfolders are measured in the same pass, so opening them is instant.
 - **Uninstaller.** Drop an app on the window (or use Uninstall… / ⇧⌘U) to remove it with its data in ~/Library: app support, caches, containers, settings, saved windows, launch agents. Put Back restores it all.
 - **Automatic (opt-in).** A weekly clean of suggested caches and logs, and emptying what Spacebar moved to the Trash after 7 days.
-- **Live.** Sizes update by themselves as files change (FSEvents), re-measuring only the folders that changed.
+- **System Data, explained.** Click System Data or macOS to see what's in it, part by part (swap, temporary files, logs, system-wide app support, a waiting macOS update, snapshots), whether each is safe to remove, and a fix where there is one.
+- **Your own rules.** For example "DMGs and ZIPs in Downloads older than 30 days" or "node_modules in projects untouched for 3 months". Rules show up as categories, work in the `spacebar` command and, if you like, in automatic cleaning.
+- **History with undo.** Every clean is listed with Put Back while its items are still in the Trash.
+- **Forgotten file reminders.** At most once a week, a notification about a big file you left in Downloads or on the Desktop, with Keep and Move to Trash.
+- **Live, and instant at launch.** Sizes update by themselves as files change (FSEvents), re-measuring only the folders that changed, including changes made while Spacebar wasn't running.
 - **What grew.** Spacebar keeps a light history of each measurement and shows which folders grew in the last week, so runaway caches and VM images get caught early.
 - **External drives.** A breakdown of any connected drive's largest folders, with Eject.
 - **Terminal, Shortcuts and Finder.** A `spacebar` command (`spacebar clean --safe --dry-run`), Shortcuts actions such as **Free Up Space**, and **Show in Spacebar** when you right-click a folder in Finder.

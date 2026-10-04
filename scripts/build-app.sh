@@ -42,7 +42,8 @@ BIN_DIR="$(swift build -c release --product "$EXECUTABLE" "${arch_flags[@]}" --s
 META_DIR="$ROOT/.build/metadata"
 STRINGS_DIR="$META_DIR/stringsdata"
 INTENTS_DIR="$META_DIR/appintents"
-rm -rf "$META_DIR" && mkdir -p "$STRINGS_DIR" "$INTENTS_DIR"
+# From scratch every time: an incremental build would only report the files that changed.
+rm -rf "$META_DIR" "$ROOT/.build/metadata-build" && mkdir -p "$STRINGS_DIR" "$INTENTS_DIR"
 echo '["AppIntent","EntityQuery","AppEntity","TransientEntity","AppEnum","AppShortcutsProvider","DynamicOptionsProvider","IntentValueQuery"]' \
     > "$INTENTS_DIR/protocols.json"
 echo "==> Collecting strings and Shortcuts metadata"
