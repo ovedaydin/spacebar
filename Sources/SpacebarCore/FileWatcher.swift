@@ -9,6 +9,9 @@ public final class FileWatcher: @unchecked Sendable {
     public typealias Handler = @Sendable (_ paths: [String], _ rescanAll: Bool) -> Void
     /// The newest event delivered so far, and whether the replay of past changes (`since:`) is done.
     public typealias ProgressHandler = @Sendable (_ lastEventID: UInt64, _ historyDone: Bool) -> Void
+    /// Each changed folder with the event ID of its change.
+    public typealias ChangeHandler = @Sendable (_ changes: [(path: String, eventID: UInt64)]) -> Void
+    public var changeHandler: ChangeHandler?
 
     private var stream: FSEventStreamRef?
     private let queue = DispatchQueue(label: "Spacebar.FileWatcher")
@@ -43,6 +46,7 @@ public final class FileWatcher: @unchecked Sendable {
             let watcher = Unmanaged<FileWatcher>.fromOpaque(info).takeUnretainedValue()
             let array = unsafeBitCast(eventPaths, to: NSArray.self)
             var changed: [String] = []
+            var changes: [(path: String, eventID: UInt64)] = []
             var rescan = false
             var historyDone = false
             var newest: UInt64 = 0
@@ -55,9 +59,14 @@ public final class FileWatcher: @unchecked Sendable {
                     continue // a marker, not a change
                 }
                 if eventFlags[index] & mustRescan != 0 { rescan = true }
-                if let path = array[index] as? String { changed.append(path.hasSuffix("/") ? String(path.dropLast()) : path) }
+                if let path = array[index] as? String {
+                    let clean = path.hasSuffix("/") ? String(path.dropLast()) : path
+                    changed.append(clean)
+                    changes.append((clean, eventIDs[index]))
+                }
             }
             if !changed.isEmpty || rescan { watcher.handler(changed, rescan) }
+            if !changes.isEmpty { watcher.changeHandler?(changes) }
             watcher.progress?(newest, historyDone)
         }
         let flags = FSEventStreamCreateFlags(kFSEventStreamCreateFlagUseCFTypes | kFSEventStreamCreateFlagIgnoreSelf
@@ -87,5 +96,24 @@ public final class FileWatcher: @unchecked Sendable {
     /// The deepest of `roots` that contains `path` (or is it), if any.
     public static func owningRoot(of path: String, in roots: [String]) -> String? {
         roots.filter { path == $0 || path.hasPrefix($0 + "/") }.max { $0.count < $1.count }
+    }
+
+    /// For each folder that is (or contains) a changed path: the newest change under it.
+    /// A size measured at event N is still right if the newest change under its folder is ≤ N.
+    public static func newestChange(under changes: [(path: String, eventID: UInt64)]) -> [String: UInt64] {
+        var newest: [String: UInt64] = [:]
+        for change in changes {
+            var path = change.path
+            while true {
+                if let known = newest[path], known >= change.eventID { break } // ancestors already as new
+                newest[path] = change.eventID
+                guard let slash = path.lastIndex(of: "/"), slash != path.startIndex else {
+                    if path != "/" { newest["/"] = max(newest["/"] ?? 0, change.eventID) }
+                    break
+                }
+                path = String(path[..<slash])
+            }
+        }
+        return newest
     }
 }

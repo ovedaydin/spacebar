@@ -26,6 +26,8 @@ enum ScanCache {
             /// The measurement before this one, for "grew recently".
             var previous: Int64?
             var previousMeasured: Date?
+            /// FSEvents position just before it was measured (see ExplorerModel.catchUp).
+            var eventID: UInt64? = nil
         }
 
         var version = ScanCache.version

@@ -19,6 +19,9 @@ final class ExplorerModel: ObservableObject {
     private var token: CancelToken?
     private let sessionStart = Date()
     private var measured: [URL: Date] = [:]
+    /// The file system's change position just before each size was measured.
+    private var eventIDs: [URL: UInt64] = [:]
+    private var catchUpWatcher: FileWatcher?
     /// The size before the latest measurement (from an earlier session), for "grew recently".
     private(set) var previous: [URL: (bytes: Int64, date: Date)] = [:]
 
@@ -49,9 +52,46 @@ final class ExplorerModel: ObservableObject {
                 let url = URL(fileURLWithPath: path)
                 sizes[url] = entry.totals
                 measured[url] = entry.measured
+                eventIDs[url] = entry.eventID
                 if let bytes = entry.previous, let date = entry.previousMeasured { previous[url] = (bytes, date) }
             }
         }
+        catchUp()
+    }
+
+    /// Replays what changed since the saved sizes were measured. A size whose folder hasn't changed
+    /// since is still right, so it counts as measured this session and isn't measured again.
+    private func catchUp() {
+        guard let since = eventIDs.values.min() else { return }
+        let home = FileManager.default.homeDirectoryForCurrentUser.path
+        let roots = [home, "/Applications"]
+        var changes: [(path: String, eventID: UInt64)] = []
+        var everything = false
+        let watcher = FileWatcher(paths: roots, latency: 0.5, since: since) { _, rescanAll in
+            if rescanAll { Task { @MainActor in everything = true } }
+        } progress: { _, historyDone in
+            guard historyDone else { return }
+            Task { @MainActor in
+                self.catchUpWatcher?.stop()
+                self.catchUpWatcher = nil
+                guard !everything else { return }
+                let newest = FileWatcher.newestChange(under: changes)
+                var fresh = 0
+                for (url, id) in self.eventIDs where roots.contains(where: { url.path == $0 || url.path.hasPrefix($0 + "/") }) {
+                    if (newest[url.path] ?? 0) <= id {
+                        self.measured[url] = self.sessionStart
+                        fresh += 1
+                    }
+                }
+                if DebugSnapshot.enabled {
+                    FileHandle.standardError.write(Data("[explorer] caught up: \(changes.count) changes, \(fresh) of \(self.eventIDs.count) saved sizes still right\n".utf8))
+                }
+                if self.loaded { self.load() }
+            }
+        }
+        watcher.changeHandler = { batch in Task { @MainActor in changes += batch } }
+        catchUpWatcher = watcher
+        watcher.start()
     }
 
     /// Several folders listed together, e.g. everything counted as "Developer" in the disk breakdown.
@@ -221,11 +261,13 @@ final class ExplorerModel: ObservableObject {
 
         Task.detached(priority: .userInitiated) {
             defer { ProcessInfo.processInfo.endActivity(activity) }
+            // Taken before measuring: a change during measurement makes the size stale next launch.
+            let eventID = FileWatcher.currentEventID
             if !files.isEmpty {
                 let totals = engine.measure(files, cancel: token)
                 await MainActor.run {
                     guard !token.isCancelled else { return }
-                    self.record(zip(files, totals).map { ($0, $1) })
+                    self.record(zip(files, totals).map { ($0, $1) }, eventID: eventID)
                     self.progress?.done += files.count
                 }
             }
@@ -234,7 +276,7 @@ final class ExplorerModel: ObservableObject {
                 let tree = engine.measureTree(folder, depth: Self.treeDepth, cancel: token)
                 await MainActor.run {
                     guard !token.isCancelled else { return }
-                    self.record(tree.map { (URL(fileURLWithPath: $0.key), $0.value) })
+                    self.record(tree.map { (URL(fileURLWithPath: $0.key), $0.value) }, eventID: eventID)
                     self.progress?.done += 1
                 }
             }
@@ -268,9 +310,10 @@ final class ExplorerModel: ObservableObject {
 
     /// Applies a batch with one assignment: mutating a @Published dictionary entry by entry
     /// copies it every time, which froze the UI for seconds after measuring ~/Library.
-    private func record(_ batch: [(URL, SizeTotals)]) {
+    private func record(_ batch: [(URL, SizeTotals)], eventID: UInt64? = nil) {
         let now = Date()
         var sizes = self.sizes
+        if let eventID { for (url, _) in batch { eventIDs[url] = eventID } }
         for (url, totals) in batch {
             // Keep the last measurement from an earlier session (at least an hour old) as "previous".
             if let old = sizes[url], let oldDate = measured[url], now.timeIntervalSince(oldDate) > 3600 {
@@ -304,7 +347,8 @@ final class ExplorerModel: ObservableObject {
         for (url, totals) in sizes {
             if let date = measured[url] {
                 entries[url.path] = .init(totals: totals, measured: date,
-                                          previous: previous[url]?.bytes, previousMeasured: previous[url]?.date)
+                                          previous: previous[url]?.bytes, previousMeasured: previous[url]?.date,
+                                          eventID: eventIDs[url])
             }
         }
         ScanCache.save(ScanCache.Explorer(entries: entries))

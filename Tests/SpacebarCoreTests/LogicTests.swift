@@ -431,3 +431,14 @@ final class OffloadTests: XCTestCase {
         }
     }
 }
+
+final class NewestChangeTests: XCTestCase {
+    func testAncestorsKnowTheNewestChangeBelowThem() {
+        let newest = FileWatcher.newestChange(under: [("/Users/me/Movies/a", 10), ("/Users/me/Documents", 30), ("/Users/me/Movies", 20)])
+        XCTAssertEqual(newest["/Users/me/Movies/a"], 10)
+        XCTAssertEqual(newest["/Users/me/Movies"], 20)
+        XCTAssertEqual(newest["/Users/me"], 30)
+        XCTAssertEqual(newest["/"], 30)
+        XCTAssertNil(newest["/Users/me/Pictures"], "untouched folders have no change")
+    }
+}
