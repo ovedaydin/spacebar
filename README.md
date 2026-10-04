@@ -11,6 +11,7 @@
 - **Live.** Sizes update by themselves as files change (FSEvents), re-measuring only the folders that changed.
 - **What grew.** Spacebar keeps a light history of each measurement and shows which folders grew in the last week, so runaway caches and VM images get caught early.
 - **External drives.** A breakdown of any connected drive's largest folders, with Eject.
+- **Terminal, Shortcuts and Finder.** A `spacebar` command (`spacebar clean --safe --dry-run`), Shortcuts actions such as **Free Up Space**, and **Show in Spacebar** when you right-click a folder in Finder.
 - **Menu bar & alerts.** Available space in the menu bar, one-click cleaning of safe items, and a notification when the disk is almost full.
 - **Trash that frees space, and undo.** After a clean, **Delete Now** permanently removes just what Spacebar moved to the Trash, and **Put Back** (⌥⌘Z) restores it. Empty Trash is built in.
 - **Remembers results.** The last scan is shown immediately at launch and refreshed in the background.
@@ -41,7 +42,7 @@ brew install --cask ovedaydin/tap/spacebar
 curl -fsSL https://raw.githubusercontent.com/ovedaydin/spacebar/main/install.sh | bash
 ```
 
-The script downloads the latest release, checks its SHA-256, and installs it into `/Applications`.
+The script downloads the latest release, checks its SHA-256, and installs it into `/Applications`. It also links the `spacebar` command when it can do so without sudo.
 
 ### Manual download
 
@@ -56,6 +57,25 @@ The script downloads the latest release, checks its SHA-256, and installs it int
 On first launch, a short walkthrough explains Full Disk Access and how Spacebar keeps you safe:
 
 <p align="center"><img src="docs/screenshots/walkthrough.png" width="560" alt="Walkthrough: you stay in control"></p>
+
+## Command line, Shortcuts and Finder
+
+Homebrew installs a `spacebar` command (it's the app's own binary, so it cleans with exactly the same rules):
+
+```sh
+spacebar status                    # free space on the startup disk
+spacebar scan                      # sizes and suggestions for every category
+spacebar clean --safe --dry-run    # what a safe clean (caches and logs nobody used recently) would remove
+spacebar clean --safe              # do it (asks first; add --yes in scripts)
+spacebar clean logs devcaches      # Spacebar's suggestions in specific categories
+spacebar show ~/Downloads          # open a folder in Space Explorer
+```
+
+Only items Spacebar suggests are removed: the same ones it preselects in the app. Your Dry Run setting, Exclusions and "unused for" days apply, and `--json` prints machine-readable results. The terminal's own Full Disk Access decides what it can scan.
+
+In **Shortcuts**, Spacebar adds **Free Up Space** (with an optional dry run; returns the bytes freed), **Get Available Space**, and **Show Folder in Spacebar**. You can also ask Siri to "Free up space with Spacebar".
+
+In **Finder**, right-click a folder and choose **Show in Spacebar** (under Quick Actions or Services). Links of the form `spacebar://show?path=/some/folder` do the same.
 
 ## Permissions
 

@@ -33,7 +33,7 @@ enum ScanCache {
 
     static var directory: URL {
         FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "Spacebar", isDirectory: true)
+            .appendingPathComponent(AppDefaults.bundleID, isDirectory: true)
     }
 
     static func loadCatalog() -> Catalog? {
@@ -68,7 +68,7 @@ enum ScanCache {
 
     static var supportDirectory: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "Spacebar", isDirectory: true)
+            .appendingPathComponent(AppDefaults.bundleID, isDirectory: true)
     }
 
     static func loadLedger() -> TrashLedger {

@@ -22,7 +22,15 @@ final class Updates: ObservableObject {
     func check() { controller?.checkForUpdates(nil) }
 }
 
+/// One binary: the app, or the `spacebar` command when run with a command (see CommandLineTool).
 @main
+enum Main {
+    static func main() {
+        if CommandLineTool.isRequested(CommandLine.arguments) { CommandLineTool.run(CommandLine.arguments) }
+        SpacebarApp.main()
+    }
+}
+
 struct SpacebarApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @StateObject private var model = AppModel()
@@ -153,11 +161,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
 
     /// Clicking the low-disk notification brings Spacebar forward.
-    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
-                                withCompletionHandler completionHandler: @escaping () -> Void) {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.windows.first { $0.canBecomeMain }?.makeKeyAndOrderFront(nil)
+    nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+                                            withCompletionHandler completionHandler: @escaping () -> Void) {
         completionHandler()
+        Task { @MainActor in
+            NSApp.activate(ignoringOtherApps: true)
+            NSApp.windows.first { $0.canBecomeMain }?.makeKeyAndOrderFront(nil)
+        }
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

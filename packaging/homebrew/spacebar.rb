@@ -18,6 +18,8 @@ cask "spacebar" do
   depends_on macos: :ventura
 
   app "Spacebar.app"
+  # The app's own binary doubles as the command-line tool: `spacebar help`.
+  binary "#{appdir}/Spacebar.app/Contents/MacOS/Spacebar", target: "spacebar"
 
   # The app is self-signed, not notarized, so strip quarantine after install.
   # Remove this block if you switch to Developer ID + notarization.

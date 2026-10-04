@@ -30,9 +30,19 @@ for a in $ARCHS; do arch_flags+=(--arch "$a"); done
 
 # DEBUG_HOOKS=1 compiles in the scripted test hooks (local testing only, never for releases).
 [[ "${DEBUG_HOOKS:-0}" == "1" ]] && arch_flags+=(-Xswiftc -DSPACEBAR_DEBUG_HOOKS) && echo "==> WITH debug hooks (test build)"
+# Shortcuts actions (App Intents) need metadata that Xcode normally generates. The compiler writes
+# the intents' constant values to one file; only the app's product is built, so the Spacebar
+# module (compiled after SpacebarCore) is the one that ends up in it.
+INTENTS_DIR="$ROOT/.build/appintents"
+rm -rf "$INTENTS_DIR" && mkdir -p "$INTENTS_DIR"
+echo '["AppIntent","EntityQuery","AppEntity","TransientEntity","AppEnum","AppShortcutsProvider","DynamicOptionsProvider","IntentValueQuery"]' \
+    > "$INTENTS_DIR/protocols.json"
+arch_flags+=(-Xswiftc -emit-const-values-path -Xswiftc "$INTENTS_DIR/Spacebar.swiftconstvalues"
+             -Xswiftc -Xfrontend -Xswiftc -const-gather-protocols-file -Xswiftc -Xfrontend -Xswiftc "$INTENTS_DIR/protocols.json")
+
 echo "==> Building $APP_NAME $VERSION ($BUILD_NUMBER) for: $ARCHS"
-swift build -c release "${arch_flags[@]}"
-BIN_DIR="$(swift build -c release "${arch_flags[@]}" --show-bin-path)"
+swift build -c release --product "$EXECUTABLE" "${arch_flags[@]}"
+BIN_DIR="$(swift build -c release --product "$EXECUTABLE" "${arch_flags[@]}" --show-bin-path)"
 
 APP="$ROOT/dist/$APP_NAME.app"
 rm -rf "$APP"
@@ -50,6 +60,22 @@ sed -e "s|__EXECUTABLE__|$EXECUTABLE|g" \
     -e "s|__SPARKLE_PUBLIC_KEY__|$SPARKLE_PUBLIC_KEY|g" \
     packaging/Info.plist > "$APP/Contents/Info.plist"
 plutil -lint "$APP/Contents/Info.plist" >/dev/null
+
+# Shortcuts metadata (Contents/Resources/Metadata.appintents). Needs Xcode, not just the Command Line Tools.
+if PROCESSOR="$(xcrun --find appintentsmetadataprocessor 2>/dev/null)" && [[ -f "$INTENTS_DIR/Spacebar.swiftconstvalues" ]]; then
+    find "$ROOT/Sources/$EXECUTABLE" -name '*.swift' > "$INTENTS_DIR/sources.txt"
+    echo "$INTENTS_DIR/Spacebar.swiftconstvalues" > "$INTENTS_DIR/constvalues.txt"
+    "$PROCESSOR" --output "$APP/Contents/Resources" \
+        --toolchain-dir "$(dirname "$(dirname "$(dirname "$PROCESSOR")")")" \
+        --module-name "$EXECUTABLE" --sdk-root "$(xcrun --sdk macosx --show-sdk-path)" \
+        --xcode-version "$(xcodebuild -version | awk '/Build version/ {print $3}')" \
+        --platform-family macOS --deployment-target "$MIN_MACOS" --target-triple "arm64-apple-macos$MIN_MACOS" \
+        --source-file-list "$INTENTS_DIR/sources.txt" --swift-const-vals-list "$INTENTS_DIR/constvalues.txt" 2>&1 \
+        | grep -v "^20.. .*appintentsmetadataprocessor" || true
+    [[ -d "$APP/Contents/Resources/Metadata.appintents" ]] && echo "==> Added Shortcuts actions"
+else
+    echo "==> Skipping Shortcuts actions (needs Xcode's appintentsmetadataprocessor)" >&2
+fi
 
 # Drop absolute toolchain rpaths SwiftPM adds (they point into the build machine's Xcode).
 while read -r rpath; do

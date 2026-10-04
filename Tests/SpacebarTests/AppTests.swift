@@ -108,3 +108,18 @@ final class FinderIntegrationTests: XCTestCase {
         }
     }
 }
+
+final class CommandLineToolTests: XCTestCase {
+    func testRunsAsToolOnlyWhenAsked() {
+        let app = "/Applications/Spacebar.app/Contents/MacOS/Spacebar"
+        XCTAssertFalse(CommandLineTool.isRequested([app]))
+        XCTAssertFalse(CommandLineTool.isRequested([app, "-NSDocumentRevisionsDebugMode", "YES"]))
+        XCTAssertTrue(CommandLineTool.isRequested([app, "scan"]))
+        XCTAssertTrue(CommandLineTool.isRequested(["/opt/homebrew/bin/spacebar"]))
+        XCTAssertTrue(CommandLineTool.isRequested(["spacebar", "bogus"]))
+    }
+
+    func testSafeCleanCoversOnlyCachesAndLogs() {
+        XCTAssertEqual(Set(Headless.safeCategories.map(\.id)), ["caches", "logs", "xcode", "devcaches"])
+    }
+}

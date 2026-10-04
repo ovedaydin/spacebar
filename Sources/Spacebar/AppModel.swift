@@ -120,6 +120,14 @@ final class AppModel: ObservableObject {
                 self?.applyStorageChanges() // changes queued while in the background
             }
             .store(in: &observers)
+        // A Shortcuts clean ran in this process: show fresh results.
+        NotificationCenter.default.publisher(for: Headless.cleanedNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.refreshSystem()
+                self?.scanAll()
+            }
+            .store(in: &observers)
         startLiveUpdates()
         for name in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification, NSWorkspace.didRenameVolumeNotification] {
             NSWorkspace.shared.notificationCenter.publisher(for: name)
@@ -389,7 +397,7 @@ final class AppModel: ObservableObject {
            Date().timeIntervalSince(last) < 7 * 86400 { return }
         defaults.set(Date(), forKey: Preferences.lastAutoClean)
 
-        let categories = self.categories.filter { $0.group == .cleanup && $0.safety == .safe && $0.id != "trash" }
+        let categories = Headless.safeCategories
         let context = ScanContext(engine: BulkScanner(), runningApps: RunningApps.bundleIDs(),
                                   fullDiskAccess: fullDiskAccess ?? false, excluded: exclusions)
         let staleDays = staleDays
@@ -435,13 +443,6 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func recordTrashed(_ items: [Cleaner.TrashedItem]) {
-        guard !items.isEmpty else { return }
-        var ledger = ScanCache.loadLedger()
-        ledger.entries += items.map { .init(path: $0.url.path, bytes: $0.bytes, date: Date()) }
-        ScanCache.save(ledger)
-    }
-
     func notify(title: String, body: String) {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert]) { granted, _ in
             guard granted else { return }
@@ -454,7 +455,7 @@ final class AppModel: ObservableObject {
 
     /// Reflects removals right away: free space, and the disk breakdown (size moves to Trash or Free).
     func applyRemovals(_ report: Cleaner.Report) {
-        if !report.dryRun { recordTrashed(report.trashedItems) }
+        if !report.dryRun { TrashLedger.record(report.trashedItems) }
         guard !report.removedItems.isEmpty else { return }
         if var storage {
             for item in report.removedItems {
