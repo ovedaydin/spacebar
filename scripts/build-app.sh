@@ -30,25 +30,28 @@ for a in $ARCHS; do arch_flags+=(--arch "$a"); done
 
 # DEBUG_HOOKS=1 compiles in the scripted test hooks (local testing only, never for releases).
 [[ "${DEBUG_HOOKS:-0}" == "1" ]] && arch_flags+=(-Xswiftc -DSPACEBAR_DEBUG_HOOKS) && echo "==> WITH debug hooks (test build)"
-# Shortcuts actions (App Intents) need metadata that Xcode normally generates. The compiler writes
-# the intents' constant values to one file; only the app's product is built, so the Spacebar
-# module (compiled after SpacebarCore) is the one that ends up in it.
-INTENTS_DIR="$ROOT/.build/appintents"
-rm -rf "$INTENTS_DIR" && mkdir -p "$INTENTS_DIR"
-echo '["AppIntent","EntityQuery","AppEntity","TransientEntity","AppEnum","AppShortcutsProvider","DynamicOptionsProvider","IntentValueQuery"]' \
-    > "$INTENTS_DIR/protocols.json"
-arch_flags+=(-Xswiftc -emit-const-values-path -Xswiftc "$INTENTS_DIR/Spacebar.swiftconstvalues"
-             -Xswiftc -Xfrontend -Xswiftc -const-gather-protocols-file -Xswiftc -Xfrontend -Xswiftc "$INTENTS_DIR/protocols.json")
-
-# Localization: the compiler lists every localizable string (SwiftUI literals, String(localized:)),
-# which is synced into packaging/Localizable.xcstrings, where translations live.
-STRINGS_DIR="$ROOT/.build/stringsdata"
-rm -rf "$STRINGS_DIR" && mkdir -p "$STRINGS_DIR"
-arch_flags+=(-Xswiftc -emit-localized-strings -Xswiftc -emit-localized-strings-path -Xswiftc "$STRINGS_DIR")
-
 echo "==> Building $APP_NAME $VERSION ($BUILD_NUMBER) for: $ARCHS"
 swift build -c release --product "$EXECUTABLE" "${arch_flags[@]}"
 BIN_DIR="$(swift build -c release --product "$EXECUTABLE" "${arch_flags[@]}" --show-bin-path)"
+
+# A second, single-arch compile collects what Xcode normally generates for us: the strings to
+# translate and the Shortcuts actions' constant values. It uses SwiftPM's native build system on
+# purpose: Xcode's (used for universal builds) runs its own App Intents step and trips over these
+# flags. Only the app's product is built, so the Spacebar module (compiled after SpacebarCore)
+# is the one whose constant values end up in the file.
+META_DIR="$ROOT/.build/metadata"
+STRINGS_DIR="$META_DIR/stringsdata"
+INTENTS_DIR="$META_DIR/appintents"
+rm -rf "$META_DIR" && mkdir -p "$STRINGS_DIR" "$INTENTS_DIR"
+echo '["AppIntent","EntityQuery","AppEntity","TransientEntity","AppEnum","AppShortcutsProvider","DynamicOptionsProvider","IntentValueQuery"]' \
+    > "$INTENTS_DIR/protocols.json"
+echo "==> Collecting strings and Shortcuts metadata"
+swift build -c release --build-system native --arch "$(uname -m)" --product "$EXECUTABLE" \
+    --scratch-path "$ROOT/.build/metadata-build" \
+    -Xswiftc -emit-localized-strings -Xswiftc -emit-localized-strings-path -Xswiftc "$STRINGS_DIR" \
+    -Xswiftc -emit-const-values-path -Xswiftc "$INTENTS_DIR/Spacebar.swiftconstvalues" \
+    -Xswiftc -Xfrontend -Xswiftc -const-gather-protocols-file -Xswiftc -Xfrontend -Xswiftc "$INTENTS_DIR/protocols.json" \
+    >/dev/null
 
 APP="$ROOT/dist/$APP_NAME.app"
 rm -rf "$APP"
