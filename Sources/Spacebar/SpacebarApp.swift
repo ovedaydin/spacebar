@@ -349,6 +349,7 @@ enum DebugSnapshot {
                         window.level = .floating
                         window.orderFrontRegardless()
                     }
+                case "offloadtest": NotificationCenter.default.post(name: offloadTestNotification, object: parts[1])
                 case "timelinedemo": NotificationCenter.default.post(name: timelineDemoNotification, object: nil)
                 case "cloudlist":
                     // Read-only: what Keep in the Cloud Only finds, per drive. Nothing is evicted.
@@ -421,6 +422,7 @@ enum DebugSnapshot {
         }
     }
 
+    static let offloadTestNotification = Notification.Name("Spacebar.debugOffloadTest")
     static let timelineDemoNotification = Notification.Name("Spacebar.debugTimelineDemo")
     static let newRuleNotification = Notification.Name("Spacebar.debugNewRule")
     private static var historyFixture: URL?

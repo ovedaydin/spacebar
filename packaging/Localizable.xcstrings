@@ -42,6 +42,16 @@
         }
       }
     },
+    "%@ (%@ free)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ (%2$@ free)"
+          }
+        }
+      }
+    },
     "%@ (Home)" : {
       "localizations" : {
         "de" : {
@@ -3323,6 +3333,12 @@
         }
       }
     },
+    "Bring Back" : {
+
+    },
+    "Brought back" : {
+
+    },
     "Browser Data" : {
 
     },
@@ -3748,6 +3764,9 @@
         }
       }
     },
+    "Choose Files…" : {
+
+    },
     "Choose Folder…" : {
       "localizations" : {
         "de" : {
@@ -3813,6 +3832,9 @@
           }
         }
       }
+    },
+    "Choose files or folders to move to the drive." : {
+
     },
     "Choose…" : {
       "localizations" : {
@@ -4179,6 +4201,9 @@
         }
       }
     },
+    "Clear" : {
+
+    },
     "Clear Cache" : {
       "localizations" : {
         "de" : {
@@ -4311,6 +4336,15 @@
         }
       }
     },
+    "Connect %@" : {
+
+    },
+    "Connect %@ first" : {
+
+    },
+    "Connect an external drive to offload files to it." : {
+
+    },
     "Containers that aren't running, and their files" : {
       "localizations" : {
         "de" : {
@@ -4400,6 +4434,9 @@
         }
       }
     },
+    "Copies it back to where it was and checks the copy. The drive keeps its copy." : {
+
+    },
     "Copy Path" : {
       "localizations" : {
         "de" : {
@@ -4421,6 +4458,9 @@
           }
         }
       }
+    },
+    "Copying and checking %@…" : {
+
     },
     "Couldn't eject: %@" : {
       "localizations" : {
@@ -6549,6 +6589,16 @@
         }
       }
     },
+    "From %@ to %@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "From %1$@ to %2$@ · %3$@"
+          }
+        }
+      }
+    },
     "Full Disk Access" : {
       "localizations" : {
         "de" : {
@@ -7122,6 +7172,9 @@
           }
         }
       }
+    },
+    "It's already on that drive" : {
+
     },
     "It's filling up by about %@ a day." : {
       "localizations" : {
@@ -8433,6 +8486,9 @@
         }
       }
     },
+    "Move big files you rarely open, like old videos, finished projects and archives, to an external drive. Spacebar copies each one, checks the copy byte for byte, and only then moves the original to the Trash. Anything that doesn't check out stays where it was." : {
+
+    },
     "Move to Trash" : {
       "localizations" : {
         "de" : {
@@ -9302,6 +9358,9 @@
         }
       }
     },
+    "Not enough space on the drive (needs %@)" : {
+
+    },
     "Not granted" : {
       "localizations" : {
         "de" : {
@@ -9641,6 +9700,9 @@
         }
       }
     },
+    "Nothing yet." : {
+
+    },
     "Notify me when the disk is almost full" : {
       "localizations" : {
         "de" : {
@@ -9686,6 +9748,25 @@
       }
     },
     "Offline site data (service workers)" : {
+
+    },
+    "Offload" : {
+
+    },
+    "Offload %lld Items to %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Offload %1$lld Items to %2$@"
+          }
+        }
+      }
+    },
+    "Offloaded" : {
+
+    },
+    "Offloaded to %@" : {
 
     },
     "Old Homebrew version · %@ is in use" : {
@@ -11838,6 +11919,9 @@
         }
       }
     },
+    "Show" : {
+
+    },
     "Show Folder in Spacebar" : {
       "localizations" : {
         "de" : {
@@ -12135,6 +12219,9 @@
           }
         }
       }
+    },
+    "Simulate Offload" : {
+
     },
     "Simulate Uninstall" : {
       "localizations" : {
@@ -12698,6 +12785,9 @@
         }
       }
     },
+    "Something is already at its original location" : {
+
+    },
     "Sort" : {
       "localizations" : {
         "de" : {
@@ -12854,6 +12944,9 @@
           }
         }
       }
+    },
+    "Spacebar can't write to that drive" : {
+
     },
     "Spacebar cleaned up" : {
       "localizations" : {
@@ -13611,6 +13704,9 @@
           }
         }
       }
+    },
+    "The copy didn't match the original (%@); the copy was removed" : {
+
     },
     "The drive itself" : {
       "localizations" : {

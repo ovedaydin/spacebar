@@ -8,6 +8,7 @@ enum Route: Hashable {
     case history
     case apps
     case media
+    case offload
     case category(String)
 }
 
@@ -26,6 +27,7 @@ struct ContentView: View {
         case "history": return .history
         case "apps": return .apps
         case "media": return .media
+        case "offload": return .offload
         case let id?: return .category(id)
         }
     }
@@ -38,6 +40,7 @@ struct ContentView: View {
                     Label("Space Explorer", systemImage: "chart.bar.doc.horizontal").tag(Route.explorer)
                     Label("App Storage", systemImage: "square.stack.3d.up").tag(Route.apps)
                     Label("Media Review", systemImage: "photo.stack").tag(Route.media)
+                    Label("Offload", systemImage: "externaldrive.badge.plus").tag(Route.offload)
                     Label("History", systemImage: "clock.arrow.circlepath").tag(Route.history)
                 }
                 Section("Cleanup") {
@@ -73,6 +76,7 @@ struct ContentView: View {
             case .history: HistoryView()
             case .apps: AppStorageView()
             case .media: MediaReviewView()
+            case .offload: OffloadView()
             case .category(let id): CategoryView(category: model.category(id)!)
             }
         }
@@ -94,7 +98,7 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.routeNotification)) { note in
             guard let id = note.object as? String else { return }
-            route = id == "overview" ? .overview : id == "explorer" ? .explorer : id == "history" ? .history : id == "apps" ? .apps : id == "media" ? .media : .category(id)
+            route = id == "overview" ? .overview : id == "explorer" ? .explorer : id == "history" ? .history : id == "apps" ? .apps : id == "media" ? .media : id == "offload" ? .offload : .category(id)
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.dumpNotification)) { note in
             let window = NSApp.windows.first(where: \.isVisible)
@@ -215,6 +219,40 @@ struct ContentView: View {
         .onReceive(FinderIntegration.requests) { folder in
             explorer.show(folder)
             route = .explorer
+        }
+        // Debug self-test: offload a fixture of our own to a test drive, bring it back, clean up.
+        .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.offloadTestNotification)) { note in
+            guard let volume = note.object as? String else { return }
+            Task { @MainActor in
+                func say(_ s: String) { FileHandle.standardError.write(Data("[offloadtest] \(s)\n".utf8)) }
+                @MainActor func idle() async { while model.offloadProgress != nil || model.cleaning { try? await Task.sleep(nanoseconds: 200_000_000) } }
+                let fm = FileManager.default
+                let fixture = fm.homeDirectoryForCurrentUser.appendingPathComponent("Downloads/spacebar-offload-selftest-\(UUID().uuidString.prefix(6)).bin")
+                fm.createFile(atPath: fixture.path, contents: Data((0..<4_000_000).map { UInt8($0 % 253) }))
+                let original = try? Data(contentsOf: fixture)
+                guard let drive = model.offloadDrives.first(where: { $0.name == volume }) else { say("FAIL: no drive \(volume)"); return }
+                model.offload([fixture], to: drive)
+                await idle()
+                guard let record = model.offloads.first(where: { $0.original == fixture.path }) else {
+                    say("FAIL: no record; skipped=\(model.report?.skipped.map { "\($0.name): \($0.reason)" } ?? [])"); return
+                }
+                let onDrive = try? Data(contentsOf: URL(fileURLWithPath: record.destination))
+                say("offloaded: original gone=\(!fm.fileExists(atPath: fixture.path)) drive copy identical=\(onDrive == original) in Trash=\(model.lastTrashed.contains { $0.original.path == fixture.path })")
+                let trashed = model.lastTrashed.first { $0.original.path == fixture.path }?.url
+                model.bringBack(record)
+                await idle()
+                let back = try? Data(contentsOf: fixture)
+                say("brought back: identical=\(back == original) marked=\(model.offloads.first { $0.id == record.id }?.broughtBack != nil) drive copy kept=\(fm.fileExists(atPath: record.destination))")
+                // Clean up everything the test made.
+                try? fm.removeItem(at: fixture)
+                try? fm.removeItem(atPath: record.destination)
+                if let trashed { try? fm.removeItem(at: trashed) }
+                model.debugForgetOffload(record.id)
+                for entry in CleaningHistory.load() where entry.items.contains(where: { $0.original == fixture.path }) {
+                    CleaningHistory.remove(entry.id)
+                }
+                say("cleaned up: fixture=\(!fm.fileExists(atPath: fixture.path)) trash=\(trashed.map { !fm.fileExists(atPath: $0.path) } ?? false)")
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: DebugSnapshot.timelineDemoNotification)) { _ in
             model.debugDemoTimeline()

@@ -423,6 +423,120 @@ final class AppModel: ObservableObject {
         }
     }
 
+    // MARK: Offload
+
+    @Published private(set) var offloads: [Offload.Record] = OffloadStore.load()
+    /// While offloading: items done, items in total, and the one being copied.
+    @Published private(set) var offloadProgress: (done: Int, total: Int, current: String)?
+
+    /// Drives files can be offloaded to: mounted, not the startup disk.
+    var offloadDrives: [Drive] { Drive.mounted().filter { !$0.isStartup } }
+
+    /// Copies each item to `drive`, verifies the copy byte for byte, and only then moves the
+    /// original to the Trash. Anything that fails stays where it was (and its copy is removed).
+    func offload(_ urls: [URL], to drive: Drive) {
+        guard offloadProgress == nil, !cleaning, !urls.isEmpty else { return }
+        offloadProgress = (0, urls.count, "")
+        let dryRun = dryRun
+        let folder = drive.url.appendingPathComponent("Spacebar Offload", isDirectory: true)
+        Task.detached(priority: .userInitiated) {
+            var report = Cleaner.Report(dryRun: dryRun)
+            var records: [Offload.Record] = []
+            let sizes = BulkScanner().measure(urls, cancel: nil).map(\.allocated)
+            do {
+                try Offload.check(Array(zip(urls, sizes)).map { (url: $0.0, bytes: $0.1) }, to: drive.url)
+                if !dryRun { try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true) }
+            } catch {
+                report.skipped.append((drive.name, error.localizedDescription))
+                let refused = report
+                await MainActor.run { self.offloadProgress = nil; self.report = refused }
+                return
+            }
+            for (index, (url, bytes)) in zip(urls, sizes).enumerated() {
+                await MainActor.run { self.offloadProgress = (index, urls.count, url.lastPathComponent) }
+                if let reason = PathRules.reasonNotDeletable(url, kind: .file) {
+                    report.skipped.append((url.lastPathComponent, String(localized: "Protected: \(reason)")))
+                    continue
+                }
+                if dryRun {
+                    report.trashedBytes += bytes
+                    continue
+                }
+                do {
+                    let copy = try Offload.copyAndVerify(url, into: folder)
+                    let item = CleanItem(url: url, name: url.lastPathComponent, size: bytes, date: nil,
+                                         detail: String(localized: "Offloaded to \(drive.name)"), owner: nil)
+                    let trashed = Cleaner.run([Cleaner.Request(item: item, mode: .trash)], dryRun: false, history: .app)
+                    if trashed.removed.isEmpty {
+                        // The original couldn't be moved: undo the copy so nothing changed.
+                        try? FileManager.default.removeItem(at: copy)
+                        report.skipped += trashed.skipped
+                        continue
+                    }
+                    report.trashedBytes += bytes
+                    report.removed.append(url)
+                    report.trashedItems += trashed.trashedItems
+                    records.append(Offload.Record(date: Date(), original: url.path, destination: copy.path, bytes: bytes, drive: drive.name))
+                } catch {
+                    report.skipped.append((url.lastPathComponent, error.localizedDescription))
+                }
+            }
+            let finished = report
+            let added = records
+            await MainActor.run {
+                self.offloads.insert(contentsOf: added, at: 0)
+                OffloadStore.save(self.offloads)
+                self.offloadProgress = nil
+                self.applyRemovals(finished)
+                if !finished.trashedItems.isEmpty { self.lastTrashed = finished.trashedItems }
+                self.report = finished
+            }
+        }
+    }
+
+    /// Debug self-test cleanup: forgets one offload record.
+    func debugForgetOffload(_ id: UUID) {
+        guard DebugSnapshot.enabled else { return }
+        offloads.removeAll { $0.id == id }
+        OffloadStore.save(offloads)
+    }
+
+    /// Copies an offloaded item back to where it was and verifies it. The drive copy is kept.
+    func bringBack(_ record: Offload.Record) {
+        guard offloadProgress == nil else { return }
+        let original = URL(fileURLWithPath: record.original)
+        offloadProgress = (0, 1, original.lastPathComponent)
+        Task.detached(priority: .userInitiated) {
+            var report = Cleaner.Report(dryRun: false)
+            var done = false
+            if FileManager.default.fileExists(atPath: original.path) {
+                report.skipped.append((original.lastPathComponent, String(localized: "Something is already at its original location")))
+            } else if !FileManager.default.fileExists(atPath: record.destination) {
+                report.skipped.append((original.lastPathComponent, String(localized: "Connect \(record.drive) first")))
+            } else {
+                do {
+                    try FileManager.default.createDirectory(at: original.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    let copy = try Offload.copyAndVerify(URL(fileURLWithPath: record.destination), into: original.deletingLastPathComponent())
+                    if copy.path != original.path { try FileManager.default.moveItem(at: copy, to: original) }
+                    report.restoredItems.append(Cleaner.TrashedItem(url: URL(fileURLWithPath: record.destination), original: original, bytes: record.bytes))
+                    done = true
+                } catch {
+                    report.skipped.append((original.lastPathComponent, error.localizedDescription))
+                }
+            }
+            let finished = report
+            let restored = done
+            await MainActor.run {
+                if restored, let index = self.offloads.firstIndex(where: { $0.id == record.id }) {
+                    self.offloads[index].broughtBack = Date()
+                    OffloadStore.save(self.offloads)
+                }
+                self.offloadProgress = nil
+                self.report = finished
+            }
+        }
+    }
+
     /// Moves what was marked in Media Review to the Trash (library items to Recently Deleted in Photos).
     func trashMedia(_ items: [MediaReview.Item]) {
         guard !cleaning, !items.isEmpty else { return }

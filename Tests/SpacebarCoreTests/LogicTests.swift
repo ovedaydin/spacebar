@@ -388,3 +388,46 @@ final class SpaceTimelineTests: XCTestCase {
         XCTAssertEqual(timeline.events.map(\.kind), [.clean], "the clean explains the drop; no separate jump")
     }
 }
+
+final class OffloadTests: XCTestCase {
+    private var root: URL!
+
+    override func setUpWithError() throws {
+        root = FileManager.default.temporaryDirectory.appendingPathComponent("offload-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("drive"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("project/sub"), withIntermediateDirectories: true)
+        try Data((0..<3_000_000).map { UInt8($0 % 251) }).write(to: root.appendingPathComponent("project/video.mov"))
+        try Data("notes".utf8).write(to: root.appendingPathComponent("project/sub/notes.txt"))
+    }
+
+    override func tearDownWithError() throws { try? FileManager.default.removeItem(at: root) }
+
+    func testCopiesAndVerifiesFoldersAndFiles() throws {
+        let copy = try Offload.copyAndVerify(root.appendingPathComponent("project"), into: root.appendingPathComponent("drive"))
+        XCTAssertEqual(copy.lastPathComponent, "project")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: copy.appendingPathComponent("sub/notes.txt").path))
+        // A second copy gets a new name instead of overwriting.
+        let again = try Offload.copyAndVerify(root.appendingPathComponent("project/video.mov"), into: copy)
+        XCTAssertEqual(again.lastPathComponent, "video 2.mov")
+    }
+
+    func testVerifyCatchesAnyDifference() throws {
+        let original = root.appendingPathComponent("project")
+        let copy = try Offload.copyAndVerify(original, into: root.appendingPathComponent("drive"))
+        // One byte changed in the middle of a large file.
+        let handle = try FileHandle(forWritingTo: copy.appendingPathComponent("video.mov"))
+        try handle.seek(toOffset: 1_500_000)
+        try handle.write(contentsOf: Data([0xFF]))
+        try handle.close()
+        XCTAssertThrowsError(try Offload.verify(original, copy))
+        // A missing file.
+        try FileManager.default.removeItem(at: copy.appendingPathComponent("video.mov"))
+        XCTAssertThrowsError(try Offload.verify(original, copy))
+    }
+
+    func testRefusesTheSameDrive() {
+        XCTAssertThrowsError(try Offload.check([(root.appendingPathComponent("project"), 10)], to: root.appendingPathComponent("drive"))) {
+            XCTAssertEqual($0 as? Offload.Failure, .sameDrive)
+        }
+    }
+}
