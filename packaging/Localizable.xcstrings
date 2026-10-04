@@ -456,6 +456,9 @@
         }
       }
     },
+    "%@ is free again." : {
+
+    },
     "%@ is running. Quit it before uninstalling." : {
       "localizations" : {
         "de" : {
@@ -2831,6 +2834,9 @@
           }
         }
       }
+    },
+    "Almost out of space" : {
+
     },
     "Already unzipped into “%@”" : {
       "localizations" : {
@@ -7019,6 +7025,9 @@
     "Free %@" : {
 
     },
+    "Free Space Now" : {
+
+    },
     "Free Up Space" : {
       "localizations" : {
         "de" : {
@@ -7286,6 +7295,12 @@
           }
         }
       }
+    },
+    "Freeing…" : {
+
+    },
+    "Frees space right away without review: deletes what Spacebar put in the Trash, caches and logs nobody used recently, and Time Machine's local snapshots." : {
+
     },
     "From %@ to %@" : {
       "localizations" : {
@@ -12534,6 +12549,9 @@
         }
       }
     },
+    "Rescue (dry run)" : {
+
+    },
     "Returns the bytes available on your startup disk, including space macOS can free on its own." : {
       "localizations" : {
         "de" : {
@@ -14458,6 +14476,9 @@
           }
         }
       }
+    },
+    "Space freed" : {
+
     },
     "Space inside Docker: build cache, unused images, stopped containers and unused volumes, removed with Docker's own prune commands. Build cache is suggested. Volumes are never suggested because they can hold databases. Docker returns freed space to macOS shortly afterwards." : {
       "localizations" : {
@@ -16967,6 +16988,9 @@
           }
         }
       }
+    },
+    "Would free about %@." : {
+
     },
     "Would have freed %@ of caches and logs nobody used recently." : {
       "localizations" : {

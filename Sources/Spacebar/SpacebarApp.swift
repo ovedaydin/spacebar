@@ -168,6 +168,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                             withCompletionHandler completionHandler: @escaping () -> Void) {
         let content = response.notification.request.content
+        if content.categoryIdentifier == AppModel.lowDiskCategory, response.actionIdentifier == AppModel.rescueAction {
+            completionHandler()
+            DispatchQueue.main.async { NotificationCenter.default.post(name: AppModel.rescueRequested, object: nil) }
+            return
+        }
         if content.categoryIdentifier == ForgottenReminder.category {
             ForgottenReminder.handle(action: response.actionIdentifier, userInfo: content.userInfo)
             completionHandler()
@@ -357,6 +362,7 @@ enum DebugSnapshot {
                     let freed = DriveCleanup.remove(found, on: volume)
                     let left = (try? FileManager.default.subpathsOfDirectory(atPath: volume.path)) ?? []
                     FileHandle.standardError.write(Data("[drivecleantest] freed=\(freed) left=\(left.sorted())\n".utf8))
+                case "rescue": NotificationCenter.default.post(name: AppModel.rescueRequested, object: nil)
                 case "freeup": NotificationCenter.default.post(name: freeUpNotification, object: nil)
                 case "timelinedemo": NotificationCenter.default.post(name: timelineDemoNotification, object: nil)
                 case "cloudlist":

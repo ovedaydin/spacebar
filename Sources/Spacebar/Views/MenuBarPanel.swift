@@ -61,8 +61,24 @@ struct MenuBarPanel: View {
                     Text("of \(ByteFormat.string(space.total)) on Macintosh HD").font(.caption).foregroundStyle(.secondary)
                 }
                 FreeSpaceSparkline(samples: model.spaceLog.samples)
+                if model.needsRescue { rescueBanner }
             }
         }
+    }
+
+    /// Almost full: one click that's safe without review.
+    private var rescueBanner: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Almost out of space", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange).font(.callout.weight(.semibold))
+            Text("Frees space right away without review: deletes what Spacebar put in the Trash, caches and logs nobody used recently, and Time Machine's local snapshots.")
+                .font(.caption).foregroundStyle(.secondary)
+            Button(model.rescuing ? "Freeing…" : (model.dryRun ? "Simulate" : "Free Space Now")) { model.rescue() }
+                .disabled(model.rescuing || model.cleaning)
+                .buttonStyle(.borderedProminent)
+        }
+        .padding(10)
+        .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+        .padding(.top, 6)
     }
 
     private func bar(_ storage: StorageBreakdown) -> some View {

@@ -20,8 +20,10 @@ enum ForgottenReminder {
     static func registerActions() {
         let trash = UNNotificationAction(identifier: trashAction, title: String(localized: "Move to Trash"), options: [.destructive])
         let keep = UNNotificationAction(identifier: keepAction, title: String(localized: "Keep"), options: [])
+        let rescue = UNNotificationAction(identifier: AppModel.rescueAction, title: String(localized: "Free Space Now"), options: [])
         UNUserNotificationCenter.current().setNotificationCategories([
             UNNotificationCategory(identifier: category, actions: [trash, keep], intentIdentifiers: [], options: []),
+            UNNotificationCategory(identifier: AppModel.lowDiskCategory, actions: [rescue], intentIdentifiers: [], options: []),
         ])
     }
 

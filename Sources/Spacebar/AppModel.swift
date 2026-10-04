@@ -188,6 +188,11 @@ final class AppModel: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.reloadCleaningHistory() }
             .store(in: &observers)
+        // "Free Space Now" on the low-disk notification.
+        NotificationCenter.default.publisher(for: Self.rescueRequested)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.rescue() }
+            .store(in: &observers)
         // A Shortcuts clean ran in this process: show fresh results.
         NotificationCenter.default.publisher(for: Headless.cleanedNotification)
             .receive(on: DispatchQueue.main)
@@ -419,6 +424,86 @@ final class AppModel: ObservableObject {
                 self.storageTrace("apps: measured \(result.count) in \(String(format: "%.1f", Date().timeIntervalSince(started))) s, \(known.count) bundle sizes reused")
                 self.measuringApps = false
                 ScanCache.save(ScanCache.Apps(date: Date(), apps: result))
+            }
+        }
+    }
+
+    // MARK: Rescue
+
+    nonisolated static let lowDiskCategory = "spacebar.lowdisk"
+    nonisolated static let rescueAction = "rescue"
+    nonisolated static let rescueRequested = Notification.Name("Spacebar.rescueRequested")
+
+    /// Below the low-disk threshold: the menu bar and the low-disk notification offer a rescue.
+    var needsRescue: Bool {
+        if DebugSnapshot.environment("SPACEBAR_FORCE_RESCUE") != nil { return true }
+        guard let space else { return false }
+        let threshold = Int64(UserDefaults.standard.integer(forKey: Preferences.lowDiskThresholdGB)) * 1_000_000_000
+        return space.available < max(threshold, 2_000_000_000)
+    }
+    @Published private(set) var rescuing = false
+
+    /// Frees space now, without review, using only what's safe for that: deletes what Spacebar moved
+    /// to the Trash, clears caches and logs nobody used recently (scanned fresh), and removes
+    /// Time Machine's local snapshots. Respects Dry Run; recorded in History.
+    func rescue() {
+        guard !rescuing, !cleaning else { return }
+        storageTrace("rescue: started (dry run \(dryRun))")
+        rescuing = true
+        cleaning = true
+        let dryRun = dryRun
+        let before = VolumeSpace.home()?.available ?? 0
+        let trashed = ScanCache.loadLedger().entries.map { (url: URL(fileURLWithPath: $0.path), bytes: $0.bytes) }
+        // Results from this session are current: use them (instant). Results restored from the last
+        // launch are scanned again first.
+        let current: [(item: CleanItem, category: CleanCategory)]? = showingCachedResults ? nil
+            : (Headless.safeCategories + categories.filter { $0.id == "snapshots" }).flatMap { category in
+                items(category.id).filter { category.id == "snapshots" ? $0.isSelectable : isSuggested($0, in: category) }
+                    .map { (item: $0, category: category) }
+            }
+        Task.detached(priority: .userInitiated) {
+            // deleteFromTrash refuses anything that isn't in a Trash.
+            func trace(_ text: String) {
+                if DebugSnapshot.enabled { FileHandle.standardError.write(Data("[\(Date())] rescue: \(text)\n".utf8)) }
+            }
+            trace("deleting \(trashed.count) trashed items, current results: \(current != nil)")
+            var report = Cleaner.deleteFromTrash(trashed, dryRun: dryRun)
+            trace("trash done")
+            if !dryRun {
+                // Forget only what was actually deleted.
+                let deleted = Set(report.removed.map(\.path))
+                var ledger = ScanCache.loadLedger()
+                ledger.entries.removeAll { deleted.contains($0.path) }
+                ScanCache.save(ledger)
+            }
+            // Snapshots need no scan (tmutil lists them), so they go right after the Trash.
+            let settings = Headless.Settings.current()
+            let snapshotResults = Headless.scan(CleanCategory.all.filter { $0.id == "snapshots" }, settings: settings)
+            let snapshotPairs = snapshotResults.flatMap { result in result.items.map { (item: $0, category: result.category) } }
+            trace("snapshots: \(snapshotPairs.count)")
+            let thinned = Cleaner.run(snapshotPairs.map { Cleaner.Request(item: $0.item, mode: $0.category.mode) }, dryRun: dryRun, history: .app)
+            report.deletedBytes += thinned.deletedBytes
+            report.skipped += thinned.skipped
+            // Caches: this session's results if current, otherwise a fresh scan (slower).
+            let pairs: [(item: CleanItem, category: CleanCategory)] = current?.filter { $0.category.id != "snapshots" }
+                ?? Headless.plan(Headless.scan(Headless.safeCategories, settings: settings), settings: settings).pairs
+            trace("cleaning \(pairs.count) items")
+            let cleaned = Cleaner.run(pairs.map { Cleaner.Request(item: $0.item, mode: $0.category.mode) }, dryRun: dryRun, history: .app)
+            report.deletedBytes += cleaned.deletedBytes
+            report.removed += cleaned.removed
+            report.skipped += cleaned.skipped
+            let freed = max(0, (VolumeSpace.home()?.available ?? 0) - before)
+            let finished = report
+            await MainActor.run {
+                self.storageTrace("rescue: done, deleted \(finished.deletedBytes) bytes, \(finished.removed.count) items, skipped \(finished.skipped.count)")
+                self.rescuing = false
+                self.cleaning = false
+                self.refreshSystem()
+                self.report = finished
+                self.notify(title: dryRun ? String(localized: "Rescue (dry run)") : String(localized: "Space freed"),
+                            body: dryRun ? String(localized: "Would free about \(ByteFormat.string(finished.deletedBytes)).")
+                                         : String(localized: "\(ByteFormat.string(max(freed, finished.deletedBytes))) is free again."))
+                self.scanAll()
             }
         }
     }
@@ -730,6 +815,7 @@ final class AppModel: ObservableObject {
             guard granted else { return }
             let content = UNMutableNotificationContent()
             content.title = String(localized: "Your disk is almost full")
+            content.categoryIdentifier = AppModel.lowDiskCategory
             content.body = String(localized: "\(ByteFormat.string(space.available)) left. Open Spacebar to see what's using space.")
             UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "low-disk", content: content, trigger: nil))
         }
