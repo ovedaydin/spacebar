@@ -54,6 +54,7 @@ struct ContentView: View {
                 Toggle(isOn: $model.dryRun) {
                     Label("Dry Run", systemImage: model.dryRun ? "eye" : "eye.slash")
                 }
+                .accessibilityHint(Text("When on, cleaning only shows what it would remove"))
                 .help("Dry run: show what would be removed without deleting anything")
                 Button {
                     model.scanAll()
@@ -237,6 +238,7 @@ private struct SidebarRow: View {
             Spacer()
             SidebarSize(category: category)
         }
+        .accessibilityElement(children: .combine)
     }
 }
 

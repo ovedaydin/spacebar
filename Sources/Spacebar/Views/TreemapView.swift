@@ -200,5 +200,9 @@ private struct TileView: View {
         .contentShape(Rectangle())
         .onHover { hovering = $0 }
         .help("\(name): \(ByteFormat.string(bytes))" + (isFolder ? " · click to open" : ""))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("\(name), \(ByteFormat.string(bytes)), \(kind.name)"))
+        .accessibilityAddTraits(isFolder ? .isButton : [])
+        .accessibilityHint(isFolder ? Text("Opens the folder") : Text(""))
     }
 }

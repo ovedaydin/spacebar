@@ -73,6 +73,10 @@ struct ExplorerView: View {
                         .contentShape(Rectangle())
                         .onTapGesture { click(entry) }
                         .help(entry.isFolder ? "Open \(entry.name) (⌘-click to select)" : entry.name)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(entry.isFolder ? .isButton : [])
+                        .accessibilityAddTraits(selection.contains(entry.url) ? .isSelected : [])
+                        .accessibilityAction(named: Text("Quick Look")) { QuickLook.shared.toggle([entry.url]) }
                     TrashButton(entry: entry) { pendingTrash = [entry] }
                 }
                 .padding(.horizontal, 4)
@@ -256,6 +260,7 @@ struct ExplorerView: View {
             Button { explorer.load(force: true) } label: { Image(systemName: "arrow.clockwise") }
                 .buttonStyle(.borderless)
                 .help("Measure again")
+                .accessibilityLabel(Text("Measure again"))
         }
         .padding(.horizontal, 16)
         .padding(.top, 10)
@@ -303,8 +308,8 @@ struct ExplorerView: View {
             .help("Sort by size, or by how much each item grew since it was last measured")
             .disabled(showsMap)
             Picker("View", selection: $showsMap) {
-                Image(systemName: "list.bullet").tag(false).help("List")
-                Image(systemName: "square.grid.3x3.square").tag(true).help("Map")
+                Image(systemName: "list.bullet").tag(false).help("List").accessibilityLabel(Text("List"))
+                Image(systemName: "square.grid.3x3.square").tag(true).help("Map").accessibilityLabel(Text("Map"))
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -323,6 +328,7 @@ struct ExplorerView: View {
             .menuStyle(.borderlessButton)
             .fixedSize()
             .help("Explore another drive or folder")
+            .accessibilityLabel(Text("Drives and folders"))
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 10)
@@ -378,6 +384,7 @@ private struct TrashButton: View {
                 .foregroundStyle(.tertiary)
                 .frame(width: 24, height: 24)
                 .help("Can't be removed: \(reason)")
+                .accessibilityLabel(Text("Protected: \(reason)"))
         } else {
             Button(action: action) {
                 Image(systemName: "trash")
@@ -388,6 +395,7 @@ private struct TrashButton: View {
             .buttonStyle(.plain)
             .onHover { hovering = $0 }
             .help("Move \(entry.name) to the Trash")
+            .accessibilityLabel(Text("Move \(entry.name) to the Trash"))
         }
     }
 }

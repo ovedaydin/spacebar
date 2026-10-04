@@ -72,6 +72,10 @@ struct MenuBarPanel: View {
             .clipShape(RoundedRectangle(cornerRadius: 3))
         }
         .frame(height: 10)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text("Disk usage"))
+        .accessibilityValue(Text(storage.segments.filter { $0.bytes > 0 }.prefix(4)
+            .map { "\($0.name) \(ByteFormat.string($0.bytes))" }.joined(separator: ", ")))
     }
 
     @ViewBuilder private var actions: some View {

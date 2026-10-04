@@ -350,6 +350,11 @@ private struct DiskUsageCard: View {
                 .clipShape(RoundedRectangle(cornerRadius: 4))
             }
             .frame(height: 18)
+            // VoiceOver: one summary for the bar; the legend below has each category as a button.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("Disk usage"))
+            .accessibilityValue(Text(segments.prefix(4).map { "\($0.name) \(ByteFormat.string($0.bytes))" }.joined(separator: ", ")
+                                     + ", free \(ByteFormat.string(storage.free))"))
 
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 16, alignment: .leading)],
                       alignment: .leading, spacing: 6) {
@@ -362,6 +367,8 @@ private struct DiskUsageCard: View {
                     }
                     .buttonStyle(.plain)
                     .help(tooltip(segment))
+                    .accessibilityLabel(Text("\(segment.name), \(ByteFormat.string(segment.bytes))"))
+                    .accessibilityHint(Text(segment.explanation))
                 }
                 legendRow(Color.secondary.opacity(0.3), "Free", storage.free, clickable: false)
                     .help(storage.purgeable > 0
@@ -514,6 +521,8 @@ private struct CategoryRow: View {
             .buttonStyle(.plain)
             .disabled(selectable.isEmpty)
             .help(selectedCount > 0 ? "Deselect all" : "Select suggested items")
+            .accessibilityLabel(Text(selectedCount > 0 ? "Deselect all in \(category.name)" : "Select suggested in \(category.name)"))
+            .accessibilityValue(Text("\(selectedCount) of \(items.count) selected"))
             Image(systemName: category.icon)
                 .frame(width: 24)
                 .foregroundStyle(Color.accentColor)
@@ -540,6 +549,7 @@ private struct CategoryRow: View {
             }
             Button(action: open) { Image(systemName: "chevron.right") }
                 .buttonStyle(.borderless)
+                .accessibilityLabel(Text("Open \(category.name)"))
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

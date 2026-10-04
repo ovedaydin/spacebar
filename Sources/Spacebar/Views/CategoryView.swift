@@ -194,6 +194,8 @@ private struct ItemRow: View {
                 .toggleStyle(.checkbox)
                 .labelsHidden()
                 .disabled(!item.isSelectable)
+                .accessibilityLabel(Text("Select \(item.name)"))
+                .accessibilityValue(Text(ByteFormat.string(item.size)))
             FileIcon(url: item.url)
             VStack(alignment: .leading, spacing: 1) {
                 Text(item.name).lineLimit(1).truncationMode(.middle)
@@ -216,6 +218,11 @@ private struct ItemRow: View {
         .padding(.vertical, 2)
         .contentShape(Rectangle())
         .onTapGesture { if item.isSelectable { selected.toggle() } }
+        // VoiceOver reads the row as one item: name, size, details; activating it toggles the checkbox.
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(item.isSelectable ? .isButton : [])
+        .accessibilityHint(item.isSelectable ? Text(selected ? "Selected. Activate to deselect." : "Activate to select.")
+                                             : Text(item.lockedReason ?? "In use"))
         .opacity(item.isSelectable ? 1 : 0.6)
     }
 

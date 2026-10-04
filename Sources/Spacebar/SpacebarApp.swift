@@ -241,6 +241,28 @@ enum DebugSnapshot {
                 case "appkey": appKey(parts[1])
                 case "drive": NotificationCenter.default.post(name: segmentNotification, object: "drive:" + parts[1])
                 case "drivetest": driveSelfTest(parts[1])
+                case "axdump":
+                    // What VoiceOver sees in the main window.
+                    func walk(_ element: Any, depth: Int, into lines: inout [String]) {
+                        guard depth < 60, lines.count < 600, let object = element as? NSObject else { return }
+                        func call(_ name: String) -> Any? {
+                            let selector = NSSelectorFromString(name)
+                            guard object.responds(to: selector) else { return nil }
+                            return object.perform(selector)?.takeUnretainedValue()
+                        }
+                        let role = (call("accessibilityRole") as? String) ?? ""
+                        let label = (call("accessibilityLabel") as? String) ?? ""
+                        let value = (call("accessibilityValue") as? NSObject)?.description ?? ""
+                        if !label.isEmpty || !value.isEmpty { lines.append("\(role) | \(label) | \(value)") }
+                        for child in (call("accessibilityChildren") as? [Any]) ?? [] {
+                            walk(child, depth: depth + 1, into: &lines)
+                        }
+                    }
+                    var lines: [String] = []
+                    if let window = NSApp.windows.first(where: { $0.isVisible && $0.identifier?.rawValue.hasPrefix("main") == true }) {
+                        walk(window, depth: 0, into: &lines)
+                    }
+                    FileHandle.standardError.write(Data(lines.map { "[ax] " + $0 }.joined(separator: "\n").appending("\n").utf8))
                 case "autotest": NotificationCenter.default.post(name: segmentNotification, object: "action:autotest")
                 case "uninstall": NotificationCenter.default.post(name: segmentNotification, object: "uninstall:" + parts[1])
                 case "dump": NotificationCenter.default.post(name: dumpNotification, object: parts[1])
