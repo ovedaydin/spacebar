@@ -145,3 +145,12 @@ final class DriveCleanupTests: XCTestCase {
         XCTAssertFalse(DriveCleanup.applies(to: URL(fileURLWithPath: "/")), "APFS")
     }
 }
+
+final class GitLFSRuleTests: XCTestCase {
+    func testOnlyARepositorysLFSFolder() {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        XCTAssertNil(PathRules.reasonNotDeletable(home.appendingPathComponent("Documents/app/.git/lfs"), kind: .gitLFSPrune))
+        XCTAssertNotNil(PathRules.reasonNotDeletable(home.appendingPathComponent("Documents/app/lfs"), kind: .gitLFSPrune))
+        XCTAssertNotNil(PathRules.reasonNotDeletable(home.appendingPathComponent("Documents/app/.git"), kind: .gitLFSPrune))
+    }
+}

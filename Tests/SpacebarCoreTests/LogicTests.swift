@@ -540,3 +540,29 @@ final class SimilarVideoTests: XCTestCase {
         XCTAssertEqual(groups.first?.copies.map(\.url.lastPathComponent), ["clip-small.mp4"])
     }
 }
+
+final class DockerItemTests: XCTestCase {
+    func testParsesImagesAndVolumes() throws {
+        let json = #"{"Images":[{"Containers":"0","CreatedSince":"2 hours ago","ID":"sha256:6c5aa4a8d5344d7b0996c54623136e244db2b1b2163113da888620ebeff67cd8","Repository":"<none>","Tag":"<none>","UniqueSize":"873.4MB"},{"Containers":"1","CreatedSince":"3 days ago","ID":"sha256:01b7801ac585ef6a78e86cc49c0eb961a5e2f873267e457f52442a1b0688ee33","Repository":"postgres","Tag":"16","UniqueSize":"1.2GB"}],"Volumes":[{"Name":"shop_db","Links":"0","Size":"512MB","Labels":"com.docker.compose.project=shop,com.docker.compose.volume=db"}]}"#
+        let parsed = try XCTUnwrap(DockerCLI.parseVerbose(json))
+        XCTAssertEqual(parsed.images.count, 2)
+        XCTAssertNil(parsed.images[0].name)
+        XCTAssertEqual(parsed.images[0].unique, 873_400_000)
+        XCTAssertEqual(parsed.images[1].name, "postgres:16")
+        XCTAssertEqual(parsed.images[1].containers, 1)
+        XCTAssertEqual(parsed.volumes.first?.project, "shop")
+        XCTAssertEqual(parsed.volumes.first?.size, 512_000_000)
+    }
+
+    func testOnlyKnownDockerCommandsAreAllowed() {
+        let id = "sha256:" + String(repeating: "a", count: 64)
+        XCTAssertTrue(DockerCLI.isAllowed(["image", "rm", id]))
+        XCTAssertTrue(DockerCLI.isAllowed(["volume", "rm", "shop_db"]))
+        XCTAssertTrue(DockerCLI.isAllowed(["builder", "prune", "--all", "--force"]))
+        for bad in [["image", "rm", "postgres"], ["image", "rm", id, "--force"], ["volume", "rm", "--all"], ["volume", "rm", "a b"],
+                    ["system", "prune", "-af"], ["run", "alpine"], ["container", "rm", "x"]] {
+            XCTAssertFalse(DockerCLI.isAllowed(bad), "\(bad)")
+        }
+        XCTAssertNotNil(PathRules.reasonNotDeletable(URL(string: "docker://x")!, kind: .dockerPrune(arguments: ["system", "prune", "-af"])))
+    }
+}

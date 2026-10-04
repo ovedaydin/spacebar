@@ -143,6 +143,7 @@ enum Cleaner {
         case evict
         case trashEmulator(ini: String)
         case gitGCInTerminal
+        case gitLFSPruneInTerminal
         case trashMessages(year: Int, days: Int)
         case trashOldMailAttachments(days: Int)
 
@@ -158,6 +159,7 @@ enum Cleaner {
             case .homebrewKeg: self = .delete
             case .aiModel: self = .trash
             case .gitCompact: self = .gitGCInTerminal
+            case .gitLFSPrune: self = .gitLFSPruneInTerminal
             case .messagesAttachments(let year, let days): self = .trashMessages(year: year, days: days)
             case .mailAttachmentsOlderThan(let days): self = .trashOldMailAttachments(days: days)
             case .dockerPrune(let arguments): self = .docker(arguments)
@@ -170,7 +172,7 @@ enum Cleaner {
 
         var freesNow: Bool {
             switch self {
-            case .delete, .simctl, .docker, .deleteSnapshots, .evict, .gitGCInTerminal: return true
+            case .delete, .simctl, .docker, .deleteSnapshots, .evict, .gitGCInTerminal, .gitLFSPruneInTerminal: return true
             case .trashEmulator, .trashMessages, .trashOldMailAttachments: return false
             case .trash, .recycleApp, .trashMailAttachments: return false
             }
@@ -188,6 +190,7 @@ enum Cleaner {
             case .evict: return "ICLOUD-REMOVE-DOWNLOAD"
             case .trashEmulator: return "TRASH-ANDROID-EMULATOR"
             case .gitGCInTerminal: return "GIT-GC-IN-TERMINAL"
+            case .gitLFSPruneInTerminal: return "GIT-LFS-PRUNE-IN-TERMINAL"
             case .trashMessages: return "TRASH-MESSAGES-ATTACHMENTS"
             case .trashOldMailAttachments: return "TRASH-OLD-MAIL-ATTACHMENTS"
             }
@@ -242,6 +245,10 @@ enum Cleaner {
             case .gitGCInTerminal:
                 // Runs in Terminal, outside Spacebar's Full Disk Access: a repository's own config can run commands.
                 try Cleaner.runInTerminal(directory: url.deletingLastPathComponent(), command: "git gc")
+                return []
+            case .gitLFSPruneInTerminal:
+                // Same reason as git gc; prune keeps what recent commits and unpushed work need.
+                try Cleaner.runInTerminal(directory: url.deletingLastPathComponent().deletingLastPathComponent(), command: "git lfs prune")
                 return []
             }
         }

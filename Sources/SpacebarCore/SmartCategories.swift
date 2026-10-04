@@ -338,7 +338,7 @@ public extension CleanCategory {
 
     static let developerTools = CleanCategory(
         id: "devtools", name: String(localized: "Developer Tools"), icon: "wrench.and.screwdriver",
-        summary: String(localized: "Android system images no emulator uses, old Android build-tools and emulators, extra Xcode copies, older JetBrains IDE data, downloaded AI models, old Homebrew versions, and git repositories worth compacting. The Xcode you're using and the Homebrew versions in use are never offered. git gc runs in Terminal, not inside Spacebar."),
+        summary: String(localized: "Android system images no emulator uses, old Android build-tools and emulators, extra Xcode copies, older JetBrains IDE data, downloaded AI models, old Homebrew versions, git repositories worth compacting, and large Git LFS caches. The Xcode you're using and the Homebrew versions in use are never offered. git gc and git lfs prune run in Terminal, not inside Spacebar."),
         safety: .review, mode: .trash, needsFullDiskAccess: false, onDemand: false, owners: []
     ) { context in
         DeveloperTools.candidates(home: context.home, cancel: context.cancel)
@@ -682,6 +682,67 @@ public enum DockerCLI {
     }
 
     /// nil when docker isn't installed, isn't verified, or its engine isn't running.
+    public struct Image: Equatable {
+        public let id: String
+        public let name: String?
+        public let containers: Int
+        /// What deleting it frees: the layers no other image shares.
+        public let unique: Int64
+        public let created: String
+    }
+
+    public struct Volume: Equatable {
+        public let name: String
+        public let links: Int
+        public let size: Int64
+        public let project: String?
+    }
+
+    /// Parses `docker system df -v --format '{{json .}}'`: every image and volume with its own size.
+    public static func parseVerbose(_ output: String) -> (images: [Image], volumes: [Volume])? {
+        guard let data = output.data(using: .utf8),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
+        func int(_ value: Any?) -> Int { (value as? Int) ?? Int(value as? String ?? "") ?? 0 }
+        let images = (json["Images"] as? [[String: Any]] ?? []).compactMap { row -> Image? in
+            guard let id = row["ID"] as? String else { return nil }
+            let repository = row["Repository"] as? String ?? "<none>", tag = row["Tag"] as? String ?? "<none>"
+            let name: String? = repository == "<none>" ? nil : tag == "<none>" ? repository : "\(repository):\(tag)"
+            return Image(id: id, name: name, containers: int(row["Containers"]),
+                         unique: parseSize(row["UniqueSize"] as? String ?? "0B"), created: row["CreatedSince"] as? String ?? "")
+        }
+        let volumes = (json["Volumes"] as? [[String: Any]] ?? []).compactMap { row -> Volume? in
+            guard let name = row["Name"] as? String else { return nil }
+            let labels = (row["Labels"] as? String ?? "").split(separator: ",")
+            let project = labels.first { $0.hasPrefix("com.docker.compose.project=") }
+                .map { String($0.dropFirst("com.docker.compose.project=".count)) }
+            return Volume(name: name, links: int(row["Links"]), size: parseSize(row["Size"] as? String ?? "0B"), project: project)
+        }
+        return (images, volumes)
+    }
+
+    static func verbose() -> (images: [Image], volumes: [Volume])? {
+        guard let path, let result = Tools.run(path, ["system", "df", "-v", "--format", "{{json .}}"], timeout: 60),
+              result.status == 0 else { return nil }
+        return parseVerbose(String(decoding: result.output, as: UTF8.self))
+    }
+
+    /// The only docker commands Spacebar runs: its prune commands, and removing one image (by its
+    /// sha256 ID) or one volume (by a plain name).
+    public static func isAllowed(_ arguments: [String]) -> Bool {
+        let prunes: [[String]] = [["builder", "prune", "--all", "--force"], ["image", "prune", "--all", "--force"],
+                                  ["container", "prune", "--force"], ["volume", "prune", "--all", "--force"]]
+        if prunes.contains(arguments) { return true }
+        guard arguments.count == 3, arguments[1] == "rm" else { return false }
+        switch arguments[0] {
+        case "image":
+            return arguments[2].range(of: #"^sha256:[0-9a-f]{64}$"#, options: .regularExpression) != nil
+        case "volume":
+            return arguments[2].range(of: #"^[A-Za-z0-9][A-Za-z0-9_.-]*$"#, options: .regularExpression) != nil
+        default:
+            return false
+        }
+    }
+
     static func systemDF() -> [Usage]? {
         guard let path, let result = Tools.run(path, ["system", "df", "--format", "{{json .}}"], timeout: 20),
               result.status == 0 else { return nil }
@@ -725,8 +786,32 @@ public extension CleanCategory {
             "Local Volumes": (String(localized: "Unused volumes"), ["volume", "prune", "--all", "--force"], false,
                               String(localized: "Volumes no container uses. They can hold databases and other data")),
         ]
-        return usage.compactMap { row in
-            guard let plan = plans[row.type], row.reclaimable > 0 else { return nil }
+        // One item per image and per volume when Docker can list them; otherwise the prune commands.
+        var perItem: [Candidate] = []
+        var itemized: Set<String> = []
+        if let verbose = DockerCLI.verbose() {
+            itemized = ["Images", "Local Volumes"]
+            for image in verbose.images where image.unique > 0 {
+                let name = image.name ?? String(localized: "Untagged image \(image.id.dropFirst(7).prefix(12))")
+                let unused = image.containers == 0
+                perItem.append(Candidate(url: URL(string: "docker://image/\(image.id)")!, name: name,
+                                         detail: String(localized: "Image · created \(image.created)") + (unused ? "" : " · " + String(localized: "used by \(image.containers) containers")),
+                                         knownSize: image.unique, kind: .dockerPrune(arguments: ["image", "rm", image.id]),
+                                         // Untagged leftovers of earlier builds are safe to remove; tagged ones are yours to judge.
+                                         suggested: unused && image.name == nil ? true : false,
+                                         lockedReason: unused ? nil : String(localized: "A container uses it")))
+            }
+            for volume in verbose.volumes where volume.size > 0 {
+                let project = volume.project.map { String(localized: "Compose project \($0)") }
+                perItem.append(Candidate(url: URL(string: "docker://volume/\(volume.name)")!, name: volume.name,
+                                         detail: ([String(localized: "Volume: may hold a database or other data")] + [project].compactMap { $0 }).joined(separator: " · "),
+                                         knownSize: volume.size, kind: .dockerPrune(arguments: ["volume", "rm", volume.name]),
+                                         suggested: false,
+                                         lockedReason: volume.links > 0 ? String(localized: "A container uses it") : nil))
+            }
+        }
+        return perItem + usage.compactMap { row in
+            guard let plan = plans[row.type], row.reclaimable > 0, !itemized.contains(row.type) else { return nil }
             let slug = row.type.lowercased().replacingOccurrences(of: " ", with: "-")
             return Candidate(url: URL(string: "docker://\(slug)")!, name: plan.name,
                              detail: ([plan.detail, String(localized: "\(row.total) total, \(row.active) in use")] + [imageNote].compactMap { $0 })

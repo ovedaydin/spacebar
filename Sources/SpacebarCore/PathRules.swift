@@ -54,8 +54,11 @@ public enum PathRules {
         case .messagesAttachments:
             // A group: the files are found and checked again when removing, inside Messages/Attachments only.
             return url.scheme == "messages" ? nil : String(localized: "Not Messages attachments")
-        case .simulatorRuntime, .dockerPrune, .timeMachineSnapshots, .photoAsset:
-            return nil // removed by simctl, docker, tmutil or Photos, not by file operations
+        case .dockerPrune(let arguments):
+            // Only Spacebar's own docker commands, with an ID or name that can't be anything else.
+            return arguments.isEmpty || DockerCLI.isAllowed(arguments) ? nil : String(localized: "Not a Docker command Spacebar runs")
+        case .simulatorRuntime, .timeMachineSnapshots, .photoAsset:
+            return nil // removed by simctl, tmutil or Photos, not by file operations
         case .homebrewKeg:
             // /opt/homebrew/Cellar/<formula>/<version> (or /usr/local/Cellar on Intel), never the linked one.
             let parts = url.standardizedFileURL.pathComponents
@@ -67,6 +70,9 @@ public enum PathRules {
             return linked == parts[cellar + 1] ? String(localized: "The version Homebrew is using") : nil
         case .gitCompact:
             return url.lastPathComponent == ".git" ? nil : String(localized: "Not a git repository")
+        case .gitLFSPrune:
+            return url.lastPathComponent == "lfs" && url.deletingLastPathComponent().lastPathComponent == ".git"
+                ? nil : String(localized: "Not a Git LFS cache")
         default:
             break
         }
@@ -137,7 +143,7 @@ public enum PathRules {
         case .mailAttachments, .mailAttachmentsOlderThan:
             return inHome && lower.count == 4 && lower.starts(with: ["library", "mail"]) && lower[2].hasPrefix("v")
                 ? nil : String(localized: "Not a Mail account folder")
-        case .simulatorRuntime, .file, .dockerPrune, .timeMachineSnapshots, .photoAsset, .homebrewKeg, .gitCompact,
+        case .simulatorRuntime, .file, .dockerPrune, .timeMachineSnapshots, .photoAsset, .homebrewKeg, .gitCompact, .gitLFSPrune,
              .messagesAttachments:
             break
         }

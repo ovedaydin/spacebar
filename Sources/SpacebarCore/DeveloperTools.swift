@@ -194,10 +194,18 @@ enum DeveloperTools {
                 continue
             }
             walker.skipDescendants()
-            let (bytes, packs) = looseObjects(url)
-            guard bytes >= 50_000_000 || packs >= 20 else { continue }
             let repo = url.deletingLastPathComponent()
             let location = repo.path.replacingOccurrences(of: home.path, with: "~")
+            // Git LFS keeps every large-file version it fetched; prune drops the old ones.
+            let lfs = url.appendingPathComponent("lfs")
+            let lfsBytes = BulkScanner().measure(lfs.appendingPathComponent("objects"), cancel: cancel).allocated
+            if lfsBytes >= 200_000_000 {
+                result.append(Candidate(url: lfs, name: "\(repo.lastPathComponent) (Git LFS)",
+                                        detail: String(localized: "\(location) · \(ByteFormat.string(lfsBytes)) of large files cached · git lfs prune runs in Terminal and keeps what recent commits need"),
+                                        knownSize: lfsBytes, kind: .gitLFSPrune))
+            }
+            let (bytes, packs) = looseObjects(url)
+            guard bytes >= 50_000_000 || packs >= 20 else { continue }
             result.append(Candidate(url: url, name: "\(repo.lastPathComponent) (git)",
                                     detail: String(localized: "\(location) · \(ByteFormat.string(bytes)) not packed, \(packs) pack files · git gc runs in Terminal"),
                                     knownSize: max(bytes, 1), kind: .gitCompact))

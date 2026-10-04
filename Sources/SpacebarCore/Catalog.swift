@@ -49,6 +49,8 @@ public enum ItemKind: Hashable, Sendable, Codable {
     case aiModel
     /// A git repository to compact: `git gc` runs in Terminal, outside Spacebar's permissions.
     case gitCompact
+    /// A repository's Git LFS cache (.git/lfs): `git lfs prune` runs in Terminal.
+    case gitLFSPrune
     /// Messages attachments from one year, older than `days` (moved to the Trash file by file).
     case messagesAttachments(year: Int, olderThanDays: Int)
     /// A Mail account's cached attachments not touched in `days` (Mail downloads them again).
