@@ -1079,6 +1079,28 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// Drops results whose files are gone (deleted in Finder, an app removed…), so lists don't show
+    /// what isn't there anymore. Only items under `changed` folders are checked.
+    func pruneMissing(under changed: [String]) {
+        guard !changed.isEmpty else { return }
+        let fm = FileManager.default
+        func touched(_ path: String) -> Bool {
+            changed.contains { path == $0 || path.hasPrefix($0 + "/") || $0.hasPrefix(path + "/") }
+        }
+        for (id, items) in results {
+            let kept = items.filter { item in
+                guard item.url.isFileURL, touched(item.url.path) else { return true }
+                return fm.fileExists(atPath: item.url.path)
+            }
+            if kept.count != items.count { results[id] = kept }
+        }
+        let apps = appUsage.filter { fm.fileExists(atPath: $0.url.path) }
+        if apps.count != appUsage.count {
+            appUsage = apps
+            appUsageFresh = false // measure again next time App Storage opens
+        }
+    }
+
     /// Re-measures only the folders that changed and updates their slices in place.
     func applyStorageChanges() {
         guard !storageRunning, let storage, storage.complete,
@@ -1090,8 +1112,18 @@ final class AppModel: ObservableObject {
             return
         }
         let roots = storage.folderSizes.map { Array($0.keys) } ?? []
-        let affected = Set(storageChanges.compactMap { FileWatcher.owningRoot(of: $0, in: roots) })
+        // A change inside a measured folder affects that folder. A change in a folder that holds
+        // measured folders (e.g. ~/Library/Containers when an app's container is deleted) reports
+        // the parent, so measured folders directly inside it that are gone count too (as 0).
+        var affected = Set(storageChanges.compactMap { FileWatcher.owningRoot(of: $0, in: roots) })
+        let changedParents = Set(storageChanges)
+        affected.formUnion(roots.filter {
+            changedParents.contains(($0 as NSString).deletingLastPathComponent)
+                && !FileManager.default.fileExists(atPath: StorageAnalyzer.measurablePath($0))
+        })
+        let changedNow = Array(storageChanges)
         storageChanges = []
+        pruneMissing(under: changedNow)
         // Every change up to here is in `affected`, so the saved breakdown can resume after it.
         let eventID = lastStorageEventID
         guard !affected.isEmpty else {
