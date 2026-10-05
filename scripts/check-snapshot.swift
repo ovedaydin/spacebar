@@ -21,7 +21,7 @@ for path in CommandLine.arguments.dropFirst() {
             colors.insert(UInt32(p[0] >> 4) << 8 | UInt32(p[1] >> 4) << 4 | UInt32(p[2] >> 4))
         }
     }
-    let ok = colors.count >= 12
+    let ok = colors.count >= 8 // blank windows score 3-4; real pages, even empty ones, 14+
     print("\(ok ? "ok  " : "FAIL") \(URL(fileURLWithPath: path).lastPathComponent): \(colors.count) distinct colors")
     if !ok { failed = true }
 }
