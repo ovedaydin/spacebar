@@ -308,7 +308,9 @@ public enum StorageAnalyzer {
         for (index, slice) in slices.enumerated() {
             if cancel?.isCancelled == true { return nil }
             let roots = slice.1.filter { fm.fileExists(atPath: $0.path) }
-            let sizes = engine.measure(roots, cancel: cancel)
+            // With a sharing engine, remember sizes a few levels down so categories reuse them.
+            let sizes = engine.sharesMeasurements ? engine.measureRemembering(roots, depth: 3, cancel: cancel)
+                                                  : engine.measure(roots, cancel: cancel)
             let bytes = sizes.reduce(Int64(0)) { $0 + $1.allocated }
             var folders = breakdown.folderSizes ?? [:]
             for (root, size) in zip(roots, sizes) { folders[displayPath(root.path)] = size.allocated }

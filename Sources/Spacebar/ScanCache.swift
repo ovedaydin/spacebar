@@ -38,7 +38,9 @@ enum ScanCache {
     static let maxExplorerEntries = 50_000
 
     static var directory: URL {
-        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+        // Debug builds can use a scratch folder, e.g. to time a first scan without touching the real cache.
+        if let override = DebugSnapshot.environment("SPACEBAR_CACHE_DIR") { return URL(fileURLWithPath: override, isDirectory: true) }
+        return FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(AppDefaults.bundleID, isDirectory: true)
     }
 

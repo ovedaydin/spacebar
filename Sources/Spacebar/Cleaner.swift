@@ -123,6 +123,7 @@ enum Cleaner {
             }
         }
         appendToLog(log)
+        if !dryRun && !report.removed.isEmpty { MeasurementMemo.shared.clear() }
         if let history, !dryRun, !recorded.isEmpty || report.photosCount > 0 {
             CleaningHistory.append(CleaningRecord(date: Date(), source: history, freedBytes: report.deletedBytes,
                                                   trashedBytes: report.trashedBytes, photos: report.photosCount,

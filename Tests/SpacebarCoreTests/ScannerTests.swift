@@ -57,3 +57,28 @@ final class ScannerTests: XCTestCase {
         _ = newer
     }
 }
+
+final class MeasurementMemoTests: XCTestCase {
+    func testRemembersSubfoldersAndForgetsChangedOnes() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("memo-\(UUID().uuidString)")
+        let sub = root.appendingPathComponent("a/b")
+        try FileManager.default.createDirectory(at: sub, withIntermediateDirectories: true)
+        try Data(count: 100_000).write(to: sub.appendingPathComponent("f.bin"))
+        defer { try? FileManager.default.removeItem(at: root); MeasurementMemo.shared.clear() }
+
+        let scanner = BulkScanner(sharesMeasurements: true)
+        let total = scanner.measureRemembering([root], depth: 3)[0]
+        let resolved = root.resolvingSymlinksInPath().path
+        let remembered = MeasurementMemo.shared.lookup(resolved + "/a/b") ?? MeasurementMemo.shared.lookup(sub.path)
+        XCTAssertNotNil(remembered, "subfolder sizes are remembered")
+        XCTAssertEqual(remembered?.allocated, total.allocated)
+
+        // A change inside forgets the folder and everything above it, but not unrelated ones.
+        MeasurementMemo.shared.store(["/elsewhere": total])
+        MeasurementMemo.shared.invalidate([sub.path + "/new.bin", resolved + "/a/b/new.bin"])
+        XCTAssertNil(MeasurementMemo.shared.lookup(sub.path))
+        XCTAssertNil(MeasurementMemo.shared.lookup(resolved + "/a"))
+        XCTAssertNotNil(MeasurementMemo.shared.lookup("/elsewhere"))
+        XCTAssertNil(MeasurementMemo.shared.lookup("/elsewhere", now: Date().addingTimeInterval(MeasurementMemo.lifetime + 1)), "expires")
+    }
+}

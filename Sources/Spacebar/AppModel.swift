@@ -36,7 +36,8 @@ final class AppModel: ObservableObject {
             }
         }
     }
-    private let engine = BulkScanner()
+    /// Shares measurements with the disk breakdown, so a scan doesn't walk folders twice.
+    private let engine = BulkScanner(sharesMeasurements: true)
 
     @Published private(set) var results: [String: [CleanItem]] = [:]
     @Published private(set) var scanning: Set<String> = []
@@ -315,7 +316,12 @@ final class AppModel: ObservableObject {
         if fullStorage || !catchingUpStorage { refreshStorage() }
         // On-demand scans read Desktop/Documents/Downloads; with Full Disk Access that shows no prompts.
         let includeOnDemand = fullDiskAccess == true
+        // Categories that walk the home folder themselves run first, next to the disk breakdown;
+        // those inside ~/Library run after it and reuse its measurements (MeasurementMemo).
+        let reusesBreakdown: Set<String> = ["caches", "logs", "backups", "mail", "messages", "browsers", "devcaches",
+                                            "xcode", "archives", "trash", "leftovers", "icloud", "apps"]
         let wanted = categories.filter { !$0.onDemand || includeOnDemand || results[$0.id] != nil }
+            .sorted { (reusesBreakdown.contains($0.id) ? 1 : 0) < (reusesBreakdown.contains($1.id) ? 1 : 0) }
         // Changes made after this point are replayed next launch.
         catalogEventID = FileWatcher.currentEventID
         if !fullStorage, let since = cachedCatalogEventID, let full = lastFullCatalogScan,
@@ -1061,6 +1067,8 @@ final class AppModel: ObservableObject {
     private var lastStorageEventID: UInt64?
 
     private func noteStorageChanges(_ changed: [String], rescan: Bool) {
+        // Remembered sizes of folders that changed are no longer right.
+        if rescan { MeasurementMemo.shared.clear() } else { MeasurementMemo.shared.invalidate(changed) }
         storageChanges.formUnion(changed.map(StorageAnalyzer.displayPath))
         storageRescan = storageRescan || rescan
         guard NSApp.isActive, storageChangeTask == nil, !catchingUpStorage else { return }
@@ -1116,7 +1124,11 @@ final class AppModel: ObservableObject {
         let activity = ProcessInfo.processInfo.beginActivity(options: .userInitiated, reason: "Measuring disk usage")
         Task.detached(priority: .utility) {
             // Waits for a free slot like category scans do (see ResourceBudget).
-            let result = await ResourceBudget.heavy { StorageAnalyzer.analyze(engine: BulkScanner()) { partial in
+            let storageQueued = Date()
+            let result = await ResourceBudget.heavy { StorageAnalyzer.analyze(engine: BulkScanner(sharesMeasurements: true)) { partial in
+                if partial.complete, DebugSnapshot.enabled {
+                    FileHandle.standardError.write(Data(String(format: "[timing] storage done %.1fs after queued\n", Date().timeIntervalSince(storageQueued)).utf8))
+                }
                 Task { @MainActor in
                     self.measuringStorage = partial.measuring ?? (partial.complete ? nil : self.measuringStorage)
                     if !hadComplete || partial.complete {
@@ -1154,9 +1166,18 @@ final class AppModel: ObservableObject {
         let activity = ProcessInfo.processInfo.beginActivity(options: .userInitiated, reason: "Scanning \(category.name)")
         let context = ScanContext(engine: engine, runningApps: RunningApps.bundleIDs(),
                                   fullDiskAccess: fullDiskAccess ?? false, excluded: exclusions)
+        let queued = Date()
         Task.detached(priority: .userInitiated) {
             // At most two categories scan at once, so a full scan leaves room for everything else.
-            let items = await ResourceBudget.heavy { category.scan(context) }
+            let items = await ResourceBudget.heavy {
+                let started = Date()
+                let items = category.scan(context)
+                if DebugSnapshot.enabled {
+                    FileHandle.standardError.write(Data(String(format: "[timing] %@ scan %.1fs (waited %.1fs)\n", category.id,
+                                                               Date().timeIntervalSince(started), started.timeIntervalSince(queued)).utf8))
+                }
+                return items
+            }
             ProcessInfo.processInfo.endActivity(activity)
             await MainActor.run {
                 self.results[category.id] = items

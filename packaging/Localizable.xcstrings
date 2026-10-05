@@ -718,6 +718,16 @@
         }
       }
     },
+    "%@ · %@ of large files cached · git lfs prune runs in Terminal and keeps what recent commits need" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@ of large files cached · git lfs prune runs in Terminal and keeps what recent commits need"
+          }
+        }
+      }
+    },
     "%@ · %@%@" : {
       "localizations" : {
         "de" : {
@@ -2790,6 +2800,9 @@
         }
       }
     },
+    "A container uses it" : {
+
+    },
     "A downloaded update. Installing it removes the download." : {
       "localizations" : {
         "de" : {
@@ -3240,6 +3253,7 @@
       }
     },
     "Android system images no emulator uses, old Android build-tools and emulators, extra Xcode copies, older JetBrains IDE data, downloaded AI models, old Homebrew versions, and git repositories worth compacting. The Xcode you're using and the Homebrew versions in use are never offered. git gc runs in Terminal, not inside Spacebar." : {
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -3260,6 +3274,9 @@
           }
         }
       }
+    },
+    "Android system images no emulator uses, old Android build-tools and emulators, extra Xcode copies, older JetBrains IDE data, downloaded AI models, old Homebrew versions, git repositories worth compacting, and large Git LFS caches. The Xcode you're using and the Homebrew versions in use are never offered. git gc and git lfs prune run in Terminal, not inside Spacebar." : {
+
     },
     "App" : {
 
@@ -5072,6 +5089,9 @@
           }
         }
       }
+    },
+    "Compose project %@" : {
+
     },
     "Connect %@" : {
       "localizations" : {
@@ -8322,6 +8342,9 @@
         }
       }
     },
+    "Image · created %@" : {
+
+    },
     "Images no container uses; downloaded again when needed" : {
       "localizations" : {
         "de" : {
@@ -10797,6 +10820,12 @@
           }
         }
       }
+    },
+    "Not a Docker command Spacebar runs" : {
+
+    },
+    "Not a Git LFS cache" : {
+
     },
     "Not a Homebrew version folder" : {
       "localizations" : {
@@ -17122,6 +17151,9 @@
         }
       }
     },
+    "Untagged image %@" : {
+
+    },
     "Unused Apps" : {
       "localizations" : {
         "de" : {
@@ -17549,6 +17581,9 @@
           }
         }
       }
+    },
+    "Volume: may hold a database or other data" : {
+
     },
     "Volumes no container uses. They can hold databases and other data" : {
       "localizations" : {
@@ -19793,6 +19828,9 @@
           }
         }
       }
+    },
+    "used by %lld containers" : {
+
     },
     "·" : {
       "localizations" : {

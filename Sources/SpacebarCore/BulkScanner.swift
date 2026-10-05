@@ -19,12 +19,17 @@ public final class BulkScanner: SizeEngine, @unchecked Sendable {
     /// Count blocks shared by APFS clones once (costs a lookup per clone).
     public let cloneAware: Bool
 
+    /// Reuses sizes measured moments ago (see MeasurementMemo) and remembers what it measures.
+    public let sharesMeasurements: Bool
+
     public init(workers: Int = ResourceBudget.threads,
-                bufferSize: Int = 128 * 1024, breadthFirst: Bool = false, cloneAware: Bool = true) {
+                bufferSize: Int = 128 * 1024, breadthFirst: Bool = false, cloneAware: Bool = true,
+                sharesMeasurements: Bool = false) {
         self.workers = workers
         self.bufferSize = bufferSize
         self.breadthFirst = breadthFirst
         self.cloneAware = cloneAware
+        self.sharesMeasurements = sharesMeasurements
     }
 
     // sys/attr.h, sys/stat.h. Defined here because some don't import into Swift as UInt32.
@@ -103,7 +108,28 @@ public final class BulkScanner: SizeEngine, @unchecked Sendable {
     }
 
     public func measure(_ roots: [URL], cancel: CancelToken? = nil) -> [SizeTotals] {
-        let job = run(roots, maxDepth: 0, cancel: cancel)
+        guard sharesMeasurements else {
+            let job = run(roots, maxDepth: 0, cancel: cancel)
+            return Array(job.totals.prefix(roots.count))
+        }
+        let memo = MeasurementMemo.shared
+        var result = roots.map { memo.lookup($0.path) }
+        let missing = roots.indices.filter { result[$0] == nil }
+        if !missing.isEmpty {
+            let job = run(missing.map { roots[$0] }, maxDepth: 0, cancel: cancel)
+            for (offset, index) in missing.enumerated() { result[index] = job.totals[offset] }
+            if cancel?.isCancelled != true { memo.store(Dictionary(zip(missing.map { roots[$0].path }, job.totals), uniquingKeysWith: { a, _ in a })) }
+        }
+        return result.map { $0 ?? SizeTotals() }
+    }
+
+    /// Measures `roots` in one pass and remembers the size of every folder up to `depth` levels
+    /// below them, so later measurements of those folders are instant (see MeasurementMemo).
+    public func measureRemembering(_ roots: [URL], depth: Int, cancel: CancelToken? = nil) -> [SizeTotals] {
+        let job = run(roots, maxDepth: depth, cancel: cancel)
+        if cancel?.isCancelled != true {
+            MeasurementMemo.shared.store(Dictionary(zip(job.paths, job.totals), uniquingKeysWith: { a, _ in a }))
+        }
         return Array(job.totals.prefix(roots.count))
     }
 

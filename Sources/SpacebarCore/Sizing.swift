@@ -96,3 +96,44 @@ public enum ResourceBudget {
         }
     }
 }
+
+/// Folder sizes measured in the last few minutes, so one scan doesn't walk the same folders
+/// again (the disk breakdown measures ~/Library; App Caches, Logs, Mail… then reuse it).
+/// Forgotten after `lifetime` and whenever anything is cleaned.
+public final class MeasurementMemo: @unchecked Sendable {
+    public static let shared = MeasurementMemo()
+    public static let lifetime: TimeInterval = 600
+
+    private let lock = NSLock()
+    private var entries: [String: (totals: SizeTotals, date: Date)] = [:]
+
+    public func lookup(_ path: String, now: Date = Date()) -> SizeTotals? {
+        lock.lock(); defer { lock.unlock() }
+        guard let entry = entries[path], now.timeIntervalSince(entry.date) < Self.lifetime else { return nil }
+        return entry.totals
+    }
+
+    public func store(_ sizes: [String: SizeTotals], now: Date = Date()) {
+        lock.lock(); defer { lock.unlock() }
+        for (path, totals) in sizes { entries[path] = (totals, now) }
+    }
+
+    /// Forgets every folder that contains one of `changed` (its size is no longer right).
+    public func invalidate(_ changed: [String]) {
+        lock.lock(); defer { lock.unlock() }
+        for path in changed {
+            var current = path
+            while !current.isEmpty {
+                entries[current] = nil
+                guard let slash = current.lastIndex(of: "/") else { break }
+                current = String(current[..<slash])
+            }
+        }
+    }
+
+    /// After a clean (or anything else that changes sizes on purpose).
+    public func clear() {
+        lock.lock(); defer { lock.unlock() }
+        entries.removeAll()
+    }
+}
